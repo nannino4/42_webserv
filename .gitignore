@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Prerequisites
 *.d
 
@@ -30,3 +31,8 @@
 *.exe
 *.out
 *.app
+=======
+.vscode
+*.o
+*.out
+>>>>>>> created c++ code structure with classes: cluster->server->client->socket. missing core loop with epoll
