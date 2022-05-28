@@ -1,13 +1,17 @@
 #pragma once
 
+#include "base.hpp"
 #include "server.hpp"
 #include "socket.hpp"
 
-class ConnectedClient
+class ConnectedClient : public Base
 {
 private:
 	// attributes
 	Server	&server;
-	Socket	connected_socket;
+
+public:
+	// constructor
+	//TODO
 
 };

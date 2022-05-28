@@ -4,8 +4,11 @@
 #include <vector>
 #include <map>
 #include <utility>		//pair
+#include <sys/epoll.h>	//epoll
 
 #include "server.hpp"
+
+#define MAX_EVENTS 1000
 
 class Cluster
 {
@@ -15,8 +18,12 @@ public:
 
 private:
 	// attributes
-	std::vector<Server>	servers_v;
+	std::vector<Server>					servers_v;
 	std::map< host_port_type, Server& >	defaultServers_m;
+	int									epoll_fd;
+	struct epoll_event					events;
+	struct epoll_event					ret_events[MAX_EVENTS];
+	int									num_ready_fds;
 
 public:
 	// constructor
@@ -31,13 +38,45 @@ public:
 	// run
 	void run()
 	{
+		epoll_fd = epoll_create1(0);
+		if (epoll_fd < 0)
+		{
+			//TODO handle error
+			// perror("cluster.run(): epoll_create1 failed")
+		}
 		for (std::vector<Server>::iterator it = servers_v.begin(); it != servers_v.end(); ++it)
 		{
-			it->run();
+			it->startListening();
+			events.events = EPOLLIN;
+			events.data.fd = it->getListeningSocket().getFd();
+			events.data.ptr = (void *)&(*it);
+			if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, it->getListeningSocket().getFd(), &events) == -1)
+			{
+				//TODO handle error
+				// perror("cluster.run(): epoll_ctl failed")
+			}
 		}
 		while (1)
 		{
-			// TODO connect and communicate
+			num_ready_fds = epoll_wait(epoll_fd, ret_events, MAX_EVENTS, -1);
+			if (num_ready_fds == -1)
+			{
+				//TODO handle error
+				// perror("cluster.run(): epoll_wait failed")
+			}
+			for (int i = 0; i < num_ready_fds; ++i)
+			{
+				Base *base_ptr = static_cast<Base *>(ret_events[i].data.ptr);
+				if (dynamic_cast<Server *>(base_ptr))
+				{
+					//TODO accept client
+				}
+				else if (dynamic_cast<ConnectedClient *>(base_ptr))
+				{
+					//TODO read from connected client
+				}
+			}
+			
 		}
 	}
 

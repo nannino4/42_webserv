@@ -3,40 +3,41 @@
 #include <string>
 #include <vector>
 
+#include "base.hpp"
 #include "connected_client.hpp"
 #include "socket.hpp"
 
-class Server
+class Server : public Base
 {
 private:
 	// attributes
-	Socket							*listening_socket;
 	std::vector<std::string>		names;
-	std::string						host;
+	std::string						ipAddress;
 	unsigned short					port;
 	std::vector<ConnectedClient>	clients_v;
 	unsigned short					backlog;
 
 public:
 	// getters
-	unsigned short	getPort() { return port; }
-	unsigned short	getBacklog() { return backlog; }
-	std::string	getHost() { return host; }
+	unsigned short const	getPort() const { return port; }
+	unsigned short const	getBacklog() const { return backlog; }
+	std::string const		&getIpAddress() const { return ipAddress; }
+	Socket const			&getListeningSocket() const { return *socket; }
 
 	// constructor
-	Server(std::vector<std::string> names, std::string host, unsigned short port, unsigned short backlog) : names(names), host(host), port(port), backlog(backlog) {}
+	Server(std::vector<std::string> names, std::string ipAddress, unsigned short port, unsigned short backlog) : names(names), ipAddress(ipAddress), port(port), backlog(backlog) {}
 
 	// destructor
 	~Server()
 	{
-		listening_socket->~Socket();
-		delete listening_socket;
+		socket->~Socket();
+		delete socket;
 	}
 
-	// run
-	void run()
+	// start listening
+	void startListening()
 	{
-		listening_socket = new Socket(*this);
+		socket = new Socket(*this);
 	}
 
 };

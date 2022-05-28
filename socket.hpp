@@ -30,7 +30,7 @@ public:
 		bzero(&server_addr, sizeof(server_addr));
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port = htons(server.getPort());
-		server_addr.sin_addr.s_addr = inet_addr(server.getHost().c_str());
+		server_addr.sin_addr.s_addr = inet_addr(server.getIpAddress().c_str());
 		if (bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
 		{
 			//TODO handle errors
@@ -48,5 +48,8 @@ public:
 
 	// destructor
 	~Socket() { close(fd); }
+
+	// getter
+	int const getFd() const { return fd; }
 
 };
