@@ -18,36 +18,51 @@ public:
 	// listener constructor
 	Socket(Server &server)
 	{
-		struct sockaddr_in	server_addr;
-		// initialize attributes
 		fd = socket(AF_INET, SOCK_STREAM, 0);
 		if (fd < 0)
 		{
 			//TODO handle errors
-			// perror("ERROR opening socket");
-			// exit(EXIT_FAILURE);
+			// perror("Socket: socket");
 		}
-		bzero(&server_addr, sizeof(server_addr));
-		server_addr.sin_family = AF_INET;
-		server_addr.sin_port = htons(server.getPort());
-		server_addr.sin_addr.s_addr = inet_addr(server.getIpAddress().c_str());
-		if (bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+		if (bind(fd, (struct sockaddr *)&server.getAddress(), sizeof(server.getAddress())) < 0)
 		{
 			//TODO handle errors
-			// perror("ERROR binding socket");
-			// exit(EXIT_FAILURE);
+			// perror("Socket: bind");
 		}
-		listen(fd, server.getBacklog());
+		if (listen(fd, server.getBacklog()) == -1)
+		{
+			//TODO handle errors
+			// perror("Socket: listen");
+		}
 	}
 
 	// connected constructor
-	Socket()
+	Socket(ConnectedClient &newClient)
 	{
-		//TODO connected_client_socket
+		socklen_t socklen = sizeof(newClient.getAddress());
+		newClient.getAddress().sin_family = AF_INET;
+		fd = accept(newClient.getListeningFd(), (sockaddr *)&newClient.getAddress(), &socklen);
+		if (fd == -1)
+		{
+			//TODO handle error
+			// perror("Socket: accept")
+		}
+		struct epoll_event events;
+		events.events = EPOLLIN;
+		events.data.fd = newClient.getConnectedFd();
+		if (epoll_ctl(newClient.getEpollFd(), EPOLL_CTL_ADD, newClient.getConnectedFd(), &events) == -1)
+		{
+			//TODO handle error
+			// perror("Socket: epoll_ctl")
+		}
 	}
 
 	// destructor
-	~Socket() { close(fd); }
+	~Socket()
+	{
+		if (fd != -1)
+			close(fd);
+	}
 
 	// getter
 	int const getFd() const { return fd; }

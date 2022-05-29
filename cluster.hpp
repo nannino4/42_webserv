@@ -35,6 +35,9 @@ public:
 	// destructor
 	~Cluster() {}
 
+	// getters
+	int const getEpollFd() const { return epoll_fd; }
+
 	// run
 	void run()
 	{
@@ -42,41 +45,42 @@ public:
 		if (epoll_fd < 0)
 		{
 			//TODO handle error
-			// perror("cluster.run(): epoll_create1 failed")
+			// perror("cluster.run(): epoll_create1")
 		}
 		for (std::vector<Server>::iterator it = servers_v.begin(); it != servers_v.end(); ++it)
 		{
 			it->startListening();
 			events.events = EPOLLIN;
-			events.data.fd = it->getListeningSocket().getFd();
+			events.data.fd = it->getListeningFd();
 			events.data.ptr = (void *)&(*it);
-			if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, it->getListeningSocket().getFd(), &events) == -1)
+			if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, it->getListeningFd(), &events) == -1)
 			{
 				//TODO handle error
-				// perror("cluster.run(): epoll_ctl failed")
+				// perror("cluster.run(): epoll_ctl")
 			}
 		}
+		// connect and communicate with clients
 		while (1)
 		{
 			num_ready_fds = epoll_wait(epoll_fd, ret_events, MAX_EVENTS, -1);
 			if (num_ready_fds == -1)
 			{
 				//TODO handle error
-				// perror("cluster.run(): epoll_wait failed")
+				// perror("cluster.run(): epoll_wait")
 			}
 			for (int i = 0; i < num_ready_fds; ++i)
 			{
 				Base *base_ptr = static_cast<Base *>(ret_events[i].data.ptr);
 				if (dynamic_cast<Server *>(base_ptr))
 				{
-					//TODO accept client
+					Server *server = static_cast<Server *>(base_ptr);
+					server->connectToClient();
 				}
 				else if (dynamic_cast<ConnectedClient *>(base_ptr))
 				{
 					//TODO read from connected client
 				}
 			}
-			
 		}
 	}
 

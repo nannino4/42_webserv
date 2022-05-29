@@ -9,6 +9,19 @@ protected:
 	Socket	*socket;
 
 public:
+	// constructor
+	Base()
+	{
+		socket = nullptr;
+	}
+
 	// destructor
-	virtual ~Base() {}
+	virtual ~Base()
+	{
+		if (socket)
+		{
+			socket->~Socket();
+			delete socket;
+		}
+	}
 };
