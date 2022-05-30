@@ -1,7 +1,6 @@
 #pragma once
 
 #include <sys/socket.h>	//socket()
-#include <netinet/in.h>	//htons()
 #include <arpa/inet.h>	//inet_addr()
 #include <cstring>		//bzero()
 #include <unistd.h>		//close()
@@ -50,6 +49,7 @@ public:
 		struct epoll_event events;
 		events.events = EPOLLIN;
 		events.data.fd = newClient.getConnectedFd();
+		events.data.ptr = (void *)&newClient;
 		if (epoll_ctl(newClient.getEpollFd(), EPOLL_CTL_ADD, newClient.getConnectedFd(), &events) == -1)
 		{
 			//TODO handle error

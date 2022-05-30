@@ -8,14 +8,17 @@ class ConnectedClient : public Base
 {
 private:
 	// attributes
-	Server const		&server;
+	Server				&server;
 	struct sockaddr_in	client_addr;
+	char				buf[BUFSIZ];
+	std::string			message;
 
 public:
 	// constructor
-	ConnectedClient(Server const &server) : server(server)
+	ConnectedClient(Server &server) : server(server), message("")
 	{
 		bzero(&client_addr, sizeof(client_addr));
+		bzero(buf, BUFSIZ);
 		socket = new Socket(*this);
 	}
 
@@ -27,5 +30,10 @@ public:
 	int const 			getConnectedFd() const { return socket->getFd(); }
 	struct sockaddr_in	&getAddress() { return client_addr; }
 	int const			getEpollFd() const { return server.getEpollFd(); }
+	char				*getBuf() { return buf; }
+	std::string			&getMessage() { return message; }
+
+	// communicate with server
+	void communicate() { server.getRequest(*this); }
 
 };

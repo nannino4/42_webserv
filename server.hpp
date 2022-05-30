@@ -26,13 +26,7 @@ public:
 	int const					getEpollFd() const { return cluster.getEpollFd(); }
 
 	// constructor
-	Server(Cluster const &cluster, std::vector<std::string> names, struct sockaddr_in server_addr, unsigned short backlog) : cluster(cluster), names(names), server_addr(server_addr), backlog(backlog)
-	{
-		// bzero(&server_addr, sizeof(server_addr));
-		// server_addr.sin_family = AF_INET;
-		// server_addr.sin_port = htons(server.getPort());
-		// server_addr.sin_addr.s_addr = inet_addr(server.getIpAddress().c_str());
-	}
+	Server(Cluster const &cluster, std::vector<std::string> names, struct sockaddr_in server_addr, unsigned short backlog) : cluster(cluster), names(names), server_addr(server_addr), backlog(backlog) {}
 
 	// destructor
 	~Server()
@@ -55,6 +49,27 @@ public:
 	{
 		ConnectedClient *newClient = new ConnectedClient(*this);
 		clients_v.push_back(newClient);
+	}
+
+	// communicate with client
+	void getRequest(ConnectedClient &client)
+	{
+		int read_bytes = recv(client.getConnectedFd(), client.getBuf(), BUFSIZ, 0);
+		if (read_bytes == -1)
+		{
+			//TODO handle error
+			// perror("Server: readFromClient: recv");
+		}
+		client.getMessage() += client.getBuf();
+		bzero(client.getBuf(), BUFSIZ);
+		if (read_bytes < BUFSIZ)
+			giveResponse(client);
+	}
+
+	void giveResponse(ConnectedClient &client)
+	{
+		std::cout << client.getMessage() << std::endl;	//DEBUG
+		//TODO parse request - client.getMessage() - and create response
 	}
 
 };

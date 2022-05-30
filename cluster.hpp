@@ -73,12 +73,13 @@ public:
 				Base *base_ptr = static_cast<Base *>(ret_events[i].data.ptr);
 				if (dynamic_cast<Server *>(base_ptr))
 				{
-					Server *server = static_cast<Server *>(base_ptr);
+					Server *server = (Server *)base_ptr;
 					server->connectToClient();
 				}
 				else if (dynamic_cast<ConnectedClient *>(base_ptr))
 				{
-					//TODO read from connected client
+					ConnectedClient *client = (ConnectedClient *)base_ptr;
+					client->communicate();
 				}
 			}
 		}
