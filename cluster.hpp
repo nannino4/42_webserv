@@ -5,9 +5,11 @@
 #include <map>
 #include <utility>		//pair
 #include <sys/event.h>	//kqueue kevent
+#include <fcntl.h>		//open()
 
 #include "server.hpp"
 
+#define DEF_CONF "/conf/default.conf"
 #define N_EVENTS 1000
 
 class Cluster
@@ -29,6 +31,19 @@ public:
 	// constructor
 	Cluster(std::string config_file)	//NOTE: if the config file is not valid, then default config file is used
 	{
+		int conf_fd;
+
+		conf_fd = open(config_file.c_str(), O_RDONLY);
+		if (conf_fd == -1)
+		{
+			std::cout << "WARNING\n" << config_file << " is not a valid configuration file. The default configuration file \"default.conf\" is used instead" << std::endl;
+			conf_fd = open(DEF_CONF, O_RDONLY);
+			if (conf_fd == -1)
+			{
+				//TODO handle error
+				// perror("ERROR\nCluster: trying to open default.conf with open()")
+			}
+		}
 		//TODO parsing config file e initialization of cluster
 	}
 
@@ -45,7 +60,7 @@ public:
 		if (kqueue_fd == -1)
 		{
 			//TODO handle error
-			// perror("cluster.run(): epoll_create1")
+			// perror("ERROR\ncluster.run(): epoll_create1")
 		}
 		// make servers listen and add them to kqueue
 		for (std::vector<Server>::iterator it = servers_v.begin(); it != servers_v.end(); ++it)
@@ -55,7 +70,7 @@ public:
 			if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)
 			{
 				//TODO handle error
-				// perror("cluster.run(): adding listeningFd to kqueue with kevent()")
+				// perror("ERROR\ncluster.run(): adding listeningFd to kqueue with kevent()")
 			}
 		}
 		// let servers connect and communicate with clients
@@ -65,7 +80,7 @@ public:
 			if (num_ready_fds == -1)
 			{
 				//TODO handle error
-				// perror("cluster.run(): getting triggered events with kevent()")
+				// perror("ERROR\ncluster.run(): getting triggered events with kevent()")
 			}
 			for (int i = 0; i < num_ready_fds; ++i)
 			{

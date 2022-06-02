@@ -21,17 +21,17 @@ public:
 		if (fd < 0)
 		{
 			//TODO handle errors
-			// perror("Socket: socket");
+			// perror("ERROR\nSocket: socket");
 		}
 		if (bind(fd, (struct sockaddr *)&server.getAddress(), sizeof(server.getAddress())) < 0)
 		{
 			//TODO handle errors
-			// perror("Socket: bind");
+			// perror("ERROR\nSocket: bind");
 		}
 		if (listen(fd, server.getBacklog()) == -1)
 		{
 			//TODO handle errors
-			// perror("Socket: listen");
+			// perror("ERROR\nSocket: listen");
 		}
 	}
 
@@ -44,14 +44,14 @@ public:
 		if (fd == -1)
 		{
 			//TODO handle error
-			// perror("Socket: accept")
+			// perror("ERROR\nSocket: accept")
 		}
 		struct kevent event;
 		EV_SET(&event, newClient.getConnectedFd(), EVFILT_READ, EV_ADD, 0, 0, (void *)&newClient);
 		if (kevent(newClient.getKqueueFd(), &event, 1, nullptr, 0, nullptr) == -1)
 		{
 			//TODO handle error
-			// perror("Socket: adding connectedFd to kqueue with kevent()")
+			// perror("ERROR\nSocket: adding connectedFd to kqueue with kevent()")
 		}
 	}
 

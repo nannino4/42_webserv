@@ -58,7 +58,7 @@ public:
 		if (read_bytes == -1)
 		{
 			//TODO handle error
-			// perror("Server: readFromClient: recv");
+			// perror("ERROR\nServer: readFromClient: recv");
 		}
 		client.getMessage() += client.getBuf();
 		bzero(client.getBuf(), BUFSIZ);
