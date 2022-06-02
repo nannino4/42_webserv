@@ -23,7 +23,7 @@ public:
 	struct sockaddr_in const	&getAddress() const { return server_addr; }
 	unsigned short const		getBacklog() const { return backlog; }
 	int const					getListeningFd() const { return socket->getFd(); }
-	int const					getEpollFd() const { return cluster.getEpollFd(); }
+	int const					getKqueueFd() const { return cluster.getKqueueFd(); }
 
 	// constructor
 	Server(Cluster const &cluster, std::vector<std::string> names, struct sockaddr_in server_addr, unsigned short backlog) : cluster(cluster), names(names), server_addr(server_addr), backlog(backlog) {}

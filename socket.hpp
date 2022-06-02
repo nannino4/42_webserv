@@ -46,14 +46,12 @@ public:
 			//TODO handle error
 			// perror("Socket: accept")
 		}
-		struct epoll_event events;
-		events.events = EPOLLIN;
-		events.data.fd = newClient.getConnectedFd();
-		events.data.ptr = (void *)&newClient;
-		if (epoll_ctl(newClient.getEpollFd(), EPOLL_CTL_ADD, newClient.getConnectedFd(), &events) == -1)
+		struct kevent event;
+		EV_SET(&event, newClient.getConnectedFd(), EVFILT_READ, EV_ADD, 0, 0, (void *)&newClient);
+		if (kevent(newClient.getKqueueFd(), &event, 1, nullptr, 0, nullptr) == -1)
 		{
 			//TODO handle error
-			// perror("Socket: epoll_ctl")
+			// perror("Socket: adding connectedFd to kqueue with kevent()")
 		}
 	}
 

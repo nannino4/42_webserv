@@ -4,11 +4,11 @@
 #include <vector>
 #include <map>
 #include <utility>		//pair
-#include <sys/epoll.h>	//epoll
+#include <sys/event.h>	//kqueue kevent
 
 #include "server.hpp"
 
-#define MAX_EVENTS 1000
+#define N_EVENTS 1000
 
 class Cluster
 {
@@ -20,9 +20,9 @@ private:
 	// attributes
 	std::vector<Server>					servers_v;
 	std::map< host_port_type, Server& >	defaultServers_m;
-	int									epoll_fd;
-	struct epoll_event					events;
-	struct epoll_event					ret_events[MAX_EVENTS];
+	int									kqueue_fd;
+	struct kevent						event;
+	struct kevent						triggered_events[N_EVENTS];
 	int									num_ready_fds;
 
 public:
@@ -36,41 +36,40 @@ public:
 	~Cluster() {}
 
 	// getters
-	int const getEpollFd() const { return epoll_fd; }
+	int const getKqueueFd() const { return kqueue_fd; }
 
 	// run
 	void run()
 	{
-		epoll_fd = epoll_create1(0);
-		if (epoll_fd < 0)
+		kqueue_fd = kqueue();
+		if (kqueue_fd == -1)
 		{
 			//TODO handle error
 			// perror("cluster.run(): epoll_create1")
 		}
+		// make servers listen and add them to kqueue
 		for (std::vector<Server>::iterator it = servers_v.begin(); it != servers_v.end(); ++it)
 		{
 			it->startListening();
-			events.events = EPOLLIN;
-			events.data.fd = it->getListeningFd();
-			events.data.ptr = (void *)&(*it);
-			if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, it->getListeningFd(), &events) == -1)
+			EV_SET(&event, it->getListeningFd(), EVFILT_READ, EV_ADD, 0, 0, (void *)&(*it));
+			if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)
 			{
 				//TODO handle error
-				// perror("cluster.run(): epoll_ctl")
+				// perror("cluster.run(): adding listeningFd to kqueue with kevent()")
 			}
 		}
-		// connect and communicate with clients
+		// let servers connect and communicate with clients
 		while (1)
 		{
-			num_ready_fds = epoll_wait(epoll_fd, ret_events, MAX_EVENTS, -1);
+			num_ready_fds = kevent(kqueue_fd, nullptr, 0, triggered_events, N_EVENTS, nullptr);
 			if (num_ready_fds == -1)
 			{
 				//TODO handle error
-				// perror("cluster.run(): epoll_wait")
+				// perror("cluster.run(): getting triggered events with kevent()")
 			}
 			for (int i = 0; i < num_ready_fds; ++i)
 			{
-				Base *base_ptr = static_cast<Base *>(ret_events[i].data.ptr);
+				Base *base_ptr = static_cast<Base *>(triggered_events[i].udata);
 				if (dynamic_cast<Server *>(base_ptr))
 				{
 					Server *server = (Server *)base_ptr;

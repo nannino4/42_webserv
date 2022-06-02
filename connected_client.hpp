@@ -29,7 +29,7 @@ public:
 	int const 			getListeningFd() const { return server.getListeningFd(); }
 	int const 			getConnectedFd() const { return socket->getFd(); }
 	struct sockaddr_in	&getAddress() { return client_addr; }
-	int const			getEpollFd() const { return server.getEpollFd(); }
+	int const			getKqueueFd() const { return server.getKqueueFd(); }
 	char				*getBuf() { return buf; }
 	std::string			&getMessage() { return message; }
 
