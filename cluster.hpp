@@ -17,7 +17,7 @@ class Cluster
 {
 private:
 	// attributes
-	std::vector<Server>					servers_v;
+	std::vector<Server>					servers;
 	int									kqueue_fd;
 	struct kevent						event;
 	struct kevent						triggered_events[N_EVENTS];

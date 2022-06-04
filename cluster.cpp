@@ -23,7 +23,7 @@ Cluster::~Cluster() {}
 
 // getters
 int const Cluster::getKqueueFd() const { return kqueue_fd; }
-std::vector<Server> &Cluster::getServers() { return servers_v; }
+std::vector<Server> &Cluster::getServers() { return servers; }
 
 // run
 void Cluster::run()
@@ -35,7 +35,7 @@ void Cluster::run()
 		// perror("ERROR\ncluster.run(): epoll_create1")
 	}
 	// make servers listen and add them to kqueue
-	for (std::vector<Server>::iterator it = servers_v.begin(); it != servers_v.end(); ++it)
+	for (std::vector<Server>::iterator it = servers.begin(); it != servers.end(); ++it)
 	{
 		it->startListening();
 		EV_SET(&event, it->getListeningFd(), EVFILT_READ, EV_ADD, 0, 0, (void *)&(*it));
