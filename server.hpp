@@ -8,6 +8,8 @@
 #include "connected_client.hpp"
 #include "socket.hpp"
 
+#define BUFFER_SIZE BUFSIZ
+
 class Server : public Base
 {
 private:
@@ -15,6 +17,7 @@ private:
 	Cluster	const					&cluster;
 	std::vector<std::string>		names;
 	struct sockaddr_in				server_addr;
+	bool							default_server;
 	std::vector<ConnectedClient *>	clients_v;
 	unsigned short					backlog;
 
@@ -26,7 +29,7 @@ public:
 	int const					getKqueueFd() const { return cluster.getKqueueFd(); }
 
 	// constructor
-	Server(Cluster const &cluster, std::vector<std::string> names, struct sockaddr_in server_addr, unsigned short backlog) : cluster(cluster), names(names), server_addr(server_addr), backlog(backlog) {}
+	Server(Cluster const &cluster, std::vector<std::string> names, struct sockaddr_in server_addr, bool default_server, unsigned short backlog) : cluster(cluster), names(names), server_addr(server_addr), default_server(default_server), backlog(backlog) {}
 
 	// destructor
 	~Server()
@@ -54,15 +57,15 @@ public:
 	// communicate with client
 	void getRequest(ConnectedClient &client)
 	{
-		int read_bytes = recv(client.getConnectedFd(), client.getBuf(), BUFSIZ, 0);
+		int read_bytes = recv(client.getConnectedFd(), client.getBuf(), BUFFER_SIZE, 0);
 		if (read_bytes == -1)
 		{
 			//TODO handle error
 			// perror("ERROR\nServer: readFromClient: recv");
 		}
 		client.getMessage() += client.getBuf();
-		bzero(client.getBuf(), BUFSIZ);
-		if (read_bytes < BUFSIZ)
+		bzero(client.getBuf(), BUFFER_SIZE);
+		if (read_bytes < BUFFER_SIZE)
 			giveResponse(client);
 	}
 
