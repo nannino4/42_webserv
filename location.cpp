@@ -1,8 +1,7 @@
 #include "location.hpp"
 
 // constructor
-Location::Location(std::string path, std::string content) :
-path(path)
+Location::Location(std::ifstream config_file)
 {
 	//TODO parse content and initialize location
 }
@@ -11,7 +10,6 @@ path(path)
 Location::~Location() {}
 
 // getters
-std::string const &Location::getPath() const { return path; }
 std::string const &Location::getRoot() const { return root; }
 bool Location::isMethodAllowed(std::string method) const
 {

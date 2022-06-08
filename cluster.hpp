@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <map>
@@ -24,7 +26,7 @@ private:
 
 public:
 	// constructor
-	Cluster(std::string config_file);
+	Cluster(std::string config_file_name);
 
 	// destructor
 	~Cluster();
@@ -34,10 +36,5 @@ public:
 
 	// run
 	void run();
-
-private:
-	// private methods
-	std::vector<Server>	&getServers();
-	void	parse_config_file(int conf_fd);
 
 };

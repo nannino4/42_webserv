@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <map>
 #include <vector>
@@ -8,7 +10,6 @@ class Location
 {
 private:
 	// attributes
-	std::string					path;
 	std::string					root;
 	std::vector<std::string>	allowed_methods;
 	struct	Redirection
@@ -18,13 +19,12 @@ private:
 	}							redirection;
 public:
 	// constructor
-	Location(std::string path, std::string content);
+	Location(std::ifstream config_file);
 
 	// destructor
 	~Location();
 
 	// getters
-	std::string const	&getPath() const;
 	std::string const	&getRoot() const;
 	bool				isMethodAllowed(std::string method) const;
 	Redirection const	&getRedirection() const;

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "cluster.hpp"
 #include "location.hpp"
@@ -19,23 +20,16 @@ private:
 
 	std::vector<std::string>			names;
 	struct sockaddr_in					server_addr;
-	bool								default_server;
 	std::map<int, std::string>			error_pages;
 	size_t								client_body_size;
-	std::vector<Location>				locations;
+	std::map<std::string,Location>		locations;
 
 	std::vector<ConnectedClient *>		clients;
 	unsigned short						backlog;
 
 public:
-	// getters
-	struct sockaddr_in const	&getAddress() const;
-	unsigned short const		getBacklog() const
-	int const					getListeningFd() const;
-	int const					getKqueueFd() const;
-
 	// constructor
-	Server(Cluster const &cluster, bool default_server, unsigned short backlog);
+	Server(Cluster const &cluster, unsigned short backlog, std::ifstream config_file);
 
 	// destructor
 	~Server()
@@ -46,6 +40,12 @@ public:
 			delete *it;
 		}
 	}
+
+	// getters
+	struct sockaddr_in const	&getAddress() const;
+	unsigned short const		getBacklog() const
+	int const					getListeningFd() const;
+	int const					getKqueueFd() const;
 
 	// start listening
 	void startListening();
