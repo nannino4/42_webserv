@@ -7,6 +7,9 @@
 
 #include "server.hpp"
 
+class Server;
+class ConnectedClient;
+
 class Socket
 {
 private:
@@ -24,6 +27,6 @@ public:
 	~Socket();
 
 	// getter
-	int const getFd() const;
+	int getFd() const;
 
 };

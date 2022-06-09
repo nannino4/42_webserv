@@ -1,79 +1,85 @@
 #include "cluster.hpp"
 
-Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
+// Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
+// {
+	// std::ifstream config_file(config_file_name);
+
+	// // check that config_file_name exists and is valid, otherwise use DEF_CONF instead
+	// if (!config_file.is_open() && !config_file_name.compare(DEF_CONF))
+	// {
+	// 	//TODO handle error
+	// 	// perror("ERROR/nCluster: trying to open default.conf")
+	// 	// throw();
+	// }
+	// if (!config_file.is_open() && config_file_name.compare(DEF_CONF))
+	// {
+	// 	std::cout << "WARNING\n" << config_file << " is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
+	// 	config_file.open(DEF_CONF);
+	// 	if (!config_file.is_open())
+	// 	{
+	// 		//TODO handle error
+	// 		// perror("ERROR\nCluster: trying to open default.conf")
+	// 		// throw();
+	// 	}
+	// }
+	// // parse config_file in search for 'server' directives to create servers
+	// std::stringstream	line;
+	// std::string			tmp;
+	// std::string			directive;
+
+	// std::getline(config_file, tmp);
+	// while (config_file.good())
+	// {
+	// 	if (!tmp.empty())
+	// 	{
+	// 		line.str(tmp);
+	// 		line >> directive;
+	// 		if (!directive.compare("server"))
+	// 		{
+	// 			line >> tmp;
+	// 			if (tmp.compare("{"))
+	// 			{
+	// 				//TODO handle error
+	// 				// std::cerr << "ERROR\nCluster: parsing config_file: The server directive should only be followed by space and \"{\"" << std::endl;
+	// 				// throw()
+	// 			}
+	// 			else
+	// 			{
+	// 				line >> tmp;
+	// 				if (tmp.empty())
+	// 				{
+	// 					servers.push_back(Server(*this, BACKLOG_SIZE, config_file));
+	// 				}
+	// 				else
+	// 				{
+	// 					//TODO handle error
+	// 					// std::cerr << "ERROR\nCluster: parsing config_file: The server directive should only be followed by space and \"{\"" << std::endl;
+	// 					// throw()
+	// 				}
+	// 			}
+	// 		}
+	// 		else
+	// 		{
+	// 			//TODO handle error
+	// 			// std::cerr << "ERROR\nCluster: parsing config_file: directive " << directive << " is invalid" << std::endl;
+	// 			// throw()
+	// 		}
+	// 	}
+	// 	std::getline(config_file, tmp);
+	// }
+// }
+
+// constructor per DEBUG
+Cluster::Cluster()
 {
-	std::ifstream config_file(config_file_name);
-
-	// check that config_file_name exists and is valid, otherwise use DEF_CONF instead
-	if (!config_file.is_open() && !config_file_name.compare(DEF_CONF))
-	{
-		//TODO handle error
-		// perror("ERROR/nCluster: trying to open default.conf")
-		// throw();
-	}
-	if (!config_file.is_open() && config_file_name.compare(DEF_CONF))
-	{
-		std::cout << "WARNING\n" << config_file << " is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
-		confif_file.open(DEF_CONF);
-		if (!config_file.is_open())
-		{
-			//TODO handle error
-			// perror("ERROR\nCluster: trying to open default.conf")
-			// throw();
-		}
-	}
-	// parse config_file in search for 'server' directives to create servers
-	std::stringstream	line;
-	std::string			tmp;
-	std::string			directive;
-
-	std::getline(config_file, tmp);
-	while (config_file.good())
-	{
-		if (!tmp.empty())
-		{
-			line.str(tmp);
-			line >> directive;
-			if (!directive.compare("server"))
-			{
-				line >> tmp;
-				if (tmp.compare("{"))
-				{
-					//TODO handle error
-					// std::cerr << "ERROR\nCluster: parsing config_file: The server directive should only be followed by space and \"{\"" << std::endl;
-					// throw()
-				}
-				else
-				{
-					line >> tmp;
-					if (tmp.empty())
-					{
-						servers.push_back(Server(*this, BACKLOG_SIZE, config_file));
-					}
-					else
-					{
-						//TODO handle error
-						// std::cerr << "ERROR\nCluster: parsing config_file: The server directive should only be followed by space and \"{\"" << std::endl;
-						// throw()
-					}
-				}
-			}
-			else
-			{
-				//TODO handle error
-				// std::cerr << "ERROR\nCluster: parsing config_file: directive " << directive << " is invalid" << std::endl;
-				// throw()
-			}
-		}
-		std::getline(config_file, tmp);
-	}
+	default_servers.insert(std::pair<address,Server>(address("127.0.0.1", 8080), Server(*this, BACKLOG_SIZE)));
 }
 
 // destructor
 Cluster::~Cluster() {}
 
 // getters
-int const Cluster::getKqueueFd() const { return kqueue_fd; }
+int Cluster::getKqueueFd() const { return kqueue_fd; }
 
 // run
 void Cluster::run()
@@ -85,10 +91,10 @@ void Cluster::run()
 		// perror("ERROR\ncluster.run(): epoll_create1")
 	}
 	// make servers listen and add them to kqueue
-	for (std::vector<Server>::iterator it = servers.begin(); it != servers.end(); ++it)
+	for (std::map<address,Server>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
 	{
-		it->startListening();
-		EV_SET(&event, it->getListeningFd(), EVFILT_READ, EV_ADD, 0, 0, (void *)&(*it));
+		it->second.startListening();
+		EV_SET(&event, it->second.getListeningFd(), EVFILT_READ, EV_ADD, 0, 0, (void *)&(it->second));
 		if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)
 		{
 			//TODO handle error
@@ -119,11 +125,5 @@ void Cluster::run()
 				client->communicate();
 			}
 		}
-	}
-
-	// parse confi_file
-	void	Cluster::parse_config_file(int conf_fd)
-	{
-		//TODO parsing config file e initialization of servers
 	}
 }

@@ -1,6 +1,7 @@
 
 #include "socket.hpp"
 
+// listening constructor
 Socket::Socket(Server &server)
 {
 	fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -33,7 +34,7 @@ Socket::Socket(ConnectedClient &newClient)
 		// perror("ERROR\nSocket: accept")
 	}
 	struct kevent event;
-	EV_SET(&event, newClient.getConnectedFd(), EVFILT_READ, EV_ADD, 0, 0, (void *)&newClient);
+	EV_SET(&event, fd, EVFILT_READ, EV_ADD, 0, 0, (void *)&newClient);
 	if (kevent(newClient.getKqueueFd(), &event, 1, nullptr, 0, nullptr) == -1)
 	{
 		//TODO handle error
@@ -49,4 +50,4 @@ Socket::~Socket()
 }
 
 // getter
-int const getFd() const { return fd; }
+int Socket::getFd() const { return fd; }
