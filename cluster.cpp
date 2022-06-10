@@ -72,7 +72,7 @@
 // constructor per DEBUG
 Cluster::Cluster()
 {
-	default_servers.insert(std::pair<address,Server>(address("127.0.0.1", 8080), Server(*this, BACKLOG_SIZE)));
+	default_servers.insert(std::pair<address,Server>(address("0.0.0.0", 8080), Server(*this, BACKLOG_SIZE)));
 }
 
 // destructor

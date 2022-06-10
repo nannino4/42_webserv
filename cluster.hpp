@@ -20,13 +20,13 @@ class Cluster
 {
 private:
 	// aliases
-	typedef std::pair<std::string,unsigned short>	address;
+	typedef std::pair<in_addr_t,in_port_t>	address;
 private:
 	// attributes
-	std::map<address,Server>			default_servers;
-	int									kqueue_fd;
-	struct kevent						event;
-	struct kevent						triggered_events[N_EVENTS];
+	std::map<address,Server>	default_servers;
+	int							kqueue_fd;
+	struct kevent				event;
+	struct kevent				triggered_events[N_EVENTS];
 
 public:
 	// constructor

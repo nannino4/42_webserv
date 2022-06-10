@@ -11,21 +11,76 @@ int main()
 {
 
     struct sockaddr_in addr;
+	int ret;
+	int optval = true;
+	socklen_t len;
 
     bzero(&addr, sizeof(addr));
-    addr.sin_addr.s_addr = inet_addr("10.11.12.4");
+    addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_family = AF_INET;
     addr.sin_port = htons(8080);
 
-    char buf[BUFSIZE];
+	//bind 1
+    int fd1 = socket(AF_INET, SOCK_STREAM, 0);
+	setsockopt(fd1, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(optval));
+	ret = bind(fd1, (struct sockaddr *)&addr, sizeof(addr));
+    std::cout << "ret del primo bind = " << ret << std::endl;
+	if (ret == -1)
+	{
+		perror("ERROR");
+	}
+    bzero(&addr, sizeof(addr));
+	ret = getsockname(fd1, (sockaddr *)&addr, &len);					//getsockname
+    std::cout << "ret del primo getsockname = " << ret << std::endl;
+	std:: cout << "address = " << inet_ntoa(addr.sin_addr) << std::endl;
+	std:: cout << "port = " << ntohs(addr.sin_port) << std::endl;
 
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
-    std::cout << "ret del bind = " << bind(fd, (struct sockaddr *)&addr, sizeof(addr)) << std::endl;
-    listen(fd, 128);
-    std::cout << "sto ascoltando" << std::endl;
-    socklen_t socklen = sizeof(addr);
-    int acceptedFd = accept(fd, (sockaddr*)&addr, &socklen);
-    std::cout << "address del client = " <<  inet_ntoa(addr.sin_addr) << std::endl;
-    recv(acceptedFd, buf, BUFSIZE, 0);
-    std::cout << "ho ricevuto:\n" << buf << std::endl;
+    bzero(&addr, sizeof(addr));
+    addr.sin_addr.s_addr = inet_addr("172.31.73.65");
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(8080);
+	
+	//bind 2
+	std::cout << std::endl;
+    int fd2 = socket(AF_INET, SOCK_STREAM, 0);
+	setsockopt(fd2, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(optval));
+	ret = bind(fd2, (struct sockaddr *)&addr, sizeof(addr));
+    std::cout << "ret del secondo bind = " << ret << std::endl;
+	if (ret == -1)
+	{
+		perror("ERROR");
+	}
+    bzero(&addr, sizeof(addr));
+	ret = getsockname(fd2, (sockaddr *)&addr, &len);					//getsockname
+    std::cout << "ret del secondo getsockname = " << ret << std::endl;
+	std:: cout << "address = " << inet_ntoa(addr.sin_addr) << std::endl;
+	std:: cout << "port = " << ntohs(addr.sin_port) << std::endl;
+    
+	//listen 1
+	std::cout << std::endl;
+	ret = listen(fd1, 128);
+    std::cout << "ret del primo listen = " << ret << std::endl;
+	if (ret == -1)
+	{
+		perror("ERROR");
+	}
+    bzero(&addr, sizeof(addr));
+	ret = getsockname(fd1, (sockaddr *)&addr, &len);					//getsockname
+    std::cout << "ret del primo getsockname = " << ret << std::endl;
+	std:: cout << "address = " << inet_ntoa(addr.sin_addr) << std::endl;
+	std:: cout << "port = " << ntohs(addr.sin_port) << std::endl;
+	
+	//listen 2
+	std::cout << std::endl;
+    ret = listen(fd2, 128);
+    std::cout << "ret del secondo listen = " << ret << std::endl;
+	if (ret == -1)
+	{
+		perror("ERROR");
+	}
+    bzero(&addr, sizeof(addr));
+	ret = getsockname(fd2, (sockaddr *)&addr, &len);					//getsockname
+    std::cout << "ret del secondo getsockname = " << ret << std::endl;
+	std:: cout << "address = " << inet_ntoa(addr.sin_addr) << std::endl;
+	std:: cout << "port = " << ntohs(addr.sin_port) << std::endl;
 }

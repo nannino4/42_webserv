@@ -3,57 +3,44 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <iostream>
 
-#include "cluster.hpp"
-// #include "location.hpp"
-#include "socket.hpp"
+#include <sys/socket.h>	//socket()
+#include <arpa/inet.h>	//inet_addr()
+#include <cstring>		//bzero()
+#include <unistd.h>		//close()
 
-#define BUFFER_SIZE BUFSIZ
-
-class Cluster;
-
-class Base
-{
-protected:
-	// attributes
-	Socket	*socket;
-
-public:
-	// constructor
-	Base();
-
-	// destructor
-	virtual ~Base();
-};
+#include "base.hpp"
+#include "connected_client.hpp"
+#include "location.hpp"
 
 class Server : public Base
 {
 private:
 	// attributes
-	Cluster	const						&cluster;
+	int const		&kqueue_fd;
+	unsigned int	backlog;
 
-	std::vector<std::string>			names;
+	std::string							name;
 	struct sockaddr_in					server_addr;
 	std::map<int, std::string>			error_pages;
-	// size_t								client_body_size;
-	// std::map<std::string,Location>		locations;
+	size_t								client_body_size;
+	std::map<std::string,Location>		locations;
 
-	std::vector<ConnectedClient *>		clients;
-	unsigned short						backlog;
+	std::map<std::string,Server*>		virtual_servers;
+	std::vector<ConnectedClient*>		clients;
 
 public:
 	// constructor
-	// Server(Cluster const &cluster, unsigned short backlog, std::ifstream config_file);
-	// DEBUG constructor
-	Server(Cluster const &cluster, unsigned short backlog);
+	Server(int const &kqueue_fd, unsigned int backlog);
 
 	// destructor
 	~Server();
 
 	// getters
 	struct sockaddr_in const	&getAddress() const;
-	unsigned short				getBacklog() const;
-	int							getListeningFd() const;
+	unsigned int	 const		&getBacklog() const;
+	int const					&getListeningFd() const;
 	int							getKqueueFd() const;
 
 	// start listening
@@ -61,38 +48,5 @@ public:
 
 	// connect to client
 	void connectToClient();
-
-	// communicate with client
-	void getRequest(ConnectedClient &client);
-	void giveResponse(ConnectedClient &client);
-
-};
-
-class ConnectedClient : public Base
-{
-private:
-	// attributes
-	Server				&server;
-	struct sockaddr_in	client_addr;
-	char				buf[BUFSIZ];
-	std::string			message;
-
-public:
-	// constructor
-	ConnectedClient(Server &server);
-
-	// destructor
-	~ConnectedClient();
-
-	// getters
-	int 				getListeningFd() const;
-	int 				getConnectedFd() const;
-	struct sockaddr_in	&getAddress();
-	int					getKqueueFd() const;
-	char				*getBuf();
-	std::string			&getMessage();
-
-	// communicate with server
-	void communicate();
 
 };
