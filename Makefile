@@ -5,7 +5,7 @@ SRCS		= 	main.cpp \
 				default_server.cpp \
 				server.cpp \
 				connected_client.cpp \
-				location.cpp
+				# location.cpp
 
 OBJS		= 	$(SRCS:.cpp=.o)
 

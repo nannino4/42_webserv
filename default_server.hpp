@@ -9,6 +9,8 @@
 #include <cstring>		//bzero()
 #include <unistd.h>		//close()
 
+#include <sys/event.h>	//kqueue kevent
+
 #include "server.hpp"
 
 #define BUFFER_SIZE BUFSIZ

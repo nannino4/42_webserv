@@ -9,7 +9,7 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog) : Serve
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(8080);
 	error_pages.insert(std::pair<int,std::string>(404, "./error_pages/404.html"));	//TODO aggiungi altre pagine di errore
-	std::cout << "un nuovo default server e' stato creato" << std::endl;	//DEBUG
+	std::cout << "+ un nuovo default server e' stato creato" << std::endl;	//DEBUG
 }
 
 // destructor
@@ -17,7 +17,7 @@ DefaultServer::~DefaultServer()
 {
 	if (listening_fd != -1)
 		close(listening_fd);
-	std::cout << "un default server e' stato distrutto" << std::endl;		//DEBUG
+	std::cout << "- un default server e' stato distrutto" << std::endl;		//DEBUG
 }
 
 // getters
@@ -49,7 +49,10 @@ void DefaultServer::startListening()
 		exit(EXIT_FAILURE);
 	}
 
-	struct keven event;
+	//DEBUG
+	std::cout << "DefaultServer: kqueue_fd = " << kqueue_fd << std::endl;
+
+	struct kevent event;
 	EV_SET(&event, listening_fd, EVFILT_READ, EV_ADD, 0, 0, (void *)this);		// ident = listening_fd
 	if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)				// filter = READ
 	{																			// udata = DefaultServer*
@@ -57,6 +60,9 @@ void DefaultServer::startListening()
 		perror("ERROR\nDefaultServer.startListening(): kevent()");
 		exit(EXIT_FAILURE);
 	}
+
+	//DEBUG
+	std::cout << "listening on fd = " << listening_fd << "\nport = " << ntohs(server_addr.sin_port) << "\nip = " << inet_ntoa(server_addr.sin_addr) << std::endl << std::endl;
 }
 
 void DefaultServer::connectToClient()
@@ -75,8 +81,17 @@ void DefaultServer::connectToClient()
 		exit(EXIT_FAILURE);
 	}
 
+	//DEBUG
+	std::cout << "connected to fd = " << connected_fd << "\nport = " << ntohs(client_addr.sin_port) << "\nip = " << inet_ntoa(client_addr.sin_addr) << std::endl << std::endl;
+
 	// create new ConnectedClient
 	clients.insert(std::pair<int,ConnectedClient>(connected_fd, ConnectedClient(connected_fd, client_addr)));
+
+	//DEBUG
+	std::cout << "there are now " << clients.size() << " clients on this server with listening fd = " << listening_fd << std::endl;
+
+	//DEBUG
+	std::cout << "DefaultServer: kqueue_fd = " << kqueue_fd << std::endl;
 
 	// add new connected_fd to kqueue for READ monitoring
 	struct kevent event;
@@ -135,7 +150,7 @@ void DefaultServer::sendResponse(int const connected_fd, int const buf_size)
 	//print response for DEBUG reason
 	std::cout << "THE RESPONSE TO FD " << connected_fd << " IS:\n" << client.message << std::endl;	//DEBUG
 	
-	int size = (client.message_pos + buf_size > client.message.size()) ? (client.message.size() - client.message_pos) : buf_size;
+	int size = ((unsigned long)(client.message_pos + buf_size) > client.message.size()) ? (client.message.size() - client.message_pos) : buf_size;
 	send(connected_fd, client.message.substr(client.message_pos, client.message_pos + buf_size).c_str(), size, 0);			//TODO check that sizes are correct!
 	if (size != buf_size)
 	{

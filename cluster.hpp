@@ -6,15 +6,14 @@
 #include <string>
 #include <vector>
 #include <map>
+
 #include <sys/event.h>	//kqueue kevent
 
-#include "server.hpp"
+#include "default_server.hpp"
 
 #define DEF_CONF "/config_files/default.conf"
 #define N_EVENTS 1000
 #define BACKLOG_SIZE 128
-
-class Server;
 
 class Cluster
 {
@@ -23,9 +22,9 @@ private:
 	typedef std::pair<in_addr_t,in_port_t>	address;
 private:
 	// attributes
-	std::map<address,Server>	default_servers;
-	int							kqueue_fd;
-	struct kevent				triggered_events[N_EVENTS];
+	std::map<address,DefaultServer>	default_servers;
+	int								kqueue_fd;
+	struct kevent					triggered_events[N_EVENTS];
 
 public:
 	// constructor
