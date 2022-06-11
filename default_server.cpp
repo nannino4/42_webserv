@@ -164,6 +164,8 @@ void DefaultServer::sendResponse(int const connected_fd, int const buf_size)
 			exit(EXIT_FAILURE);
 		}
 
+		// close connected_fd and erase it from the map of clients
+		close(connected_fd);
 		clients.erase(connected_fd);
 	}
 }
