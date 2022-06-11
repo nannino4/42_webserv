@@ -5,28 +5,19 @@
 
 #include <arpa/inet.h>	//inet_addr()
 #include <unistd.h>		//close()
+#include <string.h>		//bzero()
 
-class ConnectedClient
+struct ConnectedClient
 {
-private:
-	// attributes
 	int	const			connected_fd;
-	struct sockaddr_in	client_addr;
+	struct sockaddr_in	client_addr;	
 	std::string			message;
+	int					message_pos;
 
-public:
 	// constructor
 	ConnectedClient(int const connected_fd, struct sockaddr_in client_addr);
 
 	// destructor
 	~ConnectedClient();
-
-	// getters
-	int const 					&getConnectedFd() const;
-	struct sockaddr_in const	&getAddress() const;
-	std::string					&getMessage();
-
-	// communicate with server
-	void sendResponse();
 
 };

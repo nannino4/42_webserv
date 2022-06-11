@@ -21,8 +21,6 @@ protected:
 	std::map<int, std::string>			error_pages;
 	size_t								client_body_size;
 	std::map<std::string,Location>		locations;
-	// communication
-	std::map<int,ConnectedClient>		clients;
 
 public:
 	// constructor
@@ -32,9 +30,9 @@ public:
 	~Server();
 
 	// getters
-	int	getKqueueFd() const;
+	int const	&getKqueueFd() const;
 
 	// communication
-	void prepareResponse();
+	void prepareResponse(ConnectedClient &client);
 
 };

@@ -24,7 +24,7 @@ DefaultServer::~DefaultServer()
 struct sockaddr_in const	&DefaultServer::getAddress() const { return server_addr; }
 unsigned int const			&DefaultServer::getBacklog() const { return backlog; }
 int const					&DefaultServer::getListeningFd() const { return listening_fd; }
-int							DefaultServer::getKqueueFd() const { return kqueue_fd; }
+int const					&DefaultServer::getKqueueFd() const { return kqueue_fd; }
 
 // communication
 void DefaultServer::startListening()
@@ -33,17 +33,29 @@ void DefaultServer::startListening()
 	if (listening_fd < 0)
 	{
 		//TODO handle errors
-		// perror("ERROR\nDefaultServer: socket");
+		perror("ERROR\nDefaultServer.startListening(): socket()");
+		exit(EXIT_FAILURE);
 	}
 	if (bind(listening_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
 	{
 		//TODO handle errors
-		// perror("ERROR\nDefaultServer: bind");
+		perror("ERROR\nDefaultServer.startListening(): bind()");
+		exit(EXIT_FAILURE);
 	}
 	if (listen(listening_fd, backlog) == -1)
 	{
 		//TODO handle errors
-		// perror("ERROR\nDefaultServer: listen");
+		perror("ERROR\nDefaultServer.startListening(): listen()");
+		exit(EXIT_FAILURE);
+	}
+
+	struct keven event;
+	EV_SET(&event, listening_fd, EVFILT_READ, EV_ADD, 0, 0, (void *)this);		// ident = listening_fd
+	if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)				// filter = READ
+	{																			// udata = DefaultServer*
+		//TODO handle error
+		perror("ERROR\nDefaultServer.startListening(): kevent()");
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -59,43 +71,84 @@ void DefaultServer::connectToClient()
 	if (connected_fd == -1)
 	{
 		//TODO handle error
-		// perror("ERROR\nDefaultServer: accept")
+		perror("ERROR\nDefaultServer.connectToClient(): accept()");
+		exit(EXIT_FAILURE);
 	}
+
 	// create new ConnectedClient
 	clients.insert(std::pair<int,ConnectedClient>(connected_fd, ConnectedClient(connected_fd, client_addr)));
+
 	// add new connected_fd to kqueue for READ monitoring
 	struct kevent event;
-	EV_SET(&event, connected_fd, EVFILT_READ, EV_ADD, 0, 0, (void *)this);
-	if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)
-	{
+	EV_SET(&event, connected_fd, EVFILT_READ, EV_ADD, 0, 0, (void *)this);		// ident = connected_fd
+	if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)				// filter = READ
+	{																			// udata = DefaultServer*
 		//TODO handle error
-		// perror("ERROR\nDefaultServer: adding connected_fd to kqueue with kevent()")
+		perror("ERROR\nDefaultServer.connectToClient(): kevent()");
+		exit(EXIT_FAILURE);
 	}
 }
 
-void DefaultServer::receiveRequest(int const connected_fd)
+void DefaultServer::receiveRequest(struct kevent const event)
 {
+	int connected_fd = event.ident;
+
 	// find client corresponding to connected_fd
 	if (clients.find(connected_fd) == clients.end())
 	{
 		//TODO handle error
-		// strerror("ERROR\nDefaultServer: could not find connected_fd among clients")
+		// strerror("ERROR\nDefaultServer.receiveRequest(): could not find connected_fd among clients")
 	}
-	ConnectedClient *client = &clients.find(connected_fd)->second;
+	ConnectedClient &client = clients.find(connected_fd)->second;
+
 	// read from connected_fd into client->message
 	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE, 0);
 	if (read_bytes == -1)
 	{
 		//TODO handle error
-		// perror("ERROR\nDefaultServer: receiveRequest: recv");
+		perror("ERROR\nDefaultServer.receiveRequest(): recv");
+		exit(EXIT_FAILURE);
 	}
-	client->getMessage() += buf;
+	client.message += buf;
 	bzero(buf, BUFFER_SIZE);
-	if (read_bytes < BUFFER_SIZE)
+	if (read_bytes < BUFFER_SIZE && event.filter & EV_EOF)
 		dispatchRequest(client);
 }
 
-void DefaultServer::dispatchRequest(ConnectedClient *client)
+void DefaultServer::dispatchRequest(ConnectedClient &client)
 {
 	//TODO dispatch the request to the corresponding server, based on the 'host' value
+	prepareResponse(client);	//DEBUG
+}
+
+void DefaultServer::sendResponse(int const connected_fd, int const buf_size)
+{
+	// find client corresponding to connected_fd
+	if (clients.find(connected_fd) == clients.end())
+	{
+		//TODO handle error
+		std::cerr << "ERROR\nDefaultServer.sendResponse(): could not find connected_fd among clients" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	ConnectedClient &client = clients.find(connected_fd)->second;
+
+	//print response for DEBUG reason
+	std::cout << "THE RESPONSE TO FD " << connected_fd << " IS:\n" << client.message << std::endl;	//DEBUG
+	
+	int size = (client.message_pos + buf_size > client.message.size()) ? (client.message.size() - client.message_pos) : buf_size;
+	send(connected_fd, client.message.substr(client.message_pos, client.message_pos + buf_size).c_str(), size, 0);			//TODO check that sizes are correct!
+	if (size != buf_size)
+	{
+		// remove connected_fd from kqueue
+		struct kevent event;
+		EV_SET(&event, connected_fd, 0, EV_DELETE, 0, 0, 0);
+		if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)
+		{
+			//TODO handle error
+			perror("ERROR\nDefaultServer.sendResponse(): kevent()");
+			exit(EXIT_FAILURE);
+		}
+
+		clients.erase(connected_fd);
+	}
 }

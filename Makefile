@@ -2,8 +2,10 @@ NAME		= 	webserv
 
 SRCS		= 	main.cpp \
 				cluster.cpp \
+				default_server.cpp \
 				server.cpp \
-				socket.cpp
+				connected_client.cpp \
+				location.cpp
 
 OBJS		= 	$(SRCS:.cpp=.o)
 

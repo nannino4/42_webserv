@@ -25,7 +25,6 @@ private:
 	// attributes
 	std::map<address,Server>	default_servers;
 	int							kqueue_fd;
-	struct kevent				event;
 	struct kevent				triggered_events[N_EVENTS];
 
 public:

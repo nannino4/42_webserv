@@ -88,19 +88,16 @@ void Cluster::run()
 	if (kqueue_fd == -1)
 	{
 		//TODO handle error
-		// perror("ERROR\ncluster.run(): epoll_create1")
+		perror("ERROR\ncluster.run(): epoll_create1()");
+		exit(EXIT_FAILURE);
 	}
+
 	// make servers listen and add them to kqueue
 	for (std::map<address,Server>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
 	{
 		it->second.startListening();
-		EV_SET(&event, it->second.getListeningFd(), EVFILT_READ, EV_ADD, 0, 0, (void *)&(it->second));
-		if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)
-		{
-			//TODO handle error
-			// perror("ERROR\ncluster.run(): adding listeningFd to kqueue with kevent()")
-		}
 	}
+
 	// let servers connect and communicate with clients
 	int	num_ready_fds;
 	while (1)
@@ -109,20 +106,31 @@ void Cluster::run()
 		if (num_ready_fds == -1)
 		{
 			//TODO handle error
-			// perror("ERROR\ncluster.run(): getting triggered events with kevent()")
+			perror("ERROR\ncluster.run(): kevent()");
+		exit(EXIT_FAILURE);
 		}
+
+		// handle the event triggered on the monitored fds
 		for (int i = 0; i < num_ready_fds; ++i)
 		{
-			Base *base_ptr = static_cast<Base *>(triggered_events[i].udata);
-			if (dynamic_cast<Server *>(base_ptr))
+			DefaultServer *default_server = (DefaultServer *)triggered_events[i].udata;
+			if (triggered_events[i].filter & EVFILT_READ)
 			{
-				Server *server = (Server *)base_ptr;
-				server->connectToClient();
+				if (triggered_events[i].ident == default_server->listening_fd)
+				{
+					// listening_fd ready to accept a new connection from client
+					default_server->connectToClient();
+				}
+				else
+				{
+					// request can be received from connected_fd
+					default_server->receiveRequest(triggered_events[i]);
+				}
 			}
-			else if (dynamic_cast<ConnectedClient *>(base_ptr))
+			else if (triggered_events[i].filter & EVFILT_WRITE)
 			{
-				ConnectedClient *client = (ConnectedClient *)base_ptr;
-				client->communicate();
+				// response can be sent to connected_fd
+				default_server->sendResponse(triggered_events[i].ident, triggered_events[i].data);
 			}
 		}
 	}
