@@ -35,6 +35,6 @@ public:
 	int const	&getKqueueFd() const;
 
 	// communication
-	void prepareResponse(ConnectedClient &client);
+	void prepareResponse(ConnectedClient &client, void *default_server);
 
 };

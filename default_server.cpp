@@ -9,7 +9,7 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog) : Serve
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(8080);
 	error_pages.insert(std::pair<int,std::string>(404, "./error_pages/404.html"));	//TODO aggiungi altre pagine di errore
-	std::cout << "+ un nuovo default server e' stato creato" << std::endl;	//DEBUG
+	// std::cout << "+ un nuovo default server e' stato creato" << std::endl;	//DEBUG
 }
 
 // destructor
@@ -17,7 +17,7 @@ DefaultServer::~DefaultServer()
 {
 	if (listening_fd != -1)
 		close(listening_fd);
-	std::cout << "- un default server e' stato distrutto" << std::endl;		//DEBUG
+	// std::cout << "- un default server e' stato distrutto" << std::endl;		//DEBUG
 }
 
 // getters
@@ -49,9 +49,6 @@ void DefaultServer::startListening()
 		exit(EXIT_FAILURE);
 	}
 
-	//DEBUG
-	std::cout << "DefaultServer: kqueue_fd = " << kqueue_fd << std::endl;
-
 	struct kevent event;
 	EV_SET(&event, listening_fd, EVFILT_READ, EV_ADD, 0, 0, (void *)this);		// ident = listening_fd
 	if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)				// filter = READ
@@ -62,7 +59,9 @@ void DefaultServer::startListening()
 	}
 
 	//DEBUG
-	std::cout << "listening on fd = " << listening_fd << "\nport = " << ntohs(server_addr.sin_port) << "\nip = " << inet_ntoa(server_addr.sin_addr) << std::endl << std::endl;
+	std::cout << "listening on fd = " << listening_fd << \
+			"\nport = " << ntohs(server_addr.sin_port) << \
+			"\nip = " << inet_ntoa(server_addr.sin_addr) << std::endl << std::endl;
 }
 
 void DefaultServer::connectToClient()
@@ -82,16 +81,12 @@ void DefaultServer::connectToClient()
 	}
 
 	//DEBUG
-	std::cout << "connected to fd = " << connected_fd << "\nport = " << ntohs(client_addr.sin_port) << "\nip = " << inet_ntoa(client_addr.sin_addr) << std::endl << std::endl;
+	std::cout << "connected to fd = " << connected_fd << \
+			"\nport = " << ntohs(client_addr.sin_port) << \
+			"\nip = " << inet_ntoa(client_addr.sin_addr) << std::endl << std::endl;
 
 	// create new ConnectedClient
 	clients.insert(std::pair<int,ConnectedClient>(connected_fd, ConnectedClient(connected_fd, client_addr)));
-
-	//DEBUG
-	std::cout << "there are now " << clients.size() << " clients on this server with listening fd = " << listening_fd << std::endl;
-
-	//DEBUG
-	std::cout << "DefaultServer: kqueue_fd = " << kqueue_fd << std::endl;
 
 	// add new connected_fd to kqueue for READ monitoring
 	struct kevent event;
@@ -117,7 +112,7 @@ void DefaultServer::receiveRequest(struct kevent const event)
 	ConnectedClient &client = clients.find(connected_fd)->second;
 
 	// read from connected_fd into client->message
-	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE, 0);
+	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE - 1, 0);
 	if (read_bytes == -1)
 	{
 		//TODO handle error
@@ -125,15 +120,31 @@ void DefaultServer::receiveRequest(struct kevent const event)
 		exit(EXIT_FAILURE);
 	}
 	client.message += buf;
+	std::cout << "\nDefaultServer.receiveRequest():\nreceived data = \"" << buf << "\"" \
+	"\nreceived request = \"" << client.message << "\"" \
+	"\nEOF = " << (event.flags & EV_EOF) << std::endl;
 	bzero(buf, BUFFER_SIZE);
-	if (read_bytes < BUFFER_SIZE && event.filter & EV_EOF)
+	if (read_bytes < (BUFFER_SIZE - 1) && event.flags & EV_EOF)
+	{
+		//DEBUG
+		std::cout << "\nDefaultServer.receiveRequest():\nreceived all the request" << std::endl;
+		// remove connected_fd to kqueue from READ monitoring
+		struct kevent event;
+		EV_SET(&event, client.connected_fd, 0, EV_DELETE, 0, 0, 0);
+		if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)
+		{
+			//TODO handle error
+			perror("ERROR\nDefaultServer.receiveRequest: kevent()");
+			exit(EXIT_FAILURE);
+		}
 		dispatchRequest(client);
+	}
 }
 
 void DefaultServer::dispatchRequest(ConnectedClient &client)
 {
 	//TODO dispatch the request to the corresponding server, based on the 'host' value
-	prepareResponse(client);	//DEBUG
+	prepareResponse(client, this);	//DEBUG
 }
 
 void DefaultServer::sendResponse(int const connected_fd, int const buf_size)
@@ -151,8 +162,22 @@ void DefaultServer::sendResponse(int const connected_fd, int const buf_size)
 	std::cout << "THE RESPONSE TO FD " << connected_fd << " IS:\n" << client.message << std::endl;	//DEBUG
 	
 	int size = ((unsigned long)(client.message_pos + buf_size) > client.message.size()) ? (client.message.size() - client.message_pos) : buf_size;
-	send(connected_fd, client.message.substr(client.message_pos, client.message_pos + buf_size).c_str(), size, 0);			//TODO check that sizes are correct!
-	if (size != buf_size)
+	if (send(connected_fd, client.message.substr(client.message_pos, client.message_pos + size).c_str(), size, 0) == -1)
+	{
+		//TODO handle error
+		std::cerr << "ERROR\nDefaultServer.sendResponse(): send()" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	std::cout << "sent some data to fd = " << connected_fd << \
+			"\nmessage to be sent = \"" << client.message << "\"" << \
+			"\nmessage position = " << client.message_pos << \
+			"\nmessage size = " << client.message.size() << \
+			"\nsize of data remaining to be sent = " << client.message.size() - client.message_pos << \
+			"\nbuffer size = " << buf_size << \
+			"\nsize of data sent = " << size << \
+			"\ndata sent = \"" << client.message.substr(client.message_pos, client.message_pos + size) << "\"" << std::endl;
+	client.message_pos += size;
+	if (size < buf_size)
 	{
 		// remove connected_fd from kqueue
 		struct kevent event;
@@ -165,7 +190,12 @@ void DefaultServer::sendResponse(int const connected_fd, int const buf_size)
 		}
 
 		// close connected_fd and erase it from the map of clients
-		close(connected_fd);
+		if (close(connected_fd) == -1)
+		{
+			//TODO handle error
+			std::cerr << "ERROR\nDefaultServer.sendResponse(): close()" << std::endl;
+			exit(EXIT_FAILURE);
+		}
 		clients.erase(connected_fd);
 	}
 }

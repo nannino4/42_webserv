@@ -72,10 +72,10 @@
 // constructor per DEBUG
 Cluster::Cluster()
 {
-	std::cout << "inizio constructor cluster" << std::endl;
+	// std::cout << "inizio constructor cluster" << std::endl;
 	default_servers.insert(std::pair<address,DefaultServer>(address(inet_addr("0.0.0.0"), htons(8080)), DefaultServer(kqueue_fd, BACKLOG_SIZE)));
-	std::cout << "fine constructor cluster" << std::endl;
-	std::cout << "ci sono " << default_servers.size() << " default servers nel cluster" << std::endl;
+	// std::cout << "fine constructor cluster" << std::endl;
+	// std::cout << "ci sono " << default_servers.size() << " default servers nel cluster" << std::endl;
 }
 
 // destructor
@@ -94,9 +94,6 @@ void Cluster::run()
 		perror("ERROR\ncluster.run(): epoll_create1()");
 		exit(EXIT_FAILURE);
 	}
-
-	//DEBUG
-	std::cout << "Cluster: kqueue_fd = " << kqueue_fd << std::endl;
 
 	// make servers listen and add them to kqueue
 	for (std::map<address,DefaultServer>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
@@ -119,6 +116,12 @@ void Cluster::run()
 		// handle the event triggered on the monitored fds
 		for (int i = 0; i < num_ready_fds; ++i)
 		{
+			// check if the connected_fd got an error_filter
+			if (triggered_events[i].flags & EV_ERROR)
+			{
+				//TODO
+			}
+
 			DefaultServer *default_server = (DefaultServer *)triggered_events[i].udata;
 			if (triggered_events[i].filter & EVFILT_READ)
 			{
