@@ -4,11 +4,11 @@
 #include <map>
 #include <iostream>
 
-#include <sys/socket.h>	//socket()
-#include <arpa/inet.h>	//inet_addr()
-#include <cstring>		//bzero()
-#include <unistd.h>		//close()
-
+#include <sys/socket.h>	//socket
+#include <arpa/inet.h>	//inet_addr
+#include <cstring>		//bzero
+#include <unistd.h>		//close
+#include <fcntl.h>		//fcntl
 #include <sys/event.h>	//kqueue kevent
 
 #include "server.hpp"
