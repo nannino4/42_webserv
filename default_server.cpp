@@ -181,9 +181,18 @@ void DefaultServer::receiveRequest(struct kevent const event)
 void DefaultServer::dispatchRequest(ConnectedClient &client)
 {
 	//TODO dispatch the request to the corresponding server, based on the 'host' value
-
+	Request request(client.message);
+	
+	Server *serverRequested = this;
+	for (VirtualServerIterator it = virtual_servers.begin(); it != virtual_servers.end(); it++)
+	{
+		if (it->first == request.getRequestHeaderHost())
+			serverRequested = this;
+	}
+	
 	//debug
-	prepareResponse(client, this);
+	// prepareResponse(client, serverRequested);
+	serverRequested->prepareResponse(client, request);
 	// sendResponse(client.connected_fd, BUFFER_SIZE);
 }
 

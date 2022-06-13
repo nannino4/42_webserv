@@ -23,6 +23,9 @@ private:
 	// size_t								client_body_size;
 	// std::map<std::string,Location>		locations;
 
+
+	typedef std::map<std::string, Server*>::iterator VirtualServerIterator;
+
 	// attributes
 	unsigned int						backlog;
 	// configuration parameters

@@ -13,6 +13,8 @@
 
 // #include "location.hpp"
 #include "connected_client.hpp"
+#include "Response.hpp"
+#include "Request.hpp"
 
 class Server
 {
@@ -35,6 +37,7 @@ public:
 	int const	&getKqueueFd() const;
 
 	// communication
-	void prepareResponse(ConnectedClient &client, void *default_server);
+	// void prepareResponse(ConnectedClient &client, void *default_server);
+	void prepareResponse(ConnectedClient &client, const Request & request);
 
 };

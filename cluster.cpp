@@ -82,7 +82,10 @@ Cluster::Cluster()
 Cluster::~Cluster() {}
 
 // getters
-int Cluster::getKqueueFd() const { return kqueue_fd; }
+int Cluster::getKqueueFd() const
+{
+	return kqueue_fd;
+}
 
 // run
 void Cluster::run()
