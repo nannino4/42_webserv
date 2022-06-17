@@ -1,6 +1,5 @@
 // https://www.jmarshall.com/easy/http/#whatis
-#ifndef REQUEST_HPP
-# define REQUEST_HPP
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -11,30 +10,35 @@
 class Request
 {
 	private:
+		// aliases
+		typedef std::map<std::string, std::string>::const_iterator const_iterator;
+	
+	private:
+		// attributes
 		std::string	method;
 		std::string	path;
 		std::string	version;
 		std::map<std::string, std::string>	headers;
 		std::string	message;
 
+		// coplien form
 		Request();
 		Request(const Request &);
 		Request& operator=(const Request &);
 
 	public:
-
-		typedef std::map<std::string, std::string>::const_iterator HeaderConstIterator;
-
+		// constructor
 		Request(const std::string & raw_request);
 
+		// destructor
 		~Request();
 
-		const std::string & getVersion() const;
-		const std::string & getMethod() const;
-		const std::string & getPath() const;
-		std::string getRequestHeaderHost() const; // WARNING: return of not const and reference string
+		// getters
+		const std::string	&getVersion() const;
+		const std::string	&getMethod() const;
+		const std::string	&getPath() const;
+		std::string			getHostname() const; // WARNING: return of not const and reference string
 
-		friend std::ostream& operator<<(std::ostream & out, const Request& m);
+		// operator overloads
+		friend std::ostream	&operator<<(std::ostream &out, const Request &m);
 };
-
-#endif

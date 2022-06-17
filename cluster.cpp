@@ -1,73 +1,73 @@
 #include "cluster.hpp"
 
-// Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
-// {
-	// std::ifstream config_file(config_file_name);
+Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
+{
+	std::ifstream config_file(config_file_name);
 
-	// // check that config_file_name exists and is valid, otherwise use DEF_CONF instead
-	// if (!config_file.is_open() && !config_file_name.compare(DEF_CONF))
-	// {
-	// 	//TODO handle error
-	// 	// perror("ERROR/nCluster: trying to open default.conf")
-	// 	// throw();
-	// }
-	// if (!config_file.is_open() && config_file_name.compare(DEF_CONF))
-	// {
-	// 	std::cout << "WARNING\n" << config_file << " is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
-	// 	config_file.open(DEF_CONF);
-	// 	if (!config_file.is_open())
-	// 	{
-	// 		//TODO handle error
-	// 		// perror("ERROR\nCluster: trying to open default.conf")
-	// 		// throw();
-	// 	}
-	// }
-	// // parse config_file in search for 'server' directives to create servers
-	// std::stringstream	line;
-	// std::string			tmp;
-	// std::string			directive;
+	// check that config_file_name exists and is valid, otherwise use DEF_CONF instead
+	if (!config_file.is_open() && !config_file_name.compare(DEF_CONF))
+	{
+		//TODO handle error
+		// perror("ERROR/nCluster: trying to open default.conf")
+		// throw();
+	}
+	if (!config_file.is_open() && config_file_name.compare(DEF_CONF))
+	{
+		std::cout << "WARNING\n" << config_file << " is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
+		config_file.open(DEF_CONF);
+		if (!config_file.is_open())
+		{
+			//TODO handle error
+			// perror("ERROR\nCluster: trying to open default.conf")
+			// throw();
+		}
+	}
+	// parse config_file in search for 'server' directives to create servers
+	std::stringstream	line;
+	std::string			tmp;
+	std::string			directive;
 
-	// std::getline(config_file, tmp);
-	// while (config_file.good())
-	// {
-	// 	if (!tmp.empty())
-	// 	{
-	// 		line.str(tmp);
-	// 		line >> directive;
-	// 		if (!directive.compare("server"))
-	// 		{
-	// 			line >> tmp;
-	// 			if (tmp.compare("{"))
-	// 			{
-	// 				//TODO handle error
-	// 				// std::cerr << "ERROR\nCluster: parsing config_file: The server directive should only be followed by space and \"{\"" << std::endl;
-	// 				// throw()
-	// 			}
-	// 			else
-	// 			{
-	// 				line >> tmp;
-	// 				if (tmp.empty())
-	// 				{
-	// 					servers.push_back(Server(*this, BACKLOG_SIZE, config_file));
-	// 				}
-	// 				else
-	// 				{
-	// 					//TODO handle error
-	// 					// std::cerr << "ERROR\nCluster: parsing config_file: The server directive should only be followed by space and \"{\"" << std::endl;
-	// 					// throw()
-	// 				}
-	// 			}
-	// 		}
-	// 		else
-	// 		{
-	// 			//TODO handle error
-	// 			// std::cerr << "ERROR\nCluster: parsing config_file: directive " << directive << " is invalid" << std::endl;
-	// 			// throw()
-	// 		}
-	// 	}
-	// 	std::getline(config_file, tmp);
-	// }
-// }
+	std::getline(config_file, tmp);
+	while (config_file.good())
+	{
+		if (!tmp.empty())
+		{
+			line.str(tmp);
+			line >> directive;
+			if (!directive.compare("server"))
+			{
+				line >> tmp;
+				if (tmp.compare("{"))
+				{
+					//TODO handle error
+					// std::cerr << "ERROR\nCluster: parsing config_file: The server directive should only be followed by space and \"{\"" << std::endl;
+					// throw()
+				}
+				else
+				{
+					line >> tmp;
+					if (tmp.empty())
+					{
+						servers.push_back(Server(*this, BACKLOG_SIZE, config_file));
+					}
+					else
+					{
+						//TODO handle error
+						// std::cerr << "ERROR\nCluster: parsing config_file: The server directive should only be followed by space and \"{\"" << std::endl;
+						// throw()
+					}
+				}
+			}
+			else
+			{
+				//TODO handle error
+				// std::cerr << "ERROR\nCluster: parsing config_file: directive " << directive << " is invalid" << std::endl;
+				// throw()
+			}
+		}
+		std::getline(config_file, tmp);
+	}
+}
 
 // constructor per DEBUG
 Cluster::Cluster()

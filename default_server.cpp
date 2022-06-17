@@ -193,7 +193,18 @@ void DefaultServer::dispatchRequest(ConnectedClient &client)
 	//debug
 	// prepareResponse(client, serverRequested);
 	serverRequested->prepareResponse(client, request);
-	// sendResponse(client.connected_fd, BUFFER_SIZE);
+	
+	// add connected_fd to kqueue for WRITE monitoring
+	struct kevent event;
+	bzero(&event, sizeof(event));
+	EV_SET(&event, client.connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, this);					// ident = connected_fd
+	if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)							// filter = WRITE
+	{																						// udata = DefaultServer*
+		//TODO handle error
+		perror("ERROR\nDefaultServer.dispatchRequest: kevent()");
+		exit(EXIT_FAILURE);
+	}
+	std::cout << "\nThe event with ident = " << client.connected_fd << " and filter EVFILT_WRITE has been added to kqueue\n" << std::endl;
 }
 
 void DefaultServer::sendResponse(int const connected_fd, int const buf_size)

@@ -57,18 +57,5 @@ void Server::prepareResponse(ConnectedClient &client, const Request & request)
 	std::cout << "\nServer:prepareResponse():\n\nTHE REQUEST FROM FD " << client.connected_fd << " IS: \"" << request << "\"" << std::endl;	//DEBUG
 	// client.message = std::string("HTTP/1.1 200 OK\r\n\r\n<html><body> <h> SONO UNA RESPONSE </h> </body> </html>");	//DEBUG
 	client.message = response.getResponse();	//DEBUG
-	//TODO prepare response based on specific server configuration; Request is client.message.
-
-	// add connected_fd to kqueue for WRITE monitoring
-	struct kevent event;
-	bzero(&event, sizeof(event));
-	EV_SET(&event, client.connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, this);		// ident = connected_fd
-	if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)							// filter = WRITE
-	{																						// udata = DefaultServer*
-		//TODO handle error
-		perror("ERROR\nServer.prepareResponse: kevent()");
-		exit(EXIT_FAILURE);
-	}
-	std::cout << "\nThe event with ident = " << client.connected_fd << " and filter EVFILT_WRITE has been added to kqueue\n" << std::endl;
 }
 
