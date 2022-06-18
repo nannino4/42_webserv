@@ -28,7 +28,7 @@ class Request
 
 	public:
 		// constructor
-		Request(const std::string & raw_request);
+		Request(const std::string &raw_request);
 
 		// destructor
 		~Request();

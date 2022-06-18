@@ -2,7 +2,7 @@
 
 #include "Request.hpp"
 
-Request::Request(const std::string & raw_request)
+Request::Request(const std::string &raw_request)
 {
 	std::stringstream file(raw_request);
 	std::string line;

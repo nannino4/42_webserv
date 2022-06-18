@@ -1,6 +1,6 @@
 #include "cluster.hpp"
 
-Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
+std::ifstream Cluster::openConfigFile(std::string config_file_name)
 {
 	std::ifstream config_file(config_file_name);
 
@@ -22,50 +22,100 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 			// throw();
 		}
 	}
-	// parse config_file in search for 'server' directives to create servers
-	std::stringstream	line;
-	std::string			tmp;
-	std::string			directive;
+	return config_file;
+}
 
-	std::getline(config_file, tmp);
+std::string	Cluster::fileToString(std::ifstream config_file)
+{
+	std::string string;
+	std::string whole_file("");
+
 	while (config_file.good())
 	{
-		if (!tmp.empty())
+		std::getline(config_file, string);
+		string += "\n";
+		whole_file += string;
+	}
+	if (config_file.fail())
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nCluster::Cluster(): reading config_file: config_file.fail() = true" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	return whole_file;
+}
+
+Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
+{
+	std::ifstream config_file = openConfigFile(config_file_name);
+	std::stringstream	stream;
+	std::string			whole_file("");
+	std::string			directive;
+	int					pos = 0;
+	int					found_pos;
+
+	whole_file = fileToString(config_file);
+
+	// now whole_file contains the whole file
+	
+	// parse whole_file searching for 'server' blocks
+	while ((found_pos = whole_file.find_first_of('{', pos)) != std::string::npos)
+	{
+		stream.str(whole_file.substr(pos, (found_pos - pos)));
+		pos = (found_pos + 1);
+		directive.clear();
+		stream >> directive;
+		if (directive.compare("server"))
 		{
-			line.str(tmp);
-			line >> directive;
-			if (!directive.compare("server"))
+			//TODO handle error
+			std::cerr << "Cluster::Cluster(): parsing config_file: \"" << directive << "\" is an invalid directive at the current scope" << std::endl;
+		}
+		else
+		{
+			directive.clear();
+			stream >> directive;
+			if (!directive.empty())
 			{
-				line >> tmp;
-				if (tmp.compare("{"))
-				{
-					//TODO handle error
-					// std::cerr << "ERROR\nCluster: parsing config_file: The server directive should only be followed by space and \"{\"" << std::endl;
-					// throw()
-				}
-				else
-				{
-					line >> tmp;
-					if (tmp.empty())
-					{
-						servers.push_back(Server(*this, BACKLOG_SIZE, config_file));
-					}
-					else
-					{
-						//TODO handle error
-						// std::cerr << "ERROR\nCluster: parsing config_file: The server directive should only be followed by space and \"{\"" << std::endl;
-						// throw()
-					}
-				}
+				//TODO handle error
+				std::cerr << "Cluster::Cluster(): parsing config_file: found invalid text between the directive \"server\" and '{'" << std::endl;
 			}
 			else
 			{
-				//TODO handle error
-				// std::cerr << "ERROR\nCluster: parsing config_file: directive " << directive << " is invalid" << std::endl;
-				// throw()
+				parseServerBlock(whole_file, pos);
 			}
 		}
-		std::getline(config_file, tmp);
+	}
+}
+
+void Cluster::parseServerBlock(std::string &whole_file, int &pos)
+{
+	std::stringstream	stream;
+	std::string			directive;
+	int					found_pos;
+
+	if ((found_pos = whole_file.find_first_of("{;}", pos, 3)) == std::string::npos)
+	{
+		//TODO handle error
+		std::cerr << "Cluster::parseServerBlock(): expected '}'" << std::endl;
+	}
+
+	// parse server block searching for directives and 'location' blocks
+	while (whole_file[found_pos] != '}')
+	{
+		if (whole_file[found_pos] == ';')
+		{
+			parseServerDirectives();	//TODO
+		}
+		else
+		{
+			parseLocationBlock();		//TODO
+		}
+
+		if ((found_pos = whole_file.find_first_of("{;}", pos, 3)) == std::string::npos)
+		{
+			//TODO handle error
+			std::cerr << "Cluster::parseServerBlock(): expected '}'" << std::endl;
+		}
 	}
 }
 
