@@ -1,5 +1,7 @@
 #include "cluster.hpp"
 
+// utils
+// open config_file
 std::ifstream Cluster::openConfigFile(std::string config_file_name)
 {
 	std::ifstream config_file(config_file_name);
@@ -8,23 +10,26 @@ std::ifstream Cluster::openConfigFile(std::string config_file_name)
 	if (!config_file.is_open() && !config_file_name.compare(DEF_CONF))
 	{
 		//TODO handle error
-		// perror("ERROR/nCluster: trying to open default.conf")
+		perror("\nERROR/nCluster: trying to open default.conf")
+		exit(EXIT_FAILURE);
 		// throw();
 	}
 	if (!config_file.is_open() && config_file_name.compare(DEF_CONF))
 	{
-		std::cout << "WARNING\n" << config_file << " is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
+		std::cout << "\nWARNING\n\"" << config_file_name << "\" is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
 		config_file.open(DEF_CONF);
 		if (!config_file.is_open())
 		{
 			//TODO handle error
-			// perror("ERROR\nCluster: trying to open default.conf")
+			perror("\nERROR\nCluster: trying to open default.conf")
+			exit(EXIT_FAILURE);
 			// throw();
 		}
 	}
 	return config_file;
 }
 
+// copy file to string
 std::string	Cluster::fileToString(std::ifstream config_file)
 {
 	std::string string;
@@ -45,6 +50,70 @@ std::string	Cluster::fileToString(std::ifstream config_file)
 	return whole_file;
 }
 
+// initialization
+// parse "location" block
+void Cluster::parseServerDirectives()
+{
+	//TODO
+}
+
+// parse server directives
+void Cluster::parseServerDirectives()
+{
+	//TODO
+}
+
+// parse "server" block
+void Cluster::parseServerBlock(std::string &whole_file, int &pos)
+{
+	std::stringstream	stream;
+	std::string			directive;
+	int					found_pos;
+
+	// check if file doesn't contain any character among "{;}" - '}' is required to close the "server" block
+	if ((found_pos = whole_file.find_first_of("{;}", pos, 3)) == std::string::npos)
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nCluster::parseServerBlock(): expected '}'" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	DefaultServer newServer(kqueue_fd, BACKLOG_SIZE);		// still can't know if it's going to be a Server or DefaultServer
+
+	// parse server block searching for directives and 'location' blocks
+	while (whole_file[found_pos] != '}')
+	{
+		if (whole_file[found_pos] == ';')
+		{
+			parseServerDirectives();	//TODO
+		}
+		else if (whole_file[found_pos] == '{')
+		{
+			parseLocationBlock();		//TODO
+		}
+
+		if ((found_pos = whole_file.find_first_of("{;}", pos, 3)) == std::string::npos)
+		{
+			//TODO handle error
+			std::cerr << "\nERROR\nCluster::parseServerBlock(): expected '}'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	
+	//check whether there is already a default server with the same address:port combination
+	if (default_servers.find(newServer.getAddress()) == default_servers.end())
+	{
+		// adding new default server
+		default_servers[newServer.getAddress()] = newServer;
+	}
+	else
+	{
+		// adding new virtual server because there is already a default server with same address:port combination
+		(default_servers.find(newServer.getAddress()))->second.addVirtualServer(newServer);
+	}
+}
+
+// default constructor
 Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
 {
 	std::ifstream config_file = openConfigFile(config_file_name);
@@ -68,7 +137,8 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 		if (directive.compare("server"))
 		{
 			//TODO handle error
-			std::cerr << "Cluster::Cluster(): parsing config_file: \"" << directive << "\" is an invalid directive at the current scope" << std::endl;
+			std::cerr << "\nERROR\nCluster::Cluster(): parsing config_file: \"" << directive << "\" is an invalid directive at the current scope" << std::endl;
+			exit(EXIT_FAILURE);
 		}
 		else
 		{
@@ -77,7 +147,8 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 			if (!directive.empty())
 			{
 				//TODO handle error
-				std::cerr << "Cluster::Cluster(): parsing config_file: found invalid text between the directive \"server\" and '{'" << std::endl;
+				std::cerr << "\nERROR\nCluster::Cluster(): parsing config_file: found invalid text between the directive \"server\" and '{'" << std::endl;
+				exit(EXIT_FAILURE);
 			}
 			else
 			{
@@ -87,45 +158,10 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 	}
 }
 
-void Cluster::parseServerBlock(std::string &whole_file, int &pos)
-{
-	std::stringstream	stream;
-	std::string			directive;
-	int					found_pos;
-
-	if ((found_pos = whole_file.find_first_of("{;}", pos, 3)) == std::string::npos)
-	{
-		//TODO handle error
-		std::cerr << "Cluster::parseServerBlock(): expected '}'" << std::endl;
-	}
-
-	// parse server block searching for directives and 'location' blocks
-	while (whole_file[found_pos] != '}')
-	{
-		if (whole_file[found_pos] == ';')
-		{
-			parseServerDirectives();	//TODO
-		}
-		else
-		{
-			parseLocationBlock();		//TODO
-		}
-
-		if ((found_pos = whole_file.find_first_of("{;}", pos, 3)) == std::string::npos)
-		{
-			//TODO handle error
-			std::cerr << "Cluster::parseServerBlock(): expected '}'" << std::endl;
-		}
-	}
-}
-
 // constructor per DEBUG
 Cluster::Cluster()
 {
-	// std::cout << "inizio constructor cluster" << std::endl;
 	default_servers.insert(std::pair<address,DefaultServer>(address(inet_addr("0.0.0.0"), htons(8080)), DefaultServer(kqueue_fd, BACKLOG_SIZE)));
-	// std::cout << "fine constructor cluster" << std::endl;
-	// std::cout << "ci sono " << default_servers.size() << " default servers nel cluster" << std::endl;
 }
 
 // destructor

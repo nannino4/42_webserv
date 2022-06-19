@@ -31,7 +31,7 @@ private:
 	// configuration parameters
 	std::string							name;
 	struct sockaddr_in					server_addr;
-	std::map<std::string,Server*>		virtual_servers;
+	std::map<std::string,Server>		virtual_servers;
 	// communication
 	std::map<int,ConnectedClient>		clients;
 	int									listening_fd;
@@ -45,10 +45,14 @@ public:
 	~DefaultServer();
 
 	// getters
+	std::string const			&getName() const;
 	struct sockaddr_in const	&getAddress() const;
 	unsigned int	 const		&getBacklog() const;
 	int const					&getListeningFd() const;
 	int const					&getKqueueFd() const;
+
+	// initialization
+	void addVirtualServer(DefaultServer *newServer);
 
 	// communication
 	void startListening();

@@ -8,8 +8,7 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog) : Serve
 	server_addr.sin_addr.s_addr = inet_addr("0.0.0.0");
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(8080);
-	error_pages.insert(std::pair<int,std::string>(404, "./error_pages/404.html"));	//TODO aggiungi altre pagine di errore
-	// std::cout << "+ un nuovo default server e' stato creato" << std::endl;	//DEBUG
+	error_pages[404] = std::string("./error_pages/404.html");	//TODO aggiungi altre pagine di errore
 }
 
 // destructor
@@ -17,14 +16,29 @@ DefaultServer::~DefaultServer()
 {
 	if (listening_fd != -1)
 		close(listening_fd);
-	// std::cout << "- un default server e' stato distrutto" << std::endl;		//DEBUG
 }
 
 // getters
+std::string const			&DefaultServer::getName() const { return name; }
 struct sockaddr_in const	&DefaultServer::getAddress() const { return server_addr; }
 unsigned int const			&DefaultServer::getBacklog() const { return backlog; }
 int const					&DefaultServer::getListeningFd() const { return listening_fd; }
 int const					&DefaultServer::getKqueueFd() const { return kqueue_fd; }
+
+// initialization
+// add virtual server
+void DefaultServer::addVirtualServer(DefaultServer tmp_serv)
+{
+	Server newServer = (Server)tmp_serv;
+
+	if (virtual_servers.find(tmp_serv.getName()) != virtual_servers.end())
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nDefaultServer::addVirtualServer(): cannot add new virtual server: name already used" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	virtual_servers[tmp_serv.getName()] = newServer;
+}
 
 // communication
 void DefaultServer::startListening()

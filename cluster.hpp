@@ -20,6 +20,7 @@ class Cluster
 private:
 	// aliases
 	typedef std::pair<in_addr_t,in_port_t>	address;
+
 private:
 	// attributes
 	std::map<address,DefaultServer>	default_servers;
@@ -41,5 +42,12 @@ public:
 
 	// run
 	void run();
+
+private:
+	// initialization
+	void parseServerBlock(std::string &whole_file, int &pos);
+	void parseServerDirectives();
+	void parseLocationBlock();
+	void parseLocationDirectives();
 
 };

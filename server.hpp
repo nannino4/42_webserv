@@ -24,17 +24,24 @@ protected:
 	// configuration parameters
 	std::map<int, std::string>			error_pages;
 	size_t								client_body_size;
-	// std::map<std::string,Location>		locations;
+	std::map<std::string,Location>		locations;
 
 public:
-	// constructor
-	Server(int const &kqueue_fdg);
+	// default constructor
+	Server(int const &kqueue_fd);
+	// copy constructor
+	Server(Server const &other);
+	// assign operator oveload
+	Server &operator=(Server const &other);
 
 	// destructor
 	~Server();
 
 	// getters
 	int const	&getKqueueFd() const;
+
+	// initialization
+	void addLocation(std::string path, Location location);
 
 	// communication
 	// void prepareResponse(ConnectedClient &client, void *default_server);
