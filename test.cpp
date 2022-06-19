@@ -6,44 +6,18 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <string>
 
 // #define BUFSIZE 1000000
 
-class A
-{
-	public:
-
-	int a;
-	A() { a = 0; }
-	A(int a) { a = a; }
-};
-
-class B : public A
-{
-	public:
-
-	char b;
-	B() { b = '0'; }
-	B(char c)
-	{
-		a = 42;
-		b = c;
-	}
-};
-
 int main()
 {
-	B b('b');
-	A a = (A)b;
+	std::stringstream 	stream;
+	std::string 		string;
 
-	std::cout << "sizeof(a) = " << sizeof(a) << std::endl;
-	std::cout << "sizeof(b) = " << sizeof(b) << std::endl;
-	std::cout << "sizeof(a.a) = " << sizeof(a.a) << std::endl;
-	std::cout << "sizeof(b.a) = " << sizeof(b.a) << std::endl;
-	std::cout << "sizeof(b.b) = " << sizeof(b.b) << std::endl;
-	std::cout << "a.a = " << a.a << std::endl;
-	std::cout << "b.a = " << b.a << std::endl;
-	std::cout << "b.b = " << b.b << std::endl;
+	stream.str("localhost:80");
+	stream >> string;
+	std::cout << string << std::endl;
 
     // struct sockaddr_in addr;
 	// int ret;

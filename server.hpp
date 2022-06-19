@@ -11,10 +11,12 @@
 
 #include <sys/event.h>	//kqueue kevent
 
-// #include "location.hpp"
+#include "location.hpp"
 #include "connected_client.hpp"
 #include "Response.hpp"
 #include "Request.hpp"
+
+#define DEF_404 "./error_pages/404.html"
 
 class Server
 {

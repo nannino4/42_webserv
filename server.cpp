@@ -3,34 +3,29 @@
 // default constructor
 Server::Server(int const &kqueue_fd) : kqueue_fd(kqueue_fd)
 {
-	error_pages[404] = std::string("./error_pages/404.html");	//TODO aggiungi altre pagine di errore
-	// std::cout << "+ un nuovo server e' stato creato" << std::endl;	//DEBUG
+	error_pages[404] = DEF_404;	//TODO aggiungi altre pagine di errore
 }
 
 // copy constructor
-Server::Server(Server const &other) { *this = other; }
+Server::Server(Server const &other) : kqueue_fd(other.getKqueueFd()) { *this = other; }
 
 // assign operator overload
 Server &Server::operator=(Server const &other)
 {
-	kqueue_fd = other.getKqueueFd();
 	error_pages = other.error_pages;
 	client_body_size = other.client_body_size;
 	locations = other.locations;
 }
 
 // destructor
-Server::~Server()
-{
-	// std::cout << "- un server e' stato distrutto" << std::endl;		//DEBUG
-}
+Server::~Server() {}
 
 // getters
 int const	&Server::getKqueueFd() const { return kqueue_fd; }
 
 //initialization
 // add location
-void DefaultServer::addLocation(std::string path, Location location)
+void Server::addLocation(std::string path, Location location)
 {
 	//TODO
 }

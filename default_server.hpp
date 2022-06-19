@@ -13,10 +13,16 @@
 
 #include "server.hpp"
 
+#define DEF_ADDR INADDR_ANY
+#define DEF_PORT 8080
 #define BUFFER_SIZE BUFSIZ
 
 class DefaultServer : public Server
 {
+private:
+	// aliases
+	typedef std::pair<in_addr_t,in_port_t>	address;
+
 private:
 	// int const							&kqueue_fd;			// inherited from Server
 	// std::map<int, std::string>			error_pages;
@@ -24,7 +30,7 @@ private:
 	// std::map<std::string,Location>		locations;
 
 
-	typedef std::map<std::string, Server*>::iterator VirtualServerIterator;
+	typedef std::map<std::string,Server>::iterator VirtualServerIterator;
 
 	// attributes
 	unsigned int						backlog;
@@ -46,13 +52,19 @@ public:
 
 	// getters
 	std::string const			&getName() const;
-	struct sockaddr_in const	&getAddress() const;
+	address const				&getAddress() const;
 	unsigned int	 const		&getBacklog() const;
 	int const					&getListeningFd() const;
 	int const					&getKqueueFd() const;
 
+	// setters
+	void	setIp(std::string &ip);						//TODO
+	void	setPort(std::string &port);					//TODO
+	void	setName(std::string &name);					//TODO
+	void	setClientBodySize(std::string &body_size);	//TODO
+
 	// initialization
-	void addVirtualServer(DefaultServer *newServer);
+	void addVirtualServer(DefaultServer newServer);
 
 	// communication
 	void startListening();

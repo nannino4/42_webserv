@@ -8,6 +8,7 @@
 #include <map>
 
 #include <sys/event.h>	//kqueue kevent
+#include <arpa/inet.h>	//inet_addr
 
 #include "default_server.hpp"
 
@@ -44,9 +45,19 @@ public:
 	void run();
 
 private:
+	// utils
+	std::ifstream	openConfigFile(std::string config_file_name);
+	std::string		fileToString(std::ifstream &config_file);
+	
 	// initialization
+	// server
 	void parseServerBlock(std::string &whole_file, int &pos);
-	void parseServerDirectives();
+	void parseServerDirectives(DefaultServer &newServer, std::stringstream &stream);
+	void parseListen(DefaultServer &newServer, std::stringstream &stream);
+	void parseName(DefaultServer &newServer, std::stringstream &stream);
+	void parseBodySize(DefaultServer &newServer, std::stringstream &stream);
+	void parseErrorPage(DefaultServer &newServer, std::stringstream &stream);
+	// location
 	void parseLocationBlock();
 	void parseLocationDirectives();
 

@@ -5,10 +5,10 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog) : Serve
 {
 	bzero(buf, BUFFER_SIZE);
 	bzero(&server_addr, sizeof(server_addr));
-	server_addr.sin_addr.s_addr = inet_addr("0.0.0.0");
+	server_addr.sin_addr.s_addr = DEF_ADDR;
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(8080);
-	error_pages[404] = std::string("./error_pages/404.html");	//TODO aggiungi altre pagine di errore
+	server_addr.sin_port = htons(DEF_PORT);
+	error_pages[404] = std::string(DEF_404);	//TODO aggiungi altre pagine di errore
 }
 
 // destructor
@@ -19,11 +19,11 @@ DefaultServer::~DefaultServer()
 }
 
 // getters
-std::string const			&DefaultServer::getName() const { return name; }
-struct sockaddr_in const	&DefaultServer::getAddress() const { return server_addr; }
-unsigned int const			&DefaultServer::getBacklog() const { return backlog; }
-int const					&DefaultServer::getListeningFd() const { return listening_fd; }
-int const					&DefaultServer::getKqueueFd() const { return kqueue_fd; }
+std::string const				&DefaultServer::getName() const { return name; }
+DefaultServer::address const	&DefaultServer::getAddress() const { return address(server_addr.sin_addr.s_addr, server_addr.sin_port); }
+unsigned int const				&DefaultServer::getBacklog() const { return backlog; }
+int const						&DefaultServer::getListeningFd() const { return listening_fd; }
+int const						&DefaultServer::getKqueueFd() const { return kqueue_fd; }
 
 // initialization
 // add virtual server
@@ -200,7 +200,7 @@ void DefaultServer::dispatchRequest(ConnectedClient &client)
 	Server *serverRequested = this;
 	for (VirtualServerIterator it = virtual_servers.begin(); it != virtual_servers.end(); it++)
 	{
-		if (it->first == request.getRequestHeaderHost())
+		if (it->first == request.getHostname())
 			serverRequested = this;
 	}
 	
