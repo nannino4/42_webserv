@@ -80,6 +80,9 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::st
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	// set pos after found_pos - which is pointing to '}'
+	pos = found_pos + 1;
 }
 
 // destructor

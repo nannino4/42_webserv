@@ -55,6 +55,13 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 			}
 		}
 	}
+	stream.str(whole_file.substr(pos));
+	stream >> std::ws;
+	if (!stream.eof())
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nCluster::Cluster(): found invalid text after the last '}'" << std::endl;
+	}
 }
 
 // constructor per DEBUG

@@ -13,18 +13,15 @@
 int main()
 {
 	std::stringstream 	stream;
-	std::string 		string;
+	std::string 		string("ciao }");
 
-	stream.str("localhost:80 ciao a tutti");
-	for (size_t i = 0; i < 10; i++)
-	{
-		string.clear();
-		stream >> string;
-		std::cout << string << std::boolalpha << "\t\teof = " << stream.eof() << std::endl;
-	}
+	stream.str(string.substr(string.find_first_of('}') + 1));
+
+	std::cout << std::boolalpha << "\t\tgood = " << stream.good() << std::endl;
+	std::cout << std::boolalpha << "\t\teof = " << stream.eof() << std::endl;
+	stream >> std::ws;
+	std::cout << std::boolalpha << "\t\teof = " << stream.eof() << std::endl;
 	
-	std::cout << string << std::endl;
-
     // struct sockaddr_in addr;
 	// int ret;
 	// int optval = true;

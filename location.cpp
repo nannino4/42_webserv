@@ -69,6 +69,9 @@ Location::Location(std::string &config_file, int &pos) : directory_listing(false
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	// set pos after found_pos - which is pointing to '}'
+	pos = found_pos + 1;
 }
 
 // destructor
