@@ -44,9 +44,6 @@ public:
 	int const					&getKqueueFd() const;
 	std::vector<std::string>	&getNames();
 
-	// initialization
-	void addLocation(std::string path, Location location);
-
 	// communication
 	// void prepareResponse(ConnectedClient &client, void *default_server);
 	void prepareResponse(ConnectedClient &client, const Request &request);

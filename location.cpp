@@ -1,9 +1,74 @@
 #include "location.hpp"
 
 // constructor
-Location::Location(std::ifstream config_file)
+Location::Location(std::string &config_file, int &pos) : directory_listing(false)
 {
-	//TODO parse content and initialize location
+	std::stringstream	stream;
+	std::string			directive;
+	int					found_pos;
+
+	// check if file doesn't contain any character among ";}" - '}' is required to close the "server" block
+	if ((found_pos = config_file.find_first_of(";}", pos, 2)) == std::string::npos)
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nLocation::Location(): expected '}'" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// parse location block searching for directives
+	while (config_file[found_pos] != '}')
+	{
+		stream.str(config_file.substr(pos, (found_pos - pos)));
+		pos = found_pos + 1;
+	
+		stream >> directive;
+
+		if (directive.empty())
+		{
+			//TODO handle error
+			std::cerr << "\nERROR\nLocation::Location(): expected directive before ';'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		// if stream reached EOF we can leave the default settings
+		if (stream.eof())
+			return ;
+
+		// parse directives
+		if (!directive.compare("root"))
+		{
+			parseRoot(stream);
+		}
+		else if (!directive.compare("allowed_method"))
+		{
+			parseAllowedMethod(stream);
+		}
+		else if (!directive.compare("directory_listing"))
+		{
+			parseDirectoryListing(stream);
+		}
+		else if (!directive.compare("index"))
+		{
+			parseIndex(stream);
+		}
+		else if (!directive.compare("return"))
+		{
+			parseReturn(stream);
+		}
+		else
+		{
+			//TODO handle error
+			std::cerr << "\nERROR\nLocation::Location(): \"" << directive << "\" is an invalid directive" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		if ((found_pos = config_file.find_first_of(";}", pos, 3)) == std::string::npos)
+		{
+			//TODO handle error
+			std::cerr << "\nERROR\nLocation::Location(): expected '}'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
 }
 
 // destructor

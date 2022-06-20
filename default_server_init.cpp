@@ -48,9 +48,9 @@ void DefaultServer::parseDirectives(std::stringstream &stream)
 void DefaultServer::parseListen(std::stringstream &stream)
 {
 	int			found_pos;
-	std::string	string("");
-	std::string address("");
-	std::string port("");
+	std::string	string;
+	std::string address;
+	std::string port;
 
 	stream >> string;
 
@@ -92,11 +92,17 @@ void DefaultServer::parseListen(std::stringstream &stream)
 	}
 	if (!port.empty())
 	{
+		if (port.find_first_not_of("0123456789", 0, 10) != std::string::npos)
+		{
+			//TODO handle error
+			std::cerr << "\nERROR\nDefaultServer::parseListen(): \"" << port << "\" is an invalid port" << std::endl;
+			exit(EXIT_FAILURE);
+		}
 		int port_n = atoi(port);
 		if (port_n < 1 || port_n > 65535)
 		{
 			//TODO handle error
-			std::cerr << "\nERROR\nDefaultServer::parseListen(): " << port_n << " is an invalid port" << std::endl;
+			std::cerr << "\nERROR\nDefaultServer::parseListen(): \"" << port_n << "\" is an invalid port" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 		server_addr.sin_port = htons(port_n);
@@ -124,9 +130,18 @@ void DefaultServer::parseName(std::stringstream &stream)
 // parse "limit_body_size" directive
 void DefaultServer::parseBodySize(std::stringstream &stream)
 {
-	std::string bodySize("");
+	std::string bodySize;
 
 	stream << bodySize;
+
+	// check that bodySize is a number
+	if (port.find_first_not_of("0123456789", 0, 10) != std::string::npos)
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nDefaultServer::parseBodySize(): \"" << bodySize << "\" is an invalid body size" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
 	client_body_size = atoi(bodySize);
 
 	// check that stream reached EOF
@@ -141,11 +156,29 @@ void DefaultServer::parseBodySize(std::stringstream &stream)
 // parse "error_page" directive
 void DefaultServer::parseErrorPage(std::stringstream &stream)
 {
-    //TODO
-}
+	int			status_code;
+	std::string	path;
 
-// parse "location" block
-void DefaultServer::parseLocationBlock()
-{
-	//TODO
+	stream >> code >> path;
+
+	// check that stream reached EOF
+	if (!stream.eof())
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): too many parameters" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	if (!path.empty())
+	{
+		std::ifstream file(path);
+		if (!file.good())
+		{
+			//TODO handle error
+			std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): failed opening \"" << path << "\"" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		file.close();
+		error_pages[status_code] = path;
+	}
 }

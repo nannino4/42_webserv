@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -12,14 +13,17 @@ private:
 	// attributes
 	std::string					root;
 	std::vector<std::string>	allowed_methods;
+	bool						directory_listing;
+	std::string					index;
 	struct	Redirection
 	{
-		std::string	location;
-		int			status_code;
+		std::string	path;
+		int	status_code;
 	}							redirection;
+
 public:
 	// constructor
-	Location(std::ifstream config_file);
+	Location(std::string &config_file, int &pos);
 
 	// destructor
 	~Location();
@@ -33,6 +37,11 @@ private:
 	// setters
 	void	addAllowedMethod(std::string method);
 
-	// methods
+	// initialization
+	void parseRoot(std::stringstream &stream);
+	void parseAllowedMethod(std::stringstream &stream);
+	void parseDirectoryListing(std::stringstream &stream);
+	void parseIndex(std::stringstream &stream);
+	void parseReturn(std::stringstream &stream);
 
 };

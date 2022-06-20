@@ -36,14 +36,41 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::st
 		}
 		else if (config_file[found_pos] == '{')
 		{
-			//TODO check for directive 'location'
-			parseLocationBlock();		//TODO
-		}
-		else
-		{
-			//TODO handle error
-			std::cerr << "\nERROR\nDefaultServer::DefaultServer(): '" << config_file[found_pos] << "' is not a valid character. Expected ';' or '{'" << std::endl;
-			exit(EXIT_FAILURE);
+			std::string	directive;
+			std::string	path;
+
+			stream >> directive >> path;
+
+			// check that directive == "location"
+			if (directive.compare("location"))
+			{
+				//TODO handle error
+				std::cerr << "\nERROR\nDefaultServer::DefaultServer(): directive \"" << directive << "\" is not valid. Expected \"location\"." << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			// check that path exists
+			if (path.empty())
+			{
+				//TODO handle error
+				std::cerr << "\nERROR\nDefaultServer::DefaultServer(): the directive \"location\" should be followed by [path]" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			// check that stream reached EOF
+			if (!stream.eof())
+			{
+				//TODO handle error
+				std::cerr << "\nERROR\nDefaultServer::DefaultServer(): too many parameters parsing \"[location] [path] {\"" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			if (!(locations.insert(std::pair(path, Location(config_file, pos)))).second)
+			{
+				//TODO handle error
+				std::cerr << "\nERROR\nDefaultServer::DefaultServer(): could not add location: a location with path \"" << path << "\" already exists" << std::endl;
+				exit(EXIT_FAILURE);
+			}
 		}
 
 		if ((found_pos = config_file.find_first_of("{;}", pos, 3)) == std::string::npos)

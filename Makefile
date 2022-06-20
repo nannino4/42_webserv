@@ -4,11 +4,13 @@ SRCS		= 	main.cpp \
 				cluster.cpp \
 				cluster_init.cpp \
 				default_server.cpp \
+				default_server_init.cpp \
 				server.cpp \
 				connected_client.cpp \
 				Response.cpp \
 				Request.cpp \
-				location.cpp
+				location.cpp \
+				location_init.cpp
 
 OBJS		= 	$(SRCS:.cpp=.o)
 
