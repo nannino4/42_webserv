@@ -24,6 +24,7 @@ protected:
 	// attributes
 	int const							&kqueue_fd;
 	// configuration parameters
+	std::vector<std::string>			names;
 	std::map<int, std::string>			error_pages;
 	size_t								client_body_size;
 	std::map<std::string,Location>		locations;
@@ -40,7 +41,8 @@ public:
 	~Server();
 
 	// getters
-	int const	&getKqueueFd() const;
+	int const					&getKqueueFd() const;
+	std::vector<std::string>	&getNames();
 
 	// initialization
 	void addLocation(std::string path, Location location);
@@ -48,5 +50,8 @@ public:
 	// communication
 	// void prepareResponse(ConnectedClient &client, void *default_server);
 	void prepareResponse(ConnectedClient &client, const Request &request);
+
+	// utility
+	bool	isName(std::string const &name_to_match) const;
 
 };

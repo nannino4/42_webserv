@@ -15,8 +15,14 @@ int main()
 	std::stringstream 	stream;
 	std::string 		string;
 
-	stream.str("localhost:80");
-	stream >> string;
+	stream.str("localhost:80 ciao a tutti");
+	for (size_t i = 0; i < 10; i++)
+	{
+		string.clear();
+		stream >> string;
+		std::cout << string << std::boolalpha << "\t\teof = " << stream.eof() << std::endl;
+	}
+	
 	std::cout << string << std::endl;
 
     // struct sockaddr_in addr;

@@ -1,14 +1,58 @@
 #include "default_server.hpp"
 
-// constructor
-DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog) : Server(kqueue_fd), backlog(backlog)
+// default constructor
+DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::string &config_file, int &pos) : Server(kqueue_fd), backlog(backlog)
 {
+	// default initialization
 	bzero(buf, BUFFER_SIZE);
 	bzero(&server_addr, sizeof(server_addr));
 	server_addr.sin_addr.s_addr = DEF_ADDR;
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(DEF_PORT);
 	error_pages[404] = std::string(DEF_404);	//TODO aggiungi altre pagine di errore
+
+	// specific initialization
+
+	std::stringstream	stream;
+	int					found_pos;
+
+	// check if file doesn't contain any character among "{;}" - '}' is required to close the "server" block
+	if ((found_pos = config_file.find_first_of("{;}", pos, 3)) == std::string::npos)
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nDefaultServer::DefaultServer(): expected '}'" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// parse server block searching for directives and 'location' blocks
+	while (config_file[found_pos] != '}')
+	{
+		stream.str(config_file.substr(pos, (found_pos - pos)));
+		pos = found_pos + 1;
+	
+		if (config_file[found_pos] == ';')
+		{
+			parseDirectives(stream);
+		}
+		else if (config_file[found_pos] == '{')
+		{
+			//TODO check for directive 'location'
+			parseLocationBlock();		//TODO
+		}
+		else
+		{
+			//TODO handle error
+			std::cerr << "\nERROR\nDefaultServer::DefaultServer(): '" << config_file[found_pos] << "' is not a valid character. Expected ';' or '{'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		if ((found_pos = config_file.find_first_of("{;}", pos, 3)) == std::string::npos)
+		{
+			//TODO handle error
+			std::cerr << "\nERROR\nDefaultServer::DefaultServer(): expected '}'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
 }
 
 // destructor
@@ -19,7 +63,6 @@ DefaultServer::~DefaultServer()
 }
 
 // getters
-std::string const				&DefaultServer::getName() const { return name; }
 DefaultServer::address const	&DefaultServer::getAddress() const { return address(server_addr.sin_addr.s_addr, server_addr.sin_port); }
 unsigned int const				&DefaultServer::getBacklog() const { return backlog; }
 int const						&DefaultServer::getListeningFd() const { return listening_fd; }
@@ -29,15 +72,22 @@ int const						&DefaultServer::getKqueueFd() const { return kqueue_fd; }
 // add virtual server
 void DefaultServer::addVirtualServer(DefaultServer tmp_serv)
 {
-	Server newServer = (Server)tmp_serv;
+	Server 						newServer = (Server)tmp_serv;
+	std::vector<std::string>	tmp_names = newServer.getNames();
 
-	if (virtual_servers.find(tmp_serv.getName()) != virtual_servers.end())
+	for (std::vector<std::string>::const_iterator name_to_match = tmp_names.begin(); name_to_match != tmp_names.end(); ++name_to_match)
 	{
-		//TODO handle error
-		std::cerr << "\nERROR\nDefaultServer::addVirtualServer(): cannot add new virtual server: name already used" << std::endl;
-		exit(EXIT_FAILURE);
+		for (std::vector<Server>::const_iterator i = virtual_servers.begin(); i != virtual_servers.end(); ++i)
+		{
+			if (i->isName(name_to_match))
+			{
+				//TODO handle error
+				std::cerr << "\nERROR\nDefaultServer::addVirtualServer(): cannot add new virtual server: name already used" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+		}
 	}
-	virtual_servers[tmp_serv.getName()] = newServer;
+	virtual_servers.push_back(newServer);
 }
 
 // communication
@@ -198,10 +248,10 @@ void DefaultServer::dispatchRequest(ConnectedClient &client)
 	Request request(client.message);
 	
 	Server *serverRequested = this;
-	for (VirtualServerIterator it = virtual_servers.begin(); it != virtual_servers.end(); it++)
+	for (std::vector<Server>::const_iterator it = virtual_servers.begin(); it != virtual_servers.end(); ++it)
 	{
-		if (it->first == request.getHostname())
-			serverRequested = this;
+		if (it->isName(request.getHostname()))
+			serverRequested = it;
 	}
 	
 	//debug
@@ -218,6 +268,8 @@ void DefaultServer::dispatchRequest(ConnectedClient &client)
 		perror("ERROR\nDefaultServer.dispatchRequest: kevent()");
 		exit(EXIT_FAILURE);
 	}
+
+	//debug
 	std::cout << "\nThe event with ident = " << client.connected_fd << " and filter EVFILT_WRITE has been added to kqueue\n" << std::endl;
 }
 

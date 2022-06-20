@@ -39,7 +39,19 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 			}
 			else
 			{
-				parseServerBlock(whole_file, pos);
+				DefaultServer newServer(kqueue_fd, BACKLOG_SIZE, whole_file, pos);		// still can't know if it's going to be a Server or DefaultServer
+	
+				//check whether there is already a default server with the same address:port combination
+				if (default_servers.find(newServer.getAddress()) == default_servers.end())
+				{
+					// adding new default server
+					default_servers[newServer.getAddress()] = newServer;
+				}
+				else
+				{
+					// adding new virtual server because there is already a default server with same address:port combination
+					(default_servers.find(newServer.getAddress()))->second.addVirtualServer(newServer);
+				}
 			}
 		}
 	}

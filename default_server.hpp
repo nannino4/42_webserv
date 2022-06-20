@@ -14,7 +14,7 @@
 #include "server.hpp"
 
 #define DEF_ADDR INADDR_ANY
-#define DEF_PORT 8080
+#define DEF_PORT 8000
 #define BUFFER_SIZE BUFSIZ
 
 class DefaultServer : public Server
@@ -25,43 +25,38 @@ private:
 
 private:
 	// int const							&kqueue_fd;			// inherited from Server
+	// std::vector<std::string>				names;
 	// std::map<int, std::string>			error_pages;
 	// size_t								client_body_size;
 	// std::map<std::string,Location>		locations;
 
 
-	typedef std::map<std::string,Server>::iterator VirtualServerIterator;
-
 	// attributes
 	unsigned int						backlog;
 	// configuration parameters
-	std::string							name;
 	struct sockaddr_in					server_addr;
-	std::map<std::string,Server>		virtual_servers;
+	std::vector<Server>					virtual_servers;
 	// communication
 	std::map<int,ConnectedClient>		clients;
 	int									listening_fd;
 	char								buf[BUFFER_SIZE];
 
 public:
-	// constructor
-	DefaultServer(int const &kqueue_fd, unsigned int backlog);
+	// default constructor
+	DefaultServer(int const &kqueue_fd, unsigned int backlog, std::string &config_file, int &pos);
+	// copy constructor
+	DefaultServer(DefaultServer const &other);
+	// assign operator
+	DefaultServer &operator=(DefaultServer const &other);
 
 	// destructor
 	~DefaultServer();
 
 	// getters
-	std::string const			&getName() const;
 	address const				&getAddress() const;
 	unsigned int	 const		&getBacklog() const;
 	int const					&getListeningFd() const;
 	int const					&getKqueueFd() const;
-
-	// setters
-	void	setIp(std::string &ip);						//TODO
-	void	setPort(std::string &port);					//TODO
-	void	setName(std::string &name);					//TODO
-	void	setClientBodySize(std::string &body_size);	//TODO
 
 	// initialization
 	void addVirtualServer(DefaultServer newServer);
@@ -73,5 +68,13 @@ public:
 	void dispatchRequest(ConnectedClient &client);
 	// void prepareResponse(ConnectedClient &client);		// inherited from Server
 	void sendResponse(int const connected_fd, int const buf_size);
+
+private:
+	// initialization
+	void parseDirectives(std::stringstream &stream);
+	void parseListen(std::stringstream &stream);
+	void parseName(std::stringstream &stream);
+	void parseBodySize(std::stringstream &stream);
+	void parseErrorPage(std::stringstream &stream);
 
 };

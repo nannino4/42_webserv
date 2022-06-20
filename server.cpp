@@ -23,6 +23,18 @@ Server::~Server() {}
 // getters
 int const	&Server::getKqueueFd() const { return kqueue_fd; }
 
+std::vector	&Server::getNames() { return names; }
+
+bool	Server::isName(std::string const &name_to_match) const
+{
+	for (vector<std::string>::iterator i = names.begin(); i != names.end(); ++i)
+	{
+		if (!i->compare(name_to_match))
+			return true;
+	}
+	return false;
+}
+
 //initialization
 // add location
 void Server::addLocation(std::string path, Location location)
