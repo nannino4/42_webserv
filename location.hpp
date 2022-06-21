@@ -41,7 +41,7 @@ private:
 
 	// initialization
 	void parseRoot(std::stringstream &stream);
-	void parseAllowedMethod(std::stringstream &stream);
+	void parseAllowedMethods(std::stringstream &stream);
 	void parseAutoindex(std::stringstream &stream);
 	void parseIndex(std::stringstream &stream);
 	void parseReturn(std::stringstream &stream);

@@ -41,6 +41,14 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::st
 
 			stream >> directive >> path;
 
+			// check that stream didn't fail reading
+			if (stream.fail())
+			{
+				//TODO handle error
+				std::cerr << "\nERROR\nDefaultServer::DefaultServer(): stream reading failed" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
 			// check that directive == "location"
 			if (directive.compare("location"))
 			{
@@ -65,6 +73,7 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::st
 				exit(EXIT_FAILURE);
 			}
 
+			// check that insert() actually inserted a new element
 			if (!(locations.insert(std::pair(path, Location(config_file, pos)))).second)
 			{
 				//TODO handle error

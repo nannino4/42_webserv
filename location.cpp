@@ -24,6 +24,15 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), isRed
 		stream >> directive;
 		stream >> std::ws;
 
+		// check that stream didn't fail reading
+		if (stream.fail())
+		{
+			//TODO handle error
+			std::cerr << "\nERROR\nLocation::Location(): stream reading failed" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		// check that directory exists
 		if (directive.empty())
 		{
 			//TODO handle error
@@ -42,7 +51,7 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), isRed
 		}
 		else if (!directive.compare("allowed_method"))
 		{
-			parseAllowedMethod(stream);
+			parseAllowedMethods(stream);
 		}
 		else if (!directive.compare("directory_listing"))
 		{

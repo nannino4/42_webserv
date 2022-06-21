@@ -8,6 +8,14 @@ void DefaultServer::parseDirectives(std::stringstream &stream)
 	directive.clear();
 	stream >> directive;
 
+	// check that stream didn't fail reading
+	if (stream.fail())
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nDefaultServer::parseDirectives(): stream reading failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
 	if (directive.empty())
 	{
 		//TODO handle error
@@ -54,6 +62,14 @@ void DefaultServer::parseListen(std::stringstream &stream)
 
 	stream >> string;
 	stream >> std::ws;
+
+	// check that stream didn't fail reading
+	if (stream.fail())
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nDefaultServer::parseListen(): stream reading failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
 	// check that stream reached EOF
 	if (!stream.eof())
@@ -132,20 +148,16 @@ void DefaultServer::parseName(std::stringstream &stream)
 // parse "limit_body_size" directive
 void DefaultServer::parseBodySize(std::stringstream &stream)
 {
-	std::string bodySize;
-
-	stream >> bodySize;
+	stream >> client_body_size;
 	stream >> std::ws;
 
-	// check that bodySize is a number
-	if (port.find_first_not_of("0123456789", 0, 10) != std::string::npos)
+	// check that stream didn't fail reading
+	if (stream.fail())
 	{
 		//TODO handle error
-		std::cerr << "\nERROR\nDefaultServer::parseBodySize(): \"" << bodySize << "\" is an invalid body size" << std::endl;
+		std::cerr << "\nERROR\nDefaultServer::parseBodySize(): stream reading failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-
-	client_body_size = atoi(bodySize);
 
 	// check that stream reached EOF
 	if (!stream.eof())
@@ -159,30 +171,55 @@ void DefaultServer::parseBodySize(std::stringstream &stream)
 // parse "error_page" directive
 void DefaultServer::parseErrorPage(std::stringstream &stream)
 {
-	int			status_code;
+	int			code;
 	std::string	path;
 
-	stream >> code >> path;
+	stream >> code;
 	stream >> std::ws;
+
+	// check that stream didn't fail reading
+	if (stream.fail())
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): stream reading failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// check that stream reached EOF
+	if (stream.eof())
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): too few parameters, expected two" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	stream >> path;
+	stream >> std::ws;
+
+	// check that stream didn't fail reading
+	if (stream.fail())
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): stream reading failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
 	// check that stream reached EOF
 	if (!stream.eof())
 	{
 		//TODO handle error
-		std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): too many parameters" << std::endl;
+		std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): too many parameters, expected two" << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
-	if (!path.empty())
+	// check that "path" is a valid file
+	std::ifstream file(path);
+	if (!file.good())
 	{
-		std::ifstream file(path);
-		if (!file.good())
-		{
-			//TODO handle error
-			std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): failed opening \"" << path << "\"" << std::endl;
-			exit(EXIT_FAILURE);
-		}
-		file.close();
-		error_pages[status_code] = path;
+		//TODO handle error
+		std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): failed opening path=\"" << path << "\"" << std::endl;
+		exit(EXIT_FAILURE);
 	}
+	file.close();
+	error_pages[code] = path;
 }
