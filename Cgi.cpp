@@ -36,9 +36,9 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 	fd_safe[0] = dup(STDIN_FILENO);
 	fd_safe[1] = dup(STDOUT_FILENO);
 	if (pipe(fd_pipe) == -1)
-		std::cout << "cazzo" << std::endl;
+		std::cout << "Error: Pipe" << std::endl;
 	if ((pid = fork()) == -1)
-		std::cout << "cazzo 2" << std::endl;
+		std::cout << "Error: fork" << std::endl;
 	if (!pid){
 		dup2(fd_pipe[1], STDOUT_FILENO);
 		execve("/usr/bin/php", tmp, NULL); // chiamare php passare filename e passare variabili decodificate
