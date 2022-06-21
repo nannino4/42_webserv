@@ -1,7 +1,7 @@
 #include "location.hpp"
 
 // constructor
-Location::Location(std::string &config_file, int &pos) : directory_listing(false)
+Location::Location(std::string &config_file, int &pos) : autoindex(false), isRedir(false), index("index.html")
 {
 	std::stringstream	stream;
 	std::string			directive;
@@ -22,6 +22,7 @@ Location::Location(std::string &config_file, int &pos) : directory_listing(false
 		pos = found_pos + 1;
 	
 		stream >> directive;
+		stream >> std::ws;
 
 		if (directive.empty())
 		{
@@ -45,7 +46,7 @@ Location::Location(std::string &config_file, int &pos) : directory_listing(false
 		}
 		else if (!directive.compare("directory_listing"))
 		{
-			parseDirectoryListing(stream);
+			parseAutoindex(stream);
 		}
 		else if (!directive.compare("index"))
 		{
@@ -78,9 +79,14 @@ Location::Location(std::string &config_file, int &pos) : directory_listing(false
 Location::~Location() {}
 
 // getters
-std::string const &Location::getRoot() const { return root; }
-bool Location::isMethodAllowed(std::string method) const
+std::string const					&Location::getRoot() const { return root; }
+bool 								Location::isAutoindex() const { return autoindex; }
+std::pair<std::string,int> const	&Location::getRedirection() const { return redirection; }
+bool 								Location::isMethodAllowed(std::string method) const
 {
+	if (allowed_methods.empty())
+		return true;
+
 	for (std::vector<std::string>::const_iterator it = allowed_methods.begin(); it != allowed_methods.end(); ++it)
 	{
 		if (!it->compare(method.c_str()))
@@ -88,7 +94,6 @@ bool Location::isMethodAllowed(std::string method) const
 	}
 	return false;
 }
-Location::Redirection const	&Location::getRedirection() const { return redirection; }
 
 // setters
 void	Location::addAllowedMethod(std::string method)
@@ -96,5 +101,3 @@ void	Location::addAllowedMethod(std::string method)
 	if (!isMethodAllowed(method))
 		allowed_methods.push_back(method);
 }
-
-// methods

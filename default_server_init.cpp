@@ -53,6 +53,7 @@ void DefaultServer::parseListen(std::stringstream &stream)
 	std::string port;
 
 	stream >> string;
+	stream >> std::ws;
 
 	// check that stream reached EOF
 	if (!stream.eof())
@@ -117,6 +118,7 @@ void DefaultServer::parseName(std::stringstream &stream)
 	while (stream.good())
 	{
 		stream >> newName;
+		stream >> std::ws;
 		names.push_back(newName);
 	}
 	
@@ -132,7 +134,8 @@ void DefaultServer::parseBodySize(std::stringstream &stream)
 {
 	std::string bodySize;
 
-	stream << bodySize;
+	stream >> bodySize;
+	stream >> std::ws;
 
 	// check that bodySize is a number
 	if (port.find_first_not_of("0123456789", 0, 10) != std::string::npos)
@@ -160,6 +163,7 @@ void DefaultServer::parseErrorPage(std::stringstream &stream)
 	std::string	path;
 
 	stream >> code >> path;
+	stream >> std::ws;
 
 	// check that stream reached EOF
 	if (!stream.eof())

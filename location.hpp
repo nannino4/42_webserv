@@ -13,13 +13,14 @@ private:
 	// attributes
 	std::string					root;
 	std::vector<std::string>	allowed_methods;
-	bool						directory_listing;
+
+	//directory listing
+	bool						autoindex;
 	std::string					index;
-	struct	Redirection
-	{
-		std::string	path;
-		int	status_code;
-	}							redirection;
+
+	//redirection
+	bool						isRedir;
+	std::pair<std::string,int>	redirection;
 
 public:
 	// constructor
@@ -29,9 +30,10 @@ public:
 	~Location();
 
 	// getters
-	std::string const	&getRoot() const;
-	bool				isMethodAllowed(std::string method) const;
-	Redirection const	&getRedirection() const;
+	std::string const					&getRoot() const;
+	bool								isMethodAllowed(std::string method) const;
+	bool								isAutoindex() const;
+	std::pair<std::string,int> const	&getRedirection() const;
 
 private:
 	// setters
@@ -40,7 +42,7 @@ private:
 	// initialization
 	void parseRoot(std::stringstream &stream);
 	void parseAllowedMethod(std::stringstream &stream);
-	void parseDirectoryListing(std::stringstream &stream);
+	void parseAutoindex(std::stringstream &stream);
 	void parseIndex(std::stringstream &stream);
 	void parseReturn(std::stringstream &stream);
 
