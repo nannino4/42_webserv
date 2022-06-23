@@ -3,6 +3,14 @@
 // default constructor
 Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
 {
+	kqueue_fd = kqueue();
+	if (kqueue_fd == -1)
+	{
+		//TODO handle error
+		perror("\nERROR\ncluster.run(): kqueue()");
+		exit(EXIT_FAILURE);
+	}
+
 	std::ifstream config_file(config_file_name);
 	std::stringstream	stream;
 	std::string			whole_file("");
@@ -32,12 +40,12 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 	}
 
 	whole_file = fileToString(config_file);
-
 	// now whole_file contains the whole file
 	
 	// parse whole_file searching for 'server' blocks
 	while ((unsigned long)(found_pos = whole_file.find_first_of('{', pos)) != std::string::npos)
 	{
+		stream.clear();
 		stream.str(whole_file.substr(pos, (found_pos - pos)));
 		pos = (found_pos + 1);
 		directive.clear();
@@ -92,16 +100,25 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 		//TODO handle error
 		std::cerr << "\nERROR\nCluster::Cluster(): found invalid text after the last '}'" << std::endl;
 	}
+	std::cout << "Cluster initialization has been completed.\n" << *this << std::endl;		//debug
 }
-
-// // constructor per DEBUG
-// Cluster::Cluster()
-// {
-// 	default_servers.insert(std::pair<address,DefaultServer>(address(inet_addr("0.0.0.0"), htons(8080)), DefaultServer(kqueue_fd, BACKLOG_SIZE)));
-// }
 
 // destructor
 Cluster::~Cluster() {}
+
+// operator overload
+std::ostream &operator<<(std::ostream &os, Cluster const &cluster)
+{
+	os << "\nCluster introducing itself:\n";
+	os << "kqueue_fd:\n" << cluster.kqueue_fd << std::endl;
+	os << "default servers with realtive virutal servers:\n";
+	for (std::map<Cluster::address,DefaultServer>::const_iterator it = cluster.default_servers.begin(); it != cluster.default_servers.end(); ++it)
+	{
+		os << it->second << std::endl;
+	}
+	os << "\nCluster introduction is over" << std::endl;
+	return os;
+}
 
 // getters
 int Cluster::getKqueueFd() const
@@ -112,14 +129,7 @@ int Cluster::getKqueueFd() const
 // run
 void Cluster::run()
 {
-	kqueue_fd = kqueue();
-	if (kqueue_fd == -1)
-	{
-		//TODO handle error
-		perror("\nERROR\ncluster.run(): kqueue()");
-		exit(EXIT_FAILURE);
-	}
-
+	std::cout << "Cluster is going to run.\n" << *this << std::endl;	//debug
 	// make servers listen and add them to kqueue
 	for (std::map<address,DefaultServer>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
 	{

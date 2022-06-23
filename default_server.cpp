@@ -116,6 +116,27 @@ DefaultServer::~DefaultServer()
 		close(listening_fd);
 }
 
+// operator overload
+std::ostream &operator<<(std::ostream &os, DefaultServer const &def_serv)
+{
+	os << "\nDefaultServer introducing itself:\n";
+	os << "backlog:\n" << def_serv.backlog << std::endl;
+	os << "server_addr:\n" << inet_ntoa(def_serv.server_addr.sin_addr) << ":" << ntohs(def_serv.server_addr.sin_port) << std::endl;
+	os << "virtual_servers:\n";
+	for (std::vector<Server>::const_iterator it = def_serv.virtual_servers.begin(); it != def_serv.virtual_servers.end(); ++it)
+	{
+		os << *it << std::endl;
+	}
+	os << "clients:\n";
+	for (std::map<int,ConnectedClient>::const_iterator it = def_serv.clients.begin(); it != def_serv.clients.end(); ++it)
+	{
+		os << it->second << std::endl;
+	}
+	os << "listening_fd:\n" << def_serv.listening_fd << std::endl;
+	os << "\nDefaultServer introduction is over" << std::endl;
+	return os;
+}
+
 // getters
 DefaultServer::address	DefaultServer::getAddress() const { return address(server_addr.sin_addr.s_addr, server_addr.sin_port); }
 unsigned int const		&DefaultServer::getBacklog() const { return backlog; }

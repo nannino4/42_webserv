@@ -37,6 +37,31 @@ bool	Server::isName(std::string const &name_to_match) const
 	return false;
 }
 
+// operator overload
+std::ostream &operator<<(std::ostream &os, Server const &server)
+{
+	os << "\nServer introducing itself:\n";
+	os << "kqueue_fd:\n" << server.kqueue_fd << std::endl;
+	os << "names:\n";
+	for (std::vector<std::string>::const_iterator it = server.names.begin(); it != server.names.end(); ++it)
+	{
+		os << *it << std::endl;
+	}
+	os << "error_pages:\n";
+	for (std::map<int, std::string>::const_iterator it = server.error_pages.begin(); it != server.error_pages.end(); ++it)
+	{
+		os << "code:" << it->first << "\tpath:" << it->second << std::endl;
+	}
+	os << "client_body_size:\n" << server.client_body_size << std::endl;
+	os << "locations:\n";
+	for (std::map<std::string,Location>::const_iterator it = server.locations.begin(); it != server.locations.end(); ++it)
+	{
+		os << it->second << std::endl;
+	}
+	os << "\nServer introduction is over" << std::endl;
+	return os;
+}
+
 // ================================================================================================
 // communication - prepareResponse - MODIFIED Version, DA TESTARE
 // ================================================================================================

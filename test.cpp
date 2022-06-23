@@ -13,29 +13,21 @@
 int main()
 {
 	std::stringstream 	stream;
-	int					n;
-	std::string 		string("a42ciao ");
+	std::string 		string(" \n ciao \n a\n\ntutti");
 
 	stream.str(string);
+
 	string.clear();
-
-	stream >> n;
-	std::cout << "n=" << n ;
-		perror("\nERROR\nstream reading");
-		exit(EXIT_FAILURE);
-
 	stream >> string;
-	stream >> std::ws;
-	std::cout << "\nstring=" << string << std::endl;
-	std::cout << "stream.good()=" << std::boolalpha << stream.good() << std::endl;
-	std::cout << "stream.fail()=" << std::boolalpha << stream.fail() << std::endl;
-	std::cout << "stream.eof()=" << std::boolalpha << stream.eof() << std::endl;
+	std::cout << "\n1.string =\n\"" << string << "\"" << std::endl;
 
+	string.clear();
 	stream >> string;
-	std::cout << "\nstring=" << string << std::endl;
-	std::cout << "stream.good()=" << std::boolalpha << stream.good() << std::endl;
-	std::cout << "stream.fail()=" << std::boolalpha << stream.fail() << std::endl;
-	std::cout << "stream.eof()=" << std::boolalpha << stream.eof() << std::endl;
+	std::cout << "\n2.string =\n\"" << string << "\"" << std::endl;
+
+	string.clear();
+	stream >> string;
+	std::cout << "\n3.string =\n\"" << string << "\"" << std::endl;
 	
     // struct sockaddr_in addr;
 	// int ret;

@@ -5,3 +5,15 @@ ConnectedClient::ConnectedClient(int const connected_fd, struct sockaddr_in clie
 
 // destructor
 ConnectedClient::~ConnectedClient() {}
+
+// operator overload
+std::ostream &operator<<(std::ostream &os, ConnectedClient const &client)
+{
+	os << "\nConnectedClient introducing itself:\n";
+	os << "connected_fd:\n" << client.connected_fd << std::endl;
+	os << "server_addr:\n" << inet_ntoa(client.client_addr.sin_addr) << ":" << ntohs(client.client_addr.sin_port) << std::endl;
+	os << "message:\n" << client.message << std::endl;
+	os << "message_pos:\n" << client.message_pos << std::endl;
+	os << "\nConnectedClient introduction is over" << std::endl;
+	return os;
+}

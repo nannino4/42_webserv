@@ -40,6 +40,9 @@ public:
 	// destructor
 	~Server();
 
+	// output operator overload
+	friend std::ostream &operator<<(std::ostream &os, Server const &server);
+
 	// getters
 	int const					&getKqueueFd() const;
 	std::vector<std::string>	&getNames();

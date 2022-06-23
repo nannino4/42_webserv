@@ -52,6 +52,9 @@ public:
 	// destructor
 	~DefaultServer();
 
+	// output operator overload
+	friend std::ostream &operator<<(std::ostream &os, DefaultServer const &def_serv);
+
 	// getters
 	address				getAddress() const;
 	unsigned int const	&getBacklog() const;

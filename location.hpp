@@ -29,6 +29,9 @@ public:
 	// destructor
 	~Location();
 
+	// output operator overload
+	friend std::ostream &operator<<(std::ostream &os, Location const &location);
+
 	// getters
 	std::string const					&getRoot() const;
 	bool								isMethodAllowed(std::string method) const;

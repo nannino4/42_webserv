@@ -38,6 +38,9 @@ public:
 	// destructor
 	~Cluster();
 
+	// output operator overload
+	friend std::ostream &operator<<(std::ostream &os, Cluster const &cluster);
+
 	// getters
 	int	getKqueueFd() const;
 
@@ -55,3 +58,4 @@ private:
 	void parseLocationDirectives();
 
 };
+

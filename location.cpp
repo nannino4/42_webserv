@@ -87,6 +87,24 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), index
 // destructor
 Location::~Location() {}
 
+// operator overload
+std::ostream &operator<<(std::ostream &os, Location const &location)
+{
+	os << "\nLocation introducing itself:\n";
+	os << "root:\n" << location.root << std::endl;
+	os << "allowed_methods:\n";
+	for (std::vector<std::string>::const_iterator it = location.allowed_methods.begin(); it != location.allowed_methods.end(); ++it)
+	{
+		os << *it << std::endl;
+	}
+	os << "autoindex:\n" << std::boolalpha << location.autoindex << std::endl;
+	os << "index:\n" << location.index << std::endl;
+	os << "isRedir:\n" << std::boolalpha << location.isRedir << std::endl;
+	os << "redirection:\n" << location.redirection.second << " " << location.redirection.first << std::endl;
+	os << "\nLocation introduction is over" << std::endl;
+	return os;
+}
+
 // getters
 std::string const					&Location::getRoot() const { return root; }
 bool 								Location::isAutoindex() const { return autoindex; }
