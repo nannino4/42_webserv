@@ -53,10 +53,10 @@ public:
 	~DefaultServer();
 
 	// getters
-	address const				&getAddress() const;
-	unsigned int	 const		&getBacklog() const;
-	int const					&getListeningFd() const;
-	int const					&getKqueueFd() const;
+	address				getAddress() const;
+	unsigned int const	&getBacklog() const;
+	int const			&getListeningFd() const;
+	int const			&getKqueueFd() const;
 
 	// initialization
 	void addVirtualServer(DefaultServer newServer);

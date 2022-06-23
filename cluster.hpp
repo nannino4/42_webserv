@@ -12,7 +12,7 @@
 
 #include "default_server.hpp"
 
-#define DEF_CONF "/config_files/default.conf"
+#define DEF_CONF "./config_files/default.conf"
 #define N_EVENTS 1000
 #define BACKLOG_SIZE 128
 
@@ -32,8 +32,8 @@ public:
 	// constructor
 	Cluster(std::string config_file_name);
 
-	// constructor per DEBUG
-	Cluster();
+	// // constructor per DEBUG
+	// Cluster();
 
 	// destructor
 	~Cluster();
@@ -46,7 +46,7 @@ public:
 
 private:
 	// utils
-	std::ifstream	openConfigFile(std::string config_file_name);
+	std::ifstream	&openConfigFile(std::string config_file_name);
 	std::string		fileToString(std::ifstream &config_file);
 	
 	// initialization

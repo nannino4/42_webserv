@@ -1,14 +1,14 @@
 #include "location.hpp"
 
 // constructor
-Location::Location(std::string &config_file, int &pos) : autoindex(false), isRedir(false), index("index.html")
+Location::Location(std::string &config_file, int &pos) : autoindex(false), index("index.html"), isRedir(false)
 {
 	std::stringstream	stream;
 	std::string			directive;
 	int					found_pos;
 
 	// check if file doesn't contain any character among ";}" - '}' is required to close the "server" block
-	if ((found_pos = config_file.find_first_of(";}", pos, 2)) == std::string::npos)
+	if ((unsigned long)(found_pos = config_file.find_first_of(";}", pos, 2)) == std::string::npos)
 	{
 		//TODO handle error
 		std::cerr << "\nERROR\nLocation::Location(): expected '}'" << std::endl;
@@ -72,7 +72,7 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), isRed
 			exit(EXIT_FAILURE);
 		}
 
-		if ((found_pos = config_file.find_first_of(";}", pos, 3)) == std::string::npos)
+		if ((unsigned long)(found_pos = config_file.find_first_of(";}", pos, 3)) == std::string::npos)
 		{
 			//TODO handle error
 			std::cerr << "\nERROR\nLocation::Location(): expected '}'" << std::endl;

@@ -12,22 +12,24 @@ Server::Server(Server const &other) : kqueue_fd(other.getKqueueFd()) { *this = o
 // assign operator overload
 Server &Server::operator=(Server const &other)
 {
+	names = other.names;
 	error_pages = other.error_pages;
 	client_body_size = other.client_body_size;
 	locations = other.locations;
+	return *this;
 }
 
 // destructor
 Server::~Server() {}
 
 // getters
-int const	&Server::getKqueueFd() const { return kqueue_fd; }
-std::vector	&Server::getNames() { return names; }
+int const					&Server::getKqueueFd() const { return kqueue_fd; }
+std::vector<std::string>	&Server::getNames() { return names; }
 
 // utility
 bool	Server::isName(std::string const &name_to_match) const
 {
-	for (vector<std::string>::iterator i = names.begin(); i != names.end(); ++i)
+	for (vector<std::string>::const_iterator i = names.begin(); i != names.end(); ++i)
 	{
 		if (!i->compare(name_to_match))
 			return true;

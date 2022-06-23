@@ -1,9 +1,8 @@
 #include "cluster.hpp"
 
-int main()
+int main(int argc, char **argv)
 {
-	// std::string	config_file = argc < 2 ? std::string() : argv[1];
-	// Cluster cluster(config_file);	//NOTE: if the config file is not valid, then default config file is used
-	Cluster cluster;
+	std::string	config_file = argc < 2 ? DEF_CONF : argv[1];
+	Cluster cluster(config_file);
 	cluster.run();
 }

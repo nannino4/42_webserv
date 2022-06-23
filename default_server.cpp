@@ -17,7 +17,7 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::st
 	int					found_pos;
 
 	// check if file doesn't contain any character among "{;}" - '}' is required to close the "server" block
-	if ((found_pos = config_file.find_first_of("{;}", pos, 3)) == std::string::npos)
+	if ((unsigned long)(found_pos = config_file.find_first_of("{;}", pos, 3)) == std::string::npos)
 	{
 		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::DefaultServer(): expected '}'" << std::endl;
@@ -74,7 +74,7 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::st
 			}
 
 			// check that insert() actually inserted a new element
-			if (!(locations.insert(std::pair(path, Location(config_file, pos)))).second)
+			if (!(locations.insert(std::pair<std::string,Location>(path, Location(config_file, pos)))).second)
 			{
 				//TODO handle error
 				std::cerr << "\nERROR\nDefaultServer::DefaultServer(): could not add location: a location with path \"" << path << "\" already exists" << std::endl;
@@ -82,7 +82,7 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::st
 			}
 		}
 
-		if ((found_pos = config_file.find_first_of("{;}", pos, 3)) == std::string::npos)
+		if ((unsigned long)(found_pos = config_file.find_first_of("{;}", pos, 3)) == std::string::npos)
 		{
 			//TODO handle error
 			std::cerr << "\nERROR\nDefaultServer::DefaultServer(): expected '}'" << std::endl;
@@ -94,6 +94,21 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::st
 	pos = found_pos + 1;
 }
 
+// copy constructor
+DefaultServer::DefaultServer(DefaultServer const &other) : Server(other) { *this = other; }
+
+// assign operator
+DefaultServer &DefaultServer::operator=(DefaultServer const &other)
+{
+	backlog = other.backlog;
+	server_addr = other.server_addr;
+	virtual_servers = other.virtual_servers;
+	clients = other.clients;
+	listening_fd = other.getListeningFd();
+	bzero(buf, BUFFER_SIZE);
+	return *this;
+}
+
 // destructor
 DefaultServer::~DefaultServer()
 {
@@ -102,10 +117,10 @@ DefaultServer::~DefaultServer()
 }
 
 // getters
-DefaultServer::address const	&DefaultServer::getAddress() const { return address(server_addr.sin_addr.s_addr, server_addr.sin_port); }
-unsigned int const				&DefaultServer::getBacklog() const { return backlog; }
-int const						&DefaultServer::getListeningFd() const { return listening_fd; }
-int const						&DefaultServer::getKqueueFd() const { return kqueue_fd; }
+DefaultServer::address	DefaultServer::getAddress() const { return address(server_addr.sin_addr.s_addr, server_addr.sin_port); }
+unsigned int const		&DefaultServer::getBacklog() const { return backlog; }
+int const				&DefaultServer::getListeningFd() const { return listening_fd; }
+int const				&DefaultServer::getKqueueFd() const { return kqueue_fd; }
 
 // initialization
 // add virtual server
@@ -118,7 +133,7 @@ void DefaultServer::addVirtualServer(DefaultServer tmp_serv)
 	{
 		for (std::vector<Server>::const_iterator i = virtual_servers.begin(); i != virtual_servers.end(); ++i)
 		{
-			if (i->isName(name_to_match))
+			if (i->isName(*name_to_match))
 			{
 				//TODO handle error
 				std::cerr << "\nERROR\nDefaultServer::addVirtualServer(): cannot add new virtual server: name already used" << std::endl;
@@ -287,10 +302,10 @@ void DefaultServer::dispatchRequest(ConnectedClient &client)
 	Request request(client.message);
 	
 	Server *serverRequested = this;
-	for (std::vector<Server>::const_iterator it = virtual_servers.begin(); it != virtual_servers.end(); ++it)
+	for (std::vector<Server>::iterator it = virtual_servers.begin(); it != virtual_servers.end(); ++it)
 	{
 		if (it->isName(request.getHostname()))
-			serverRequested = it;
+			serverRequested = &(*it);
 	}
 	
 	//debug

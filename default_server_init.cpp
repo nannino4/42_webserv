@@ -79,13 +79,13 @@ void DefaultServer::parseListen(std::stringstream &stream)
 		exit(EXIT_FAILURE);
 	}
 
-	if ((found_pos = string.find_first_of(':')) != std::string::npos)
+	if ((unsigned long)(found_pos = string.find_first_of(':')) != std::string::npos)
 	{
 		// address:port
 		address = string.substr(0, found_pos);
 		port = string.substr(found_pos + 1);
 	}
-	else if ((found_pos = string.find_first_of('.')) != std::string::npos)
+	else if ((unsigned long)(found_pos = string.find_first_of('.')) != std::string::npos)
 	{
 		// only address
 		address = string;
@@ -99,7 +99,7 @@ void DefaultServer::parseListen(std::stringstream &stream)
 	// initialize server address
 	if (!address.empty())
 	{
-		server_addr.sin_addr.s_addr = inet_addr(address);
+		server_addr.sin_addr.s_addr = inet_addr(address.c_str());
 		if (server_addr.sin_addr.s_addr == INADDR_NONE)
 		{
 			//TODO handle error
@@ -115,7 +115,7 @@ void DefaultServer::parseListen(std::stringstream &stream)
 			std::cerr << "\nERROR\nDefaultServer::parseListen(): \"" << port << "\" is an invalid port" << std::endl;
 			exit(EXIT_FAILURE);
 		}
-		int port_n = atoi(port);
+		int port_n = atoi(port.c_str());
 		if (port_n < 1 || port_n > 65535)
 		{
 			//TODO handle error
