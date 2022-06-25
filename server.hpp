@@ -45,7 +45,7 @@ public:
 
 	// getters
 	int const					&getKqueueFd() const;
-	std::vector<std::string>	&getNames();
+	std::vector<std::string> const	&getNames() const;
 
 	// communication
 	// void prepareResponse(ConnectedClient &client, void *default_server);

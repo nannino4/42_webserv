@@ -18,6 +18,7 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), index
 	// parse location block searching for directives
 	while (config_file[found_pos] != '}')
 	{
+		stream.clear();
 		stream.str(config_file.substr(pos, (found_pos - pos)));
 		pos = found_pos + 1;
 	

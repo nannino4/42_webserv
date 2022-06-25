@@ -27,6 +27,7 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::st
 	// parse server block searching for directives and 'location' blocks
 	while (config_file[found_pos] != '}')
 	{
+		stream.clear();
 		stream.str(config_file.substr(pos, (found_pos - pos)));
 		pos = found_pos + 1;
 	
@@ -120,18 +121,24 @@ DefaultServer::~DefaultServer()
 std::ostream &operator<<(std::ostream &os, DefaultServer const &def_serv)
 {
 	os << "\nDefaultServer introducing itself:\n";
-	os << "backlog:\n" << def_serv.backlog << std::endl;
-	os << "server_addr:\n" << inet_ntoa(def_serv.server_addr.sin_addr) << ":" << ntohs(def_serv.server_addr.sin_port) << std::endl;
-	os << "virtual_servers:\n";
+	os << "backlog: " << def_serv.backlog << std::endl;
+	os << "server_addr: " << inet_ntoa(def_serv.server_addr.sin_addr) << ":" << ntohs(def_serv.server_addr.sin_port) << std::endl;
+	os << "virtual_servers: " << def_serv.virtual_servers.size() << std::endl;
 	for (std::vector<Server>::const_iterator it = def_serv.virtual_servers.begin(); it != def_serv.virtual_servers.end(); ++it)
 	{
-		os << *it << std::endl;
+		os << "\tvirtual server names:" << std::endl;
+		os << "\t\t";
+		for (std::vector<std::string>::const_iterator name = it->getNames().begin(); name != it->getNames().end(); ++name)
+		{
+			os << *name;
+		}
+		os << std::endl;
 	}
-	os << "clients:\n";
-	for (std::map<int,ConnectedClient>::const_iterator it = def_serv.clients.begin(); it != def_serv.clients.end(); ++it)
-	{
-		os << it->second << std::endl;
-	}
+	os << "clients: " << def_serv.clients.size() << std::endl;
+	// for (std::map<int,ConnectedClient>::const_iterator it = def_serv.clients.begin(); it != def_serv.clients.end(); ++it)
+	// {
+	// 	os << it->second << std::endl;
+	// }
 	os << "listening_fd:\n" << def_serv.listening_fd << std::endl;
 	os << "\nDefaultServer introduction is over" << std::endl;
 	return os;
@@ -139,6 +146,8 @@ std::ostream &operator<<(std::ostream &os, DefaultServer const &def_serv)
 
 // getters
 DefaultServer::address	DefaultServer::getAddress() const { return address(server_addr.sin_addr.s_addr, server_addr.sin_port); }
+std::string				DefaultServer::getIp() const { return inet_ntoa(server_addr.sin_addr); }
+std::string				DefaultServer::getPort() const { return std::to_string(ntohs(server_addr.sin_port)); }
 unsigned int const		&DefaultServer::getBacklog() const { return backlog; }
 int const				&DefaultServer::getListeningFd() const { return listening_fd; }
 int const				&DefaultServer::getKqueueFd() const { return kqueue_fd; }

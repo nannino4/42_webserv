@@ -24,7 +24,7 @@ Server::~Server() {}
 
 // getters
 int const					&Server::getKqueueFd() const { return kqueue_fd; }
-std::vector<std::string>	&Server::getNames() { return names; }
+std::vector<std::string> const	&Server::getNames() const { return names; }
 
 // utility
 bool	Server::isName(std::string const &name_to_match) const

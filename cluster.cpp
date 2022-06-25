@@ -41,7 +41,7 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 
 	whole_file = fileToString(config_file);
 	// now whole_file contains the whole file
-	
+
 	// parse whole_file searching for 'server' blocks
 	while ((unsigned long)(found_pos = whole_file.find_first_of('{', pos)) != std::string::npos)
 	{
@@ -110,13 +110,13 @@ Cluster::~Cluster() {}
 std::ostream &operator<<(std::ostream &os, Cluster const &cluster)
 {
 	os << "\nCluster introducing itself:\n";
-	os << "kqueue_fd:\n" << cluster.kqueue_fd << std::endl;
-	os << "default servers with realtive virutal servers:\n";
+	os << "kqueue_fd: " << cluster.kqueue_fd << std::endl;
+	os << "default servers: " << cluster.default_servers.size() << std::endl;
 	for (std::map<Cluster::address,DefaultServer>::const_iterator it = cluster.default_servers.begin(); it != cluster.default_servers.end(); ++it)
 	{
 		os << it->second << std::endl;
 	}
-	os << "\nCluster introduction is over" << std::endl;
+	os << "Cluster introduction is over\n" << std::endl;
 	return os;
 }
 
@@ -129,7 +129,6 @@ int Cluster::getKqueueFd() const
 // run
 void Cluster::run()
 {
-	std::cout << "Cluster is going to run.\n" << *this << std::endl;	//debug
 	// make servers listen and add them to kqueue
 	for (std::map<address,DefaultServer>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
 	{

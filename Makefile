@@ -19,7 +19,7 @@ CFLAGS		= 	-Wall -Wextra -Werror
 CC			= 	g++
 
 %.o :		%.cpp
-			$(CC) -c -I. $(CFLAGS) $< -o $@
+			$(CC) -c -g -I. $(CFLAGS) $< -o $@
 
 all:		$(NAME)
 

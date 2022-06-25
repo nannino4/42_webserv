@@ -23,6 +23,7 @@ void DefaultServer::parseDirectives(std::stringstream &stream)
 		exit(EXIT_FAILURE);
 	}
 
+	stream >> std::ws;
 	// if stream reached EOF we can leave the default settings
 	if (stream.eof())
 		return ;
@@ -61,7 +62,6 @@ void DefaultServer::parseListen(std::stringstream &stream)
 	std::string port;
 
 	stream >> string;
-	stream >> std::ws;
 
 	// check that stream didn't fail reading
 	if (stream.fail())
@@ -71,6 +71,7 @@ void DefaultServer::parseListen(std::stringstream &stream)
 		exit(EXIT_FAILURE);
 	}
 
+	stream >> std::ws;
 	// check that stream reached EOF
 	if (!stream.eof())
 	{
@@ -149,7 +150,6 @@ void DefaultServer::parseName(std::stringstream &stream)
 void DefaultServer::parseBodySize(std::stringstream &stream)
 {
 	stream >> client_body_size;
-	stream >> std::ws;
 
 	// check that stream didn't fail reading
 	if (stream.fail())
@@ -159,6 +159,7 @@ void DefaultServer::parseBodySize(std::stringstream &stream)
 		exit(EXIT_FAILURE);
 	}
 
+	stream >> std::ws;
 	// check that stream reached EOF
 	if (!stream.eof())
 	{
@@ -175,7 +176,6 @@ void DefaultServer::parseErrorPage(std::stringstream &stream)
 	std::string	path;
 
 	stream >> code;
-	stream >> std::ws;
 
 	// check that stream didn't fail reading
 	if (stream.fail())
@@ -185,6 +185,7 @@ void DefaultServer::parseErrorPage(std::stringstream &stream)
 		exit(EXIT_FAILURE);
 	}
 
+	stream >> std::ws;
 	// check that stream reached EOF
 	if (stream.eof())
 	{
@@ -194,7 +195,6 @@ void DefaultServer::parseErrorPage(std::stringstream &stream)
 	}
 
 	stream >> path;
-	stream >> std::ws;
 
 	// check that stream didn't fail reading
 	if (stream.fail())
@@ -204,6 +204,7 @@ void DefaultServer::parseErrorPage(std::stringstream &stream)
 		exit(EXIT_FAILURE);
 	}
 
+	stream >> std::ws;
 	// check that stream reached EOF
 	if (!stream.eof())
 	{

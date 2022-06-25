@@ -57,6 +57,8 @@ public:
 
 	// getters
 	address				getAddress() const;
+	std::string			getIp() const;
+	std::string			getPort() const;
 	unsigned int const	&getBacklog() const;
 	int const			&getListeningFd() const;
 	int const			&getKqueueFd() const;
