@@ -1,85 +1,124 @@
 #include "cluster.hpp"
 
-// Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
-// {
-	// std::ifstream config_file(config_file_name);
-
-	// // check that config_file_name exists and is valid, otherwise use DEF_CONF instead
-	// if (!config_file.is_open() && !config_file_name.compare(DEF_CONF))
-	// {
-	// 	//TODO handle error
-	// 	// perror("ERROR/nCluster: trying to open default.conf")
-	// 	// throw();
-	// }
-	// if (!config_file.is_open() && config_file_name.compare(DEF_CONF))
-	// {
-	// 	std::cout << "WARNING\n" << config_file << " is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
-	// 	config_file.open(DEF_CONF);
-	// 	if (!config_file.is_open())
-	// 	{
-	// 		//TODO handle error
-	// 		// perror("ERROR\nCluster: trying to open default.conf")
-	// 		// throw();
-	// 	}
-	// }
-	// // parse config_file in search for 'server' directives to create servers
-	// std::stringstream	line;
-	// std::string			tmp;
-	// std::string			directive;
-
-	// std::getline(config_file, tmp);
-	// while (config_file.good())
-	// {
-	// 	if (!tmp.empty())
-	// 	{
-	// 		line.str(tmp);
-	// 		line >> directive;
-	// 		if (!directive.compare("server"))
-	// 		{
-	// 			line >> tmp;
-	// 			if (tmp.compare("{"))
-	// 			{
-	// 				//TODO handle error
-	// 				// std::cerr << "ERROR\nCluster: parsing config_file: The server directive should only be followed by space and \"{\"" << std::endl;
-	// 				// throw()
-	// 			}
-	// 			else
-	// 			{
-	// 				line >> tmp;
-	// 				if (tmp.empty())
-	// 				{
-	// 					servers.push_back(Server(*this, BACKLOG_SIZE, config_file));
-	// 				}
-	// 				else
-	// 				{
-	// 					//TODO handle error
-	// 					// std::cerr << "ERROR\nCluster: parsing config_file: The server directive should only be followed by space and \"{\"" << std::endl;
-	// 					// throw()
-	// 				}
-	// 			}
-	// 		}
-	// 		else
-	// 		{
-	// 			//TODO handle error
-	// 			// std::cerr << "ERROR\nCluster: parsing config_file: directive " << directive << " is invalid" << std::endl;
-	// 			// throw()
-	// 		}
-	// 	}
-	// 	std::getline(config_file, tmp);
-	// }
-// }
-
-// constructor per DEBUG
-Cluster::Cluster()
+// default constructor
+Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
 {
-	// std::cout << "inizio constructor cluster" << std::endl;
-	default_servers.insert(std::pair<address,DefaultServer>(address(inet_addr("0.0.0.0"), htons(8080)), DefaultServer(kqueue_fd, BACKLOG_SIZE)));
-	// std::cout << "fine constructor cluster" << std::endl;
-	// std::cout << "ci sono " << default_servers.size() << " default servers nel cluster" << std::endl;
+	kqueue_fd = kqueue();
+	if (kqueue_fd == -1)
+	{
+		//TODO handle error
+		perror("\nERROR\ncluster.run(): kqueue()");
+		exit(EXIT_FAILURE);
+	}
+
+	std::ifstream config_file(config_file_name);
+	std::stringstream	stream;
+	std::string			whole_file("");
+	std::string			directive;
+	int					pos = 0;
+	int					found_pos;
+
+	// check that config_file_name exists and is valid, otherwise use DEF_CONF instead
+	if (!config_file.is_open() && !config_file_name.compare(DEF_CONF))
+	{
+		//TODO handle error
+		perror("\nERROR\nCluster: trying to open the default configuration file");
+		exit(EXIT_FAILURE);
+		// throw();
+	}
+	if (!config_file.is_open() && config_file_name.compare(DEF_CONF))
+	{
+		std::cout << "\nWARNING\n\"" << config_file_name << "\" is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
+		config_file.open(DEF_CONF);
+		if (!config_file.is_open())
+		{
+			//TODO handle error
+			perror("\nERROR\nCluster: trying to open the default configuration file");
+			exit(EXIT_FAILURE);
+			// throw();
+		}
+	}
+
+	whole_file = fileToString(config_file);
+	// now whole_file contains the whole file
+
+	// parse whole_file searching for 'server' blocks
+	while ((unsigned long)(found_pos = whole_file.find_first_of('{', pos)) != std::string::npos)
+	{
+		stream.clear();
+		stream.str(whole_file.substr(pos, (found_pos - pos)));
+		pos = (found_pos + 1);
+		directive.clear();
+		stream >> directive;
+
+		// check that stream didn't fail reading
+		if (stream.fail())
+		{
+			//TODO handle error
+			std::cerr << "\nERROR\nCluster::Cluster(): stream reading failed" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		if (directive.compare("server"))
+		{
+			//TODO handle error
+			std::cerr << "\nERROR\nCluster::Cluster(): parsing config_file: \"" << directive << "\" is an invalid directive at the current scope" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			directive.clear();
+			stream >> directive;
+			if (!directive.empty())
+			{
+				//TODO handle error
+				std::cerr << "\nERROR\nCluster::Cluster(): parsing config_file: found invalid text between the directive \"server\" and '{'" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			else
+			{
+				DefaultServer newServer(kqueue_fd, BACKLOG_SIZE, whole_file, pos);		// still can't know if it's going to be a Server or DefaultServer
+	
+				//check whether there is already a default server with the same address:port combination
+				if (default_servers.find(newServer.getAddress()) == default_servers.end())
+				{
+					// adding new default server
+					default_servers.insert(std::pair<address,DefaultServer>(newServer.getAddress(), newServer));
+				}
+				else
+				{
+					// adding new virtual server because there is already a default server with same address:port combination
+					(default_servers.find(newServer.getAddress()))->second.addVirtualServer(newServer);
+				}
+			}
+		}
+	}
+	stream.str(whole_file.substr(pos));
+	stream >> std::ws;
+	if (!stream.eof())
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nCluster::Cluster(): found invalid text after the last '}'" << std::endl;
+	}
+	std::cout << "Cluster initialization has been completed.\n" << *this << std::endl;		//debug
 }
 
 // destructor
 Cluster::~Cluster() {}
+
+// operator overload
+std::ostream &operator<<(std::ostream &os, Cluster const &cluster)
+{
+	os << "\nCluster introducing itself:\n";
+	os << "kqueue_fd: " << cluster.kqueue_fd << std::endl;
+	os << "default servers: " << cluster.default_servers.size() << std::endl;
+	for (std::map<Cluster::address,DefaultServer>::const_iterator it = cluster.default_servers.begin(); it != cluster.default_servers.end(); ++it)
+	{
+		os << it->second << std::endl;
+	}
+	os << "Cluster introduction is over\n" << std::endl;
+	return os;
+}
 
 // getters
 int Cluster::getKqueueFd() const
@@ -90,14 +129,6 @@ int Cluster::getKqueueFd() const
 // run
 void Cluster::run()
 {
-	kqueue_fd = kqueue();
-	if (kqueue_fd == -1)
-	{
-		//TODO handle error
-		perror("ERROR\ncluster.run(): epoll_create1()");
-		exit(EXIT_FAILURE);
-	}
-
 	// make servers listen and add them to kqueue
 	for (std::map<address,DefaultServer>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
 	{
@@ -119,7 +150,7 @@ void Cluster::run()
 		if (num_ready_fds == -1)
 		{
 			//TODO handle error
-			perror("ERROR\ncluster.run(): kevent()");
+			perror("\nERROR\ncluster.run(): kevent()");
 			exit(EXIT_FAILURE);
 		}
 
@@ -139,7 +170,7 @@ void Cluster::run()
 
 				//the connected_fd got an error_filter
 				//TODO handle error
-				std::cout << "ERROR\nan event reported EV_ERROR in flags" << std::endl;
+				std::cout << "\nERROR\nan event reported EV_ERROR in flags" << std::endl;
 				strerror(triggered_events[i].data);
 			}
 			else if (triggered_events[i].filter == EVFILT_WRITE)

@@ -20,4 +20,7 @@ struct ConnectedClient
 	// destructor
 	~ConnectedClient();
 
+	// output operator overload
+	friend std::ostream &operator<<(std::ostream &os, ConnectedClient const &client);
+
 };

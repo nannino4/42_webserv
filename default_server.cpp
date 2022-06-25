@@ -1,15 +1,113 @@
 #include "default_server.hpp"
 
-// constructor
-DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog) : Server(kqueue_fd), backlog(backlog)
+// default constructor
+DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::string &config_file, int &pos) : Server(kqueue_fd), backlog(backlog)
 {
+	// default initialization
 	bzero(buf, BUFFER_SIZE);
 	bzero(&server_addr, sizeof(server_addr));
-	server_addr.sin_addr.s_addr = inet_addr("0.0.0.0");
+	server_addr.sin_addr.s_addr = DEF_ADDR;
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(8080);
-	error_pages.insert(std::pair<int,std::string>(404, "./error_pages/404.html"));	//TODO aggiungi altre pagine di errore
-	// std::cout << "+ un nuovo default server e' stato creato" << std::endl;	//DEBUG
+	server_addr.sin_port = htons(DEF_PORT);
+	error_pages[404] = std::string(DEF_404);	//TODO aggiungi altre pagine di errore
+
+	// specific initialization
+
+	std::stringstream	stream;
+	int					found_pos;
+
+	// check if file doesn't contain any character among "{;}" - '}' is required to close the "server" block
+	if ((unsigned long)(found_pos = config_file.find_first_of("{;}", pos, 3)) == std::string::npos)
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nDefaultServer::DefaultServer(): expected '}'" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// parse server block searching for directives and 'location' blocks
+	while (config_file[found_pos] != '}')
+	{
+		stream.clear();
+		stream.str(config_file.substr(pos, (found_pos - pos)));
+		pos = found_pos + 1;
+	
+		if (config_file[found_pos] == ';')
+		{
+			parseDirectives(stream);
+		}
+		else if (config_file[found_pos] == '{')
+		{
+			std::string	directive;
+			std::string	path;
+
+			stream >> directive >> path;
+
+			// check that stream didn't fail reading
+			if (stream.fail())
+			{
+				//TODO handle error
+				std::cerr << "\nERROR\nDefaultServer::DefaultServer(): stream reading failed" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			// check that directive == "location"
+			if (directive.compare("location"))
+			{
+				//TODO handle error
+				std::cerr << "\nERROR\nDefaultServer::DefaultServer(): directive \"" << directive << "\" is not valid. Expected \"location\"." << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			// check that path exists
+			if (path.empty())
+			{
+				//TODO handle error
+				std::cerr << "\nERROR\nDefaultServer::DefaultServer(): the directive \"location\" should be followed by [path]" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			// check that stream reached EOF
+			if (!stream.eof())
+			{
+				//TODO handle error
+				std::cerr << "\nERROR\nDefaultServer::DefaultServer(): too many parameters parsing \"[location] [path] {\"" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			// check that insert() actually inserted a new element
+			if (!(locations.insert(std::pair<std::string,Location>(path, Location(config_file, pos)))).second)
+			{
+				//TODO handle error
+				std::cerr << "\nERROR\nDefaultServer::DefaultServer(): could not add location: a location with path \"" << path << "\" already exists" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		if ((unsigned long)(found_pos = config_file.find_first_of("{;}", pos, 3)) == std::string::npos)
+		{
+			//TODO handle error
+			std::cerr << "\nERROR\nDefaultServer::DefaultServer(): expected '}'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	// set pos after found_pos - which is pointing to '}'
+	pos = found_pos + 1;
+}
+
+// copy constructor
+DefaultServer::DefaultServer(DefaultServer const &other) : Server(other) { *this = other; }
+
+// assign operator
+DefaultServer &DefaultServer::operator=(DefaultServer const &other)
+{
+	backlog = other.backlog;
+	server_addr = other.server_addr;
+	virtual_servers = other.virtual_servers;
+	clients = other.clients;
+	listening_fd = other.getListeningFd();
+	bzero(buf, BUFFER_SIZE);
+	return *this;
 }
 
 // destructor
@@ -17,14 +115,64 @@ DefaultServer::~DefaultServer()
 {
 	if (listening_fd != -1)
 		close(listening_fd);
-	// std::cout << "- un default server e' stato distrutto" << std::endl;		//DEBUG
+}
+
+// operator overload
+std::ostream &operator<<(std::ostream &os, DefaultServer const &def_serv)
+{
+	os << "\nDefaultServer introducing itself:\n";
+	os << "backlog: " << def_serv.backlog << std::endl;
+	os << "server_addr: " << inet_ntoa(def_serv.server_addr.sin_addr) << ":" << ntohs(def_serv.server_addr.sin_port) << std::endl;
+	os << "virtual_servers: " << def_serv.virtual_servers.size() << std::endl;
+	for (std::vector<Server>::const_iterator it = def_serv.virtual_servers.begin(); it != def_serv.virtual_servers.end(); ++it)
+	{
+		os << "\tvirtual server names:" << std::endl;
+		os << "\t\t";
+		for (std::vector<std::string>::const_iterator name = it->getNames().begin(); name != it->getNames().end(); ++name)
+		{
+			os << *name;
+		}
+		os << std::endl;
+	}
+	os << "clients: " << def_serv.clients.size() << std::endl;
+	// for (std::map<int,ConnectedClient>::const_iterator it = def_serv.clients.begin(); it != def_serv.clients.end(); ++it)
+	// {
+	// 	os << it->second << std::endl;
+	// }
+	os << "listening_fd:\n" << def_serv.listening_fd << std::endl;
+	os << "\nDefaultServer introduction is over" << std::endl;
+	return os;
 }
 
 // getters
-struct sockaddr_in const	&DefaultServer::getAddress() const { return server_addr; }
-unsigned int const			&DefaultServer::getBacklog() const { return backlog; }
-int const					&DefaultServer::getListeningFd() const { return listening_fd; }
-int const					&DefaultServer::getKqueueFd() const { return kqueue_fd; }
+DefaultServer::address	DefaultServer::getAddress() const { return address(server_addr.sin_addr.s_addr, server_addr.sin_port); }
+std::string				DefaultServer::getIp() const { return inet_ntoa(server_addr.sin_addr); }
+std::string				DefaultServer::getPort() const { return std::to_string(ntohs(server_addr.sin_port)); }
+unsigned int const		&DefaultServer::getBacklog() const { return backlog; }
+int const				&DefaultServer::getListeningFd() const { return listening_fd; }
+int const				&DefaultServer::getKqueueFd() const { return kqueue_fd; }
+
+// initialization
+// add virtual server
+void DefaultServer::addVirtualServer(DefaultServer tmp_serv)
+{
+	Server 						newServer = (Server)tmp_serv;
+	std::vector<std::string>	tmp_names = newServer.getNames();
+
+	for (std::vector<std::string>::const_iterator name_to_match = tmp_names.begin(); name_to_match != tmp_names.end(); ++name_to_match)
+	{
+		for (std::vector<Server>::const_iterator i = virtual_servers.begin(); i != virtual_servers.end(); ++i)
+		{
+			if (i->isName(*name_to_match))
+			{
+				//TODO handle error
+				std::cerr << "\nERROR\nDefaultServer::addVirtualServer(): cannot add new virtual server: name already used" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
+	virtual_servers.push_back(newServer);
+}
 
 // communication
 void DefaultServer::startListening()
@@ -184,16 +332,29 @@ void DefaultServer::dispatchRequest(ConnectedClient &client)
 	Request request(client.message);
 	
 	Server *serverRequested = this;
-	for (VirtualServerIterator it = virtual_servers.begin(); it != virtual_servers.end(); it++)
+	for (std::vector<Server>::iterator it = virtual_servers.begin(); it != virtual_servers.end(); ++it)
 	{
-		if (it->first == request.getRequestHeaderHost())
-			serverRequested = this;
+		if (it->isName(request.getHostname()))
+			serverRequested = &(*it);
 	}
 	
 	//debug
 	// prepareResponse(client, serverRequested);
 	serverRequested->prepareResponse(client, request);
-	// sendResponse(client.connected_fd, BUFFER_SIZE);
+	
+	// add connected_fd to kqueue for WRITE monitoring
+	struct kevent event;
+	bzero(&event, sizeof(event));
+	EV_SET(&event, client.connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, this);					// ident = connected_fd
+	if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)							// filter = WRITE
+	{																						// udata = DefaultServer*
+		//TODO handle error
+		perror("ERROR\nDefaultServer.dispatchRequest: kevent()");
+		exit(EXIT_FAILURE);
+	}
+
+	//debug
+	std::cout << "\nThe event with ident = " << client.connected_fd << " and filter EVFILT_WRITE has been added to kqueue\n" << std::endl;
 }
 
 void DefaultServer::sendResponse(int const connected_fd, int const buf_size)

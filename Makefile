@@ -2,12 +2,15 @@ NAME		= 	webserv
 
 SRCS		= 	main.cpp \
 				cluster.cpp \
+				cluster_init.cpp \
 				default_server.cpp \
+				default_server_init.cpp \
 				server.cpp \
 				connected_client.cpp \
 				Response.cpp \
 				Request.cpp \
-				# location.cpp
+				location.cpp \
+				location_init.cpp
 
 OBJS		= 	$(SRCS:.cpp=.o)
 
@@ -16,7 +19,7 @@ CFLAGS		= 	-Wall -Wextra -Werror
 CC			= 	g++
 
 %.o :		%.cpp
-			$(CC) -c -I. $(CFLAGS) $< -o $@
+			$(CC) -c -g -I. $(CFLAGS) $< -o $@
 
 all:		$(NAME)
 

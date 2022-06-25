@@ -1,48 +1,66 @@
 #include "server.hpp"
 
-// constructor
+// default constructor
 Server::Server(int const &kqueue_fd) : kqueue_fd(kqueue_fd)
 {
-	error_pages.insert(std::pair<int,std::string>(404, "./error_pages/404.html"));	//TODO aggiungi altre pagine di errore
-	// std::cout << "+ un nuovo server e' stato creato" << std::endl;	//DEBUG
+	error_pages[404] = DEF_404;	//TODO aggiungi altre pagine di errore
+}
+
+// copy constructor
+Server::Server(Server const &other) : kqueue_fd(other.getKqueueFd()) { *this = other; }
+
+// assign operator overload
+Server &Server::operator=(Server const &other)
+{
+	names = other.names;
+	error_pages = other.error_pages;
+	client_body_size = other.client_body_size;
+	locations = other.locations;
+	return *this;
 }
 
 // destructor
-Server::~Server()
-{
-	// std::cout << "- un server e' stato distrutto" << std::endl;		//DEBUG
-}
+Server::~Server() {}
 
 // getters
-int const	&Server::getKqueueFd() const { return kqueue_fd; }
+int const					&Server::getKqueueFd() const { return kqueue_fd; }
+std::vector<std::string> const	&Server::getNames() const { return names; }
 
-// ================================================================================================
-// communication - prepareResponse old Version, funzionante
-// ================================================================================================
-/*
-void Server::prepareResponse(ConnectedClient &client, void *default_server)
+// utility
+bool	Server::isName(std::string const &name_to_match) const
 {
-	//debug
-	Server *ptr = (Server*)default_server;
-	ptr = nullptr;
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nServer:prepareResponse():\n\nTHE REQUEST FROM FD " << client.connected_fd << " IS: \"" << client.message << "\"" << std::endl;	//DEBUG
-	client.message = std::string("HTTP/1.1 200 OK\r\n\r\n<html><body> <h> SONO UNA RESPONSE </h> </body> </html>");	//DEBUG
-	//TODO prepare response based on specific server configuration; Request is client.message.
-
-	// add connected_fd to kqueue for WRITE monitoring
-	struct kevent event;
-	bzero(&event, sizeof(event));
-	EV_SET(&event, client.connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, default_server);		// ident = connected_fd
-	if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)							// filter = WRITE
-	{																						// udata = DefaultServer*
-		//TODO handle error
-		perror("ERROR\nServer.prepareResponse: kevent()");
-		exit(EXIT_FAILURE);
+	for (vector<std::string>::const_iterator i = names.begin(); i != names.end(); ++i)
+	{
+		if (!i->compare(name_to_match))
+			return true;
 	}
-	std::cout << "\nThe event with ident = " << client.connected_fd << " and filter EVFILT_WRITE has been added to kqueue\n" << std::endl;
+	return false;
 }
-*/
+
+// operator overload
+std::ostream &operator<<(std::ostream &os, Server const &server)
+{
+	os << "\nServer introducing itself:\n";
+	os << "kqueue_fd:\n" << server.kqueue_fd << std::endl;
+	os << "names:\n";
+	for (std::vector<std::string>::const_iterator it = server.names.begin(); it != server.names.end(); ++it)
+	{
+		os << *it << std::endl;
+	}
+	os << "error_pages:\n";
+	for (std::map<int, std::string>::const_iterator it = server.error_pages.begin(); it != server.error_pages.end(); ++it)
+	{
+		os << "code:" << it->first << "\tpath:" << it->second << std::endl;
+	}
+	os << "client_body_size:\n" << server.client_body_size << std::endl;
+	os << "locations:\n";
+	for (std::map<std::string,Location>::const_iterator it = server.locations.begin(); it != server.locations.end(); ++it)
+	{
+		os << it->second << std::endl;
+	}
+	os << "\nServer introduction is over" << std::endl;
+	return os;
+}
 
 // ================================================================================================
 // communication - prepareResponse - MODIFIED Version, DA TESTARE
@@ -57,18 +75,5 @@ void Server::prepareResponse(ConnectedClient &client, const Request & request)
 	std::cout << "\nServer:prepareResponse():\n\nTHE REQUEST FROM FD " << client.connected_fd << " IS: \"" << request << "\"" << std::endl;	//DEBUG
 	// client.message = std::string("HTTP/1.1 200 OK\r\n\r\n<html><body> <h> SONO UNA RESPONSE </h> </body> </html>");	//DEBUG
 	client.message = response.getResponse();	//DEBUG
-	//TODO prepare response based on specific server configuration; Request is client.message.
-
-	// add connected_fd to kqueue for WRITE monitoring
-	struct kevent event;
-	bzero(&event, sizeof(event));
-	EV_SET(&event, client.connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, this);		// ident = connected_fd
-	if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)							// filter = WRITE
-	{																						// udata = DefaultServer*
-		//TODO handle error
-		perror("ERROR\nServer.prepareResponse: kevent()");
-		exit(EXIT_FAILURE);
-	}
-	std::cout << "\nThe event with ident = " << client.connected_fd << " and filter EVFILT_WRITE has been added to kqueue\n" << std::endl;
 }
 

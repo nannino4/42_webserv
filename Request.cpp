@@ -2,7 +2,7 @@
 
 #include "Request.hpp"
 
-Request::Request(const std::string & raw_request)
+Request::Request(const std::string &raw_request)
 {
 	std::stringstream file(raw_request);
 	std::string line;
@@ -29,14 +29,14 @@ Request::Request(const std::string & raw_request)
 
 Request::~Request() {}
 
-const std::string & Request::getVersion() const { return version; }
-const std::string & Request::getMethod() const { return method; }
-const std::string & Request::getPath() const { return path; }
+const std::string	&Request::getVersion() const { return version; }
+const std::string	&Request::getMethod() const { return method; }
+const std::string	&Request::getPath() const { return path; }
 
-std::string Request::getRequestHeaderHost() const
+std::string Request::getHostname() const
 {
 	std::string ret;
-	for (HeaderConstIterator it = headers.begin(); it != headers.end(); ++it)
+	for (const_iterator it = headers.begin(); it != headers.end(); ++it)
 	{
 		if (it->first == "Host")
 			ret = it->second;
