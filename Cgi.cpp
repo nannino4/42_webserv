@@ -44,7 +44,7 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 		std::cout << "Error: fork" << std::endl;
 	if (!pid){
 		dup2(fd_pipe[1], STDOUT_FILENO);
-		execve("/Users/dbalducc/.brew/opt/php/bin/php-cgi", tmp, NULL); // chiamare php passare filename e passare variabili decodificate
+		execve("/usr/bin/php-cgi", tmp, NULL); // chiamare php passare filename e passare variabili decodificate
 		exit(0);
 	}
 	else{

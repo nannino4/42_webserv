@@ -70,10 +70,16 @@
 // }
 
 // constructor per DEBUG
+
 Cluster::Cluster()
 {
 	// std::cout << "inizio constructor cluster" << std::endl;
+	#ifdef mac
 	default_servers.insert(std::pair<address,DefaultServer>(address(inet_addr("0.0.0.0"), htons(8080)), DefaultServer(kqueue_fd, BACKLOG_SIZE)));
+	#endif
+	#ifdef __linux__
+	default_servers.insert(std::pair<address,DefaultServer>(address(inet_addr("0.0.0.0"), htons(8080)), DefaultServer(epoll_fd, BACKLOG_SIZE)));
+	#endif
 	// std::cout << "fine constructor cluster" << std::endl;
 	// std::cout << "ci sono " << default_servers.size() << " default servers nel cluster" << std::endl;
 }
@@ -82,12 +88,13 @@ Cluster::Cluster()
 Cluster::~Cluster() {}
 
 // getters
+#ifdef mac
 int Cluster::getKqueueFd() const
 {
 	return kqueue_fd;
 }
 
-// run
+// run mac
 void Cluster::run()
 {
 	kqueue_fd = kqueue();
@@ -172,10 +179,23 @@ void Cluster::run()
 					default_server->receiveRequest(triggered_events[i]);
 				}
 			}
-
 			//debug
 			std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 			std::cout << "\nCluster.run():\n\n'for loop' with index = " << i << " is over. Maximum index = " << num_ready_fds - 1 << std::endl << std::endl;
 		}
 	}
 }
+#endif
+
+#ifdef __linux__
+int Cluster::getEpollFd() const
+{
+	return epoll_fd;
+}
+
+//run linux
+void Cluster::run(){
+
+}
+
+#endif

@@ -5,6 +5,9 @@
 #include <unistd.h>
 #include <iostream>
 #include <unistd.h>
+#ifdef __linux__
+#include <sys/wait.h>
+#endif
 
 #include "utility.hpp"
 

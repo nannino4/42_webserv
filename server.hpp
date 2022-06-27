@@ -8,9 +8,12 @@
 #include <arpa/inet.h>	//inet_addr()
 #include <cstring>		//bzero()
 #include <unistd.h>		//close()
-
+#ifdef mac
 #include <sys/event.h>	//kqueue kevent
-
+#endif
+#ifdef __linux__
+#include <sys/epoll.h>  //epoll for linux
+#endif
 // #include "location.hpp"
 #include "connected_client.hpp"
 #include "Response.hpp"

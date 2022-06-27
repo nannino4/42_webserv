@@ -9,7 +9,13 @@
 #include <cstring>		//bzero
 #include <unistd.h>		//close
 #include <fcntl.h>		//fcntl
+
+#ifdef mac // mac library
 #include <sys/event.h>	//kqueue kevent
+#endif
+#ifdef __linux__ // linux library
+#include <sys/epoll.h>  //epoll for linux
+#endif
 
 #include "server.hpp"
 
