@@ -7,11 +7,11 @@
 #include <vector>
 #include <map>
 
-#ifdef __MACH__ // __MACH__ library
-#include <sys/event.h>	//kqueue kevent
+#ifdef __MACH__
+	#include <sys/event.h>	//kqueue kevent
 #endif
-#ifdef __linux__ // linux library
-#include <sys/epoll.h>  //epoll for linux
+#ifdef __linux__
+	#include <sys/epoll.h>  //epoll for linux
 #endif
 
 #include <arpa/inet.h>	//inet_addr
@@ -33,11 +33,11 @@ private:
 	std::map<address,DefaultServer>	default_servers;
 	int								kqueue_epoll_fd;
 
-	#ifdef __MACH__ // __MACH__ library
-	struct kevent					triggered_events[N_EVENTS];
+	#ifdef __MACH__
+		struct kevent					triggered_events[N_EVENTS];
 	#endif
-	#ifdef __linux__ // linux library
-	struct epoll_event				triggered_events[N_EVENTS];
+	#ifdef __linux__
+		struct epoll_event				triggered_events[N_EVENTS];
 	#endif
 
 public:

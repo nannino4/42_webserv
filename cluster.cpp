@@ -3,11 +3,17 @@
 // default constructor
 Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
 {
-	kqueue_epoll_fd = kqueue();
+
+	#ifdef __MACH__
+		kqueue_epoll_fd = kqueue();
+	#endif
+	#ifdef __linux__
+		kqueue_epoll_fd = epoll_create1(0);
+	#endif
 	if (kqueue_epoll_fd == -1)
 	{
 		//TODO handle error
-		perror("\nERROR\ncluster.run(): kqueue()");
+		perror("\nERROR\ncluster.run(): kqueue()/epoll_create1()");
 		exit(EXIT_FAILURE);
 	}
 
@@ -139,18 +145,23 @@ void Cluster::run()
 	int	num_ready_fds;
 	while (1)
 	{
-		num_ready_fds = kevent(kqueue_epoll_fd, nullptr, 0, triggered_events, N_EVENTS, nullptr);
+		#ifdef __MACH__
+			num_ready_fds = kevent(kqueue_epoll_fd, nullptr, 0, triggered_events, N_EVENTS, nullptr);
+		#endif
+		#ifdef __linux__
+			num_ready_fds = epoll_wait(kqueue_epoll_fd, triggered_events, N_EVENTS, -1);
+		#endif
 
 		//debug
 		std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 		std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 		std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
-		std::cout << "\nCluster.run():\n\nkevent() returned " << num_ready_fds << " events\n" << std::endl;
+		std::cout << "\nCluster.run():\n\nkevent()/epoll_wait() returned " << num_ready_fds << " events\n" << std::endl;
 
 		if (num_ready_fds == -1)
 		{
 			//TODO handle error
-			perror("\nERROR\ncluster.run(): kevent()");
+			perror("\nERROR\ncluster.run(): kevent()/epoll_wait()");
 			exit(EXIT_FAILURE);
 		}
 
@@ -161,19 +172,25 @@ void Cluster::run()
 			std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 			std::cout << "\nnew 'for loop' starting with index = " << i << std::endl;
 
-			DefaultServer *default_server = (DefaultServer *)triggered_events[i].udata;
+			#ifdef __MACH__
+				DefaultServer *default_server = (DefaultServer *)triggered_events[i].udata;
+			#endif
+			#ifdef __linux__
+				DefaultServer *default_server = (DefaultServer *)((Event *)(triggered_events[i].data.ptr)->default_server_ptr);
+			#endif
 
-			if (triggered_events[i].flags == EV_ERROR)
-			{
-				//debug
-				std::cout << "the event has flags = EV_ERROR\n" << std::endl;
+			// if (triggered_events[i].flags == EV_ERROR)
+			// {
+			// 	//debug
+			// 	std::cout << "the event has flags = EV_ERROR\n" << std::endl;
 
-				//the connected_fd got an error_filter
-				//TODO handle error
-				std::cout << "\nERROR\nan event reported EV_ERROR in flags" << std::endl;
-				strerror(triggered_events[i].data);
-			}
-			else if (triggered_events[i].filter == EVFILT_WRITE)
+			// 	//the connected_fd got an error_filter
+			// 	//TODO handle error
+			// 	std::cout << "\nERROR\nan event reported EV_ERROR in flags" << std::endl;
+			// 	strerror(triggered_events[i].data);
+			// }
+			// else if (triggered_events[i].filter == EVFILT_WRITE)
+			if (triggered_events[i].filter == EVFILT_WRITE)
 			{
 				//debug
 				std::cout << "the event has filter = EVFILT_WRITE\n" << std::endl;

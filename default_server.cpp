@@ -1,7 +1,7 @@
 #include "default_server.hpp"
 
 // default constructor
-DefaultServer::DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, std::string &config_file, int &pos) : Server(kqueue_epoll_fd), backlog(backlog)
+DefaultServer::DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, std::string &config_file, int &pos) : Server(kqueue_epoll_fd), backlog(backlog), triggered_event(listening_fd, this)
 {
 	// default initialization
 	bzero(buf, BUFFER_SIZE);
@@ -96,7 +96,7 @@ DefaultServer::DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, s
 }
 
 // copy constructor
-DefaultServer::DefaultServer(DefaultServer const &other) : Server(other) { *this = other; }
+DefaultServer::DefaultServer(DefaultServer const &other) : Server(other), triggered_event(listening_fd, this) { *this = other; }
 
 // assign operator
 DefaultServer &DefaultServer::operator=(DefaultServer const &other)
@@ -199,15 +199,29 @@ void DefaultServer::startListening()
 		exit(EXIT_FAILURE);
 	}
 
-	struct kevent event;
-	bzero(&event, sizeof(event));
-	EV_SET(&event, listening_fd, EVFILT_READ, EV_ADD, 0, 0, (void *)this);		// ident = listening_fd
-	if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)				// filter = READ
-	{																			// udata = DefaultServer*
-		//TODO handle error
-		perror("ERROR\nDefaultServer.startListening(): kevent()");
-		exit(EXIT_FAILURE);
-	}
+	#ifdef __MACH__
+		struct kevent event;
+		bzero(&event, sizeof(event));
+		EV_SET(&event, listening_fd, EVFILT_READ, EV_ADD, 0, 0, (void *)this);		// ident = listening_fd
+		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)			// filter = READ
+		{																			// udata = DefaultServer*
+			//TODO handle error
+			perror("ERROR\nDefaultServer.startListening(): kevent()");
+			exit(EXIT_FAILURE);
+		}
+	#endif
+	#ifdef __linux__
+		struct epoll_event event;
+		bzero(&event, sizeof(event));
+		event.events = EPOLLIN;
+		event.data.ptr = (void *)&triggered_event;
+		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, listening_fd, &event) == -1)
+		{
+			//TODO handle error
+			perror("ERROR\nDefaultServer.startListening(): epoll_ctl()");
+			exit(EXIT_FAILURE);
+		}
+	#endif
 
 	//DEBUG
 	std::cout << "-----------------------------------------------------------" << std::endl;

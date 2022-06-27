@@ -12,6 +12,7 @@
 #include <sys/event.h>	//kqueue kevent
 
 #include "server.hpp"
+#include "event.hpp"
 
 #define DEF_ADDR INADDR_ANY
 #define DEF_PORT 8000
@@ -39,6 +40,7 @@ private:
 	// communication
 	std::map<int,ConnectedClient>		clients;
 	int									listening_fd;
+	Event								triggered_event;
 	char								buf[BUFFER_SIZE];
 
 public:
