@@ -39,7 +39,7 @@ public:
 	#ifdef __MACH__
 	Server(int const &kqueue_fdg);
 	#endif
-	#ifdef __MACH__
+	#ifdef __linux__
 	Server(int const &epoll_fdg);
 	#endif
 	// destructor
