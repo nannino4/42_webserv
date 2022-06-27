@@ -8,7 +8,7 @@
 #include <arpa/inet.h>	//inet_addr()
 #include <cstring>		//bzero()
 #include <unistd.h>		//close()
-#ifdef mac
+#ifdef __MACH__
 #include <sys/event.h>	//kqueue kevent
 #endif
 #ifdef __linux__
@@ -23,7 +23,12 @@ class Server
 {
 protected:
 	// attributes
+	#ifdef __MACH__
 	int const							&kqueue_fd;
+	#endif
+	#ifdef __linux__
+	int const							&epoll_fd;
+	#endif
 	// configuration parameters
 	std::map<int, std::string>			error_pages;
 	size_t								client_body_size;
@@ -31,14 +36,22 @@ protected:
 
 public:
 	// constructor
+	#ifdef __MACH__
 	Server(int const &kqueue_fdg);
-
+	#endif
+	#ifdef __MACH__
+	Server(int const &epoll_fdg);
+	#endif
 	// destructor
 	~Server();
 
 	// getters
+	#ifdef __MACH__
 	int const	&getKqueueFd() const;
-
+	#endif
+	#ifdef __linux__
+	int const	&getEpollFd() const;
+	#endif
 	// communication
 	// void prepareResponse(ConnectedClient &client, void *default_server);
 	void prepareResponse(ConnectedClient &client, const Request & request);

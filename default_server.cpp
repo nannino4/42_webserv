@@ -1,7 +1,7 @@
 #include "default_server.hpp"
 
 // constructor
-#ifdef mac
+#ifdef __MACH__
 DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog) : Server(kqueue_fd), backlog(backlog)
 {
 	bzero(buf, BUFFER_SIZE);
@@ -36,13 +36,14 @@ DefaultServer::~DefaultServer()
 struct sockaddr_in const	&DefaultServer::getAddress() const { return server_addr; }
 unsigned int const			&DefaultServer::getBacklog() const { return backlog; }
 int const					&DefaultServer::getListeningFd() const { return listening_fd; }
-#ifdef mac
+#ifdef __MACH__
 int const					&DefaultServer::getKqueueFd() const { return kqueue_fd; }
 #endif
 #ifdef __linux__
 int const					&DefaultServer::getEpollFd() const { return epoll_fd; }
 #endif
 // communication
+#ifdef __MACH__
 void DefaultServer::startListening()
 {
 	int optval = true;
@@ -77,6 +78,7 @@ void DefaultServer::startListening()
 		perror("ERROR\nDefaultServer.startListening(): kevent()");
 		exit(EXIT_FAILURE);
 	}
+	#endif
 
 	//DEBUG
 	std::cout << "-----------------------------------------------------------" << std::endl;

@@ -74,7 +74,7 @@
 Cluster::Cluster()
 {
 	// std::cout << "inizio constructor cluster" << std::endl;
-	#ifdef mac
+	#ifdef __MACH__
 	default_servers.insert(std::pair<address,DefaultServer>(address(inet_addr("0.0.0.0"), htons(8080)), DefaultServer(kqueue_fd, BACKLOG_SIZE)));
 	#endif
 	#ifdef __linux__
@@ -88,13 +88,13 @@ Cluster::Cluster()
 Cluster::~Cluster() {}
 
 // getters
-#ifdef mac
+#ifdef __MACH__
 int Cluster::getKqueueFd() const
 {
 	return kqueue_fd;
 }
 
-// run mac
+// run __MACH__
 void Cluster::run()
 {
 	kqueue_fd = kqueue();

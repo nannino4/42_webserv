@@ -1,12 +1,13 @@
 #include "server.hpp"
 
 // constructor
+#ifdef __MACH__
 Server::Server(int const &kqueue_fd) : kqueue_fd(kqueue_fd)
 {
 	error_pages.insert(std::pair<int,std::string>(404, "./error_pages/404.html"));	//TODO aggiungi altre pagine di errore
 	// std::cout << "+ un nuovo server e' stato creato" << std::endl;	//DEBUG
 }
-
+#endif
 // destructor
 Server::~Server()
 {
@@ -14,8 +15,10 @@ Server::~Server()
 }
 
 // getters
+#ifdef __MACH__
 int const	&Server::getKqueueFd() const { return kqueue_fd; }
-
+#endif
+#
 // ================================================================================================
 // communication - prepareResponse old Version, funzionante
 // ================================================================================================

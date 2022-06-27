@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#ifdef mac // mac library
+#ifdef __MACH__ // __MACH__ library
 #include <sys/event.h>	//kqueue kevent
 #endif
 #ifdef __linux__ // linux library
@@ -26,7 +26,7 @@ private:
 private:
 	// attributes
 	std::map<address,DefaultServer>	default_servers;
-	#ifdef mac
+	#ifdef __MACH__
 	int								kqueue_fd;
 	struct kevent					triggered_events[N_EVENTS];
 	#endif
@@ -46,7 +46,7 @@ public:
 	~Cluster();
 
 	// getters
-	#ifdef mac
+	#ifdef __MACH__
 	int	getKqueueFd() const;
 	#endif
 	#ifdef __linux__

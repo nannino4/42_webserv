@@ -10,7 +10,7 @@
 #include <unistd.h>		//close
 #include <fcntl.h>		//fcntl
 
-#ifdef mac // mac library
+#ifdef __MACH__ // __MACH__ library
 #include <sys/event.h>	//kqueue kevent
 #endif
 #ifdef __linux__ // linux library
@@ -45,7 +45,7 @@ private:
 
 public:
 	// constructor
-	#ifdef mac
+	#ifdef __MACH__
 	DefaultServer(int const &kqueue_fd, unsigned int backlog);
 	#endif
 	#ifdef __linux__
@@ -58,7 +58,7 @@ public:
 	struct sockaddr_in const	&getAddress() const;
 	unsigned int	 const		&getBacklog() const;
 	int const					&getListeningFd() const;
-	#ifdef mac
+	#ifdef __MACH__
 	int const					&getKqueueFd() const;
 	#endif
 	#ifdef __linux__
@@ -67,7 +67,7 @@ public:
 	// communication
 	void startListening();
 	void connectToClient();
-	#ifdef mac
+	#ifdef __MACH__
 	void receiveRequest(struct kevent const event);
 	#endif
 	#ifdef __linux__
