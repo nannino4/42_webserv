@@ -45,8 +45,12 @@ private:
 
 public:
 	// constructor
+	#ifdef mac
 	DefaultServer(int const &kqueue_fd, unsigned int backlog);
-
+	#endif
+	#ifdef __linux__
+	DefaultServer(int const &epoll_fd, unsigned int backlog);
+	#endif
 	// destructor
 	~DefaultServer();
 
@@ -54,12 +58,21 @@ public:
 	struct sockaddr_in const	&getAddress() const;
 	unsigned int	 const		&getBacklog() const;
 	int const					&getListeningFd() const;
+	#ifdef mac
 	int const					&getKqueueFd() const;
-
+	#endif
+	#ifdef __linux__
+	int const					&getEpollFd() const;
+	#endif
 	// communication
 	void startListening();
 	void connectToClient();
+	#ifdef mac
 	void receiveRequest(struct kevent const event);
+	#endif
+	#ifdef __linux__
+	void receiveRequest(struct epoll_event const event);
+	#endif
 	void dispatchRequest(ConnectedClient &client);
 	// void prepareResponse(ConnectedClient &client);		// inherited from Server
 	void sendResponse(int const connected_fd, int const buf_size);

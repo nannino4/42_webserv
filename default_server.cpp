@@ -1,6 +1,7 @@
 #include "default_server.hpp"
 
 // constructor
+#ifdef mac
 DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog) : Server(kqueue_fd), backlog(backlog)
 {
 	bzero(buf, BUFFER_SIZE);
@@ -11,7 +12,18 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog) : Serve
 	error_pages.insert(std::pair<int,std::string>(404, "./error_pages/404.html"));	//TODO aggiungi altre pagine di errore
 	// std::cout << "+ un nuovo default server e' stato creato" << std::endl;	//DEBUG
 }
-
+#endif
+#ifdef __linux__
+DefaultServer::DefaultServer(int const &epoll_fd, unsigned int backlog): Server(epoll_fd), backlog(backlog){
+	bzero(buf, BUFFER_SIZE);
+	bzero(&server_addr, sizeof(server_addr));
+	server_addr.sin_addr.s_addr = inet_addr("0.0.0.0");
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(8080);
+	error_pages.insert(std::pair<int,std::string>(404, "./error_pages/404.html"));	//TODO aggiungi altre pagine di errore
+	// std::cout << "+ un nuovo default server e' stato creato" << std::endl;	//DEBUG
+}
+#endif
 // destructor
 DefaultServer::~DefaultServer()
 {
@@ -24,8 +36,12 @@ DefaultServer::~DefaultServer()
 struct sockaddr_in const	&DefaultServer::getAddress() const { return server_addr; }
 unsigned int const			&DefaultServer::getBacklog() const { return backlog; }
 int const					&DefaultServer::getListeningFd() const { return listening_fd; }
+#ifdef mac
 int const					&DefaultServer::getKqueueFd() const { return kqueue_fd; }
-
+#endif
+#ifdef __linux__
+int const					&DefaultServer::getEpollFd() const { return epoll_fd; }
+#endif
 // communication
 void DefaultServer::startListening()
 {
