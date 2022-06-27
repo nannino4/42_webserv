@@ -22,7 +22,7 @@ class Server
 {
 protected:
 	// attributes
-	int const							&kqueue_fd;
+	int const							&kqueue_epoll_fd;
 	// configuration parameters
 	std::vector<std::string>			names;
 	std::map<int, std::string>			error_pages;
@@ -31,7 +31,7 @@ protected:
 
 public:
 	// default constructor
-	Server(int const &kqueue_fd);
+	Server(int const &kqueue_epoll_fd);
 	// copy constructor
 	Server(Server const &other);
 	// assign operator oveload
@@ -44,7 +44,7 @@ public:
 	friend std::ostream &operator<<(std::ostream &os, Server const &server);
 
 	// getters
-	int const					&getKqueueFd() const;
+	int const					&getKqueueEpollFd() const;
 	std::vector<std::string> const	&getNames() const;
 
 	// communication

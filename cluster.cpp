@@ -3,8 +3,8 @@
 // default constructor
 Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
 {
-	kqueue_fd = kqueue();
-	if (kqueue_fd == -1)
+	kqueue_epoll_fd = kqueue();
+	if (kqueue_epoll_fd == -1)
 	{
 		//TODO handle error
 		perror("\nERROR\ncluster.run(): kqueue()");
@@ -77,7 +77,7 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 			}
 			else
 			{
-				DefaultServer newServer(kqueue_fd, BACKLOG_SIZE, whole_file, pos);		// still can't know if it's going to be a Server or DefaultServer
+				DefaultServer newServer(kqueue_epoll_fd, BACKLOG_SIZE, whole_file, pos);		// still can't know if it's going to be a Server or DefaultServer
 	
 				//check whether there is already a default server with the same address:port combination
 				if (default_servers.find(newServer.getAddress()) == default_servers.end())
@@ -110,7 +110,7 @@ Cluster::~Cluster() {}
 std::ostream &operator<<(std::ostream &os, Cluster const &cluster)
 {
 	os << "\nCluster introducing itself:\n";
-	os << "kqueue_fd: " << cluster.kqueue_fd << std::endl;
+	os << "kqueue_epoll_fd: " << cluster.kqueue_epoll_fd << std::endl;
 	os << "default servers: " << cluster.default_servers.size() << std::endl;
 	for (std::map<Cluster::address,DefaultServer>::const_iterator it = cluster.default_servers.begin(); it != cluster.default_servers.end(); ++it)
 	{
@@ -121,9 +121,9 @@ std::ostream &operator<<(std::ostream &os, Cluster const &cluster)
 }
 
 // getters
-int Cluster::getKqueueFd() const
+int Cluster::getKqueueEpollFd() const
 {
-	return kqueue_fd;
+	return kqueue_epoll_fd;
 }
 
 // run
@@ -139,7 +139,7 @@ void Cluster::run()
 	int	num_ready_fds;
 	while (1)
 	{
-		num_ready_fds = kevent(kqueue_fd, nullptr, 0, triggered_events, N_EVENTS, nullptr);
+		num_ready_fds = kevent(kqueue_epoll_fd, nullptr, 0, triggered_events, N_EVENTS, nullptr);
 
 		//debug
 		std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;

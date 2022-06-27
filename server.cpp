@@ -1,13 +1,13 @@
 #include "server.hpp"
 
 // default constructor
-Server::Server(int const &kqueue_fd) : kqueue_fd(kqueue_fd)
+Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd)
 {
 	error_pages[404] = DEF_404;	//TODO aggiungi altre pagine di errore
 }
 
 // copy constructor
-Server::Server(Server const &other) : kqueue_fd(other.getKqueueFd()) { *this = other; }
+Server::Server(Server const &other) : kqueue_epoll_fd(other.getKqueueFd()) { *this = other; }
 
 // assign operator overload
 Server &Server::operator=(Server const &other)
@@ -23,7 +23,7 @@ Server &Server::operator=(Server const &other)
 Server::~Server() {}
 
 // getters
-int const					&Server::getKqueueFd() const { return kqueue_fd; }
+int const					&Server::getKqueueEpollFd() const { return kqueue_epoll_fd; }
 std::vector<std::string> const	&Server::getNames() const { return names; }
 
 // utility
@@ -41,7 +41,7 @@ bool	Server::isName(std::string const &name_to_match) const
 std::ostream &operator<<(std::ostream &os, Server const &server)
 {
 	os << "\nServer introducing itself:\n";
-	os << "kqueue_fd:\n" << server.kqueue_fd << std::endl;
+	os << "kqueue_epoll_fd:\n" << server.kqueue_epoll_fd << std::endl;
 	os << "names:\n";
 	for (std::vector<std::string>::const_iterator it = server.names.begin(); it != server.names.end(); ++it)
 	{

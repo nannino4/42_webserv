@@ -7,7 +7,13 @@
 #include <vector>
 #include <map>
 
+#ifdef __MACH__ // __MACH__ library
 #include <sys/event.h>	//kqueue kevent
+#endif
+#ifdef __linux__ // linux library
+#include <sys/epoll.h>  //epoll for linux
+#endif
+
 #include <arpa/inet.h>	//inet_addr
 
 #include "default_server.hpp"
@@ -25,8 +31,14 @@ private:
 private:
 	// attributes
 	std::map<address,DefaultServer>	default_servers;
-	int								kqueue_fd;
+	int								kqueue_epoll_fd;
+
+	#ifdef __MACH__ // __MACH__ library
 	struct kevent					triggered_events[N_EVENTS];
+	#endif
+	#ifdef __linux__ // linux library
+	struct epoll_event				triggered_events[N_EVENTS];
+	#endif
 
 public:
 	// constructor
@@ -42,7 +54,7 @@ public:
 	friend std::ostream &operator<<(std::ostream &os, Cluster const &cluster);
 
 	// getters
-	int	getKqueueFd() const;
+	int	getKqueueEpollFd() const;
 
 	// run
 	void run();
@@ -52,10 +64,5 @@ private:
 	std::ifstream	&openConfigFile(std::string config_file_name);
 	std::string		fileToString(std::ifstream &config_file);
 	
-	// initialization
-	// location
-	void parseLocationBlock();
-	void parseLocationDirectives();
-
 };
 

@@ -1,7 +1,7 @@
 #include "default_server.hpp"
 
 // default constructor
-DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::string &config_file, int &pos) : Server(kqueue_fd), backlog(backlog)
+DefaultServer::DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, std::string &config_file, int &pos) : Server(kqueue_epoll_fd), backlog(backlog)
 {
 	// default initialization
 	bzero(buf, BUFFER_SIZE);
@@ -150,7 +150,6 @@ std::string				DefaultServer::getIp() const { return inet_ntoa(server_addr.sin_a
 std::string				DefaultServer::getPort() const { return std::to_string(ntohs(server_addr.sin_port)); }
 unsigned int const		&DefaultServer::getBacklog() const { return backlog; }
 int const				&DefaultServer::getListeningFd() const { return listening_fd; }
-int const				&DefaultServer::getKqueueFd() const { return kqueue_fd; }
 
 // initialization
 // add virtual server
@@ -203,7 +202,7 @@ void DefaultServer::startListening()
 	struct kevent event;
 	bzero(&event, sizeof(event));
 	EV_SET(&event, listening_fd, EVFILT_READ, EV_ADD, 0, 0, (void *)this);		// ident = listening_fd
-	if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)				// filter = READ
+	if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)				// filter = READ
 	{																			// udata = DefaultServer*
 		//TODO handle error
 		perror("ERROR\nDefaultServer.startListening(): kevent()");
@@ -251,7 +250,7 @@ void DefaultServer::connectToClient()
 	struct kevent event;
 	bzero(&event, sizeof(event));
 	EV_SET(&event, connected_fd, EVFILT_READ, EV_ADD, 0, 0, this);		// ident = connected_fd
-	if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)		// filter = READ
+	if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)		// filter = READ
 	{																	// udata = DefaultServer*
 		//TODO handle error
 		perror("ERROR\nDefaultServer.connectToClient(): kevent()");
@@ -313,7 +312,7 @@ void DefaultServer::receiveRequest(struct kevent const event)
 		struct kevent event;
 		bzero(&event, sizeof(event));
 		EV_SET(&event, client.connected_fd, EVFILT_READ, EV_DELETE, 0, 0, this);
-		if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)
+		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
 		{
 			//TODO handle error
 			perror("ERROR\nDefaultServer.receiveRequest: kevent()");
@@ -346,7 +345,7 @@ void DefaultServer::dispatchRequest(ConnectedClient &client)
 	struct kevent event;
 	bzero(&event, sizeof(event));
 	EV_SET(&event, client.connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, this);					// ident = connected_fd
-	if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)							// filter = WRITE
+	if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)							// filter = WRITE
 	{																						// udata = DefaultServer*
 		//TODO handle error
 		perror("ERROR\nDefaultServer.dispatchRequest: kevent()");
@@ -396,7 +395,7 @@ void DefaultServer::sendResponse(int const connected_fd, int const buf_size)
 		struct kevent event;
 		bzero(&event, sizeof(event));
 		EV_SET(&event, connected_fd, EVFILT_WRITE, EV_DELETE, 0, 0, this);
-		if (kevent(kqueue_fd, &event, 1, nullptr, 0, nullptr) == -1)
+		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
 		{
 			//TODO handle error
 			// perror("ERROR\nDefaultServer.sendResponse(): kevent()");

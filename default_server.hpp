@@ -24,7 +24,7 @@ private:
 	typedef std::pair<in_addr_t,in_port_t>	address;
 
 private:
-	// int const							&kqueue_fd;			// inherited from Server
+	// int const							&kqueue_epoll_fd;			// inherited from Server
 	// std::vector<std::string>				names;
 	// std::map<int, std::string>			error_pages;
 	// size_t								client_body_size;
@@ -43,7 +43,7 @@ private:
 
 public:
 	// default constructor
-	DefaultServer(int const &kqueue_fd, unsigned int backlog, std::string &config_file, int &pos);
+	DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, std::string &config_file, int &pos);
 	// copy constructor
 	DefaultServer(DefaultServer const &other);
 	// assign operator
@@ -61,7 +61,6 @@ public:
 	std::string			getPort() const;
 	unsigned int const	&getBacklog() const;
 	int const			&getListeningFd() const;
-	int const			&getKqueueFd() const;
 
 	// initialization
 	void addVirtualServer(DefaultServer newServer);
@@ -69,7 +68,7 @@ public:
 	// communication
 	void startListening();
 	void connectToClient();
-	void receiveRequest(struct kevent const event);
+	void receiveRequest(struct kevent const event);	//TODO define new "event" class
 	void dispatchRequest(ConnectedClient &client);
 	// void prepareResponse(ConnectedClient &client);		// inherited from Server
 	void sendResponse(int const connected_fd, int const buf_size);
