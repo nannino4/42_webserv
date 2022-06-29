@@ -4,12 +4,11 @@
 Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
 {
 
-	#ifdef __MACH__
-		kqueue_epoll_fd = kqueue();
-	#endif
-	#ifdef __linux__
-		kqueue_epoll_fd = epoll_create1(0);
-	#endif
+#ifdef __MACH__
+	kqueue_epoll_fd = kqueue();
+#else if defined(__linux__)
+	kqueue_epoll_fd = epoll_create1(0);
+#endif
 	if (kqueue_epoll_fd == -1)
 	{
 		//TODO handle error
@@ -145,12 +144,11 @@ void Cluster::run()
 	int	num_ready_fds;
 	while (1)
 	{
-		#ifdef __MACH__
-			num_ready_fds = kevent(kqueue_epoll_fd, nullptr, 0, triggered_events, N_EVENTS, nullptr);
-		#endif
-		#ifdef __linux__
-			num_ready_fds = epoll_wait(kqueue_epoll_fd, triggered_events, N_EVENTS, -1);
-		#endif
+	#ifdef __MACH__
+		num_ready_fds = kevent(kqueue_epoll_fd, nullptr, 0, triggered_events, N_EVENTS, nullptr);
+	#else if defined(__linux__)
+		num_ready_fds = epoll_wait(kqueue_epoll_fd, triggered_events, N_EVENTS, -1);
+	#endif
 
 		//debug
 		std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
@@ -172,12 +170,15 @@ void Cluster::run()
 			std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 			std::cout << "\nnew 'for loop' starting with index = " << i << std::endl;
 
-			#ifdef __MACH__
-				DefaultServer *default_server = (DefaultServer *)triggered_events[i].udata;
-			#endif
-			#ifdef __linux__
-				DefaultServer *default_server = (DefaultServer *)((Event *)(triggered_events[i].data.ptr)->default_server_ptr);
-			#endif
+		#ifdef __MACH__
+			Event *current_event = (Event *)(triggered_events[i].udata);
+			current_event->is_hang_up = (triggered_events[i].flags == EV_EOF);
+		#else if defined(__linux__)
+			Event *current_event = (Event *)(triggered_events[i].data.ptr);
+			current_event->is_hang_up = (triggered_events[i].events & EPOLLHUP);
+		#endif
+
+			DefaultServer *default_server = (DefaultServer *)(current_event->default_server_ptr);
 
 			// if (triggered_events[i].flags == EV_ERROR)
 			// {
@@ -189,21 +190,29 @@ void Cluster::run()
 			// 	std::cout << "\nERROR\nan event reported EV_ERROR in flags" << std::endl;
 			// 	strerror(triggered_events[i].data);
 			// }
-			// else if (triggered_events[i].filter == EVFILT_WRITE)
+
+		#ifdef __MACH__
 			if (triggered_events[i].filter == EVFILT_WRITE)
+		#else if defined(__linux__)
+			if (triggered_events[i].events == EPOLLOUT)
+		#endif
 			{
 				//debug
 				std::cout << "the event has filter = EVFILT_WRITE\n" << std::endl;
 
 				// response can be sent to connected_fd
-				default_server->sendResponse(triggered_events[i].ident, triggered_events[i].data);
+				default_server->sendResponse(current_event);
 			}
+		#ifdef __MACH__
 			else if (triggered_events[i].filter == EVFILT_READ)
+		#else if defined(__linux__)
+			else if (triggered_events[i].events == EPOLLIN)
+		#endif
 			{
 				//debug
 				std::cout << "the event has filter = EVFILT_READ\n" << std::endl;
 
-				if (triggered_events[i].ident == (unsigned long)default_server->getListeningFd())
+				if (current_event->fd == (unsigned long)default_server->getListeningFd())
 				{
 					//debug
 					std::cout << "the event has fd = listening_fd\n" << std::endl;
@@ -214,10 +223,10 @@ void Cluster::run()
 				else
 				{
 					//debug
-					std::cout << "the event has fd = " << triggered_events[i].ident << " != listening_fd\n" << std::endl;
+					std::cout << "the event has fd = " << current_event->fd << " != listening_fd\n" << std::endl;
 
 					// request can be received from connected_fd
-					default_server->receiveRequest(triggered_events[i]);
+					default_server->receiveRequest(current_event);
 				}
 			}
 

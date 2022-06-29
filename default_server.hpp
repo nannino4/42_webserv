@@ -70,10 +70,10 @@ public:
 	// communication
 	void startListening();
 	void connectToClient();
-	void receiveRequest(struct kevent const event);	//TODO define new "event" class
-	void dispatchRequest(ConnectedClient &client);
+	void receiveRequest(Event *current_event);
+	void dispatchRequest(ConnectedClient *client);
 	// void prepareResponse(ConnectedClient &client);		// inherited from Server
-	void sendResponse(int const connected_fd, int const buf_size);
+	void sendResponse(Event *current_event);
 
 private:
 	// initialization

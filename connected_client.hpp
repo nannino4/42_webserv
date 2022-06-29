@@ -7,15 +7,18 @@
 #include <unistd.h>		//close()
 #include <string.h>		//bzero()
 
+#include "event.hpp"
+
 struct ConnectedClient
 {
 	int	const			connected_fd;
+	Event				triggered_event;
 	struct sockaddr_in	client_addr;	
 	std::string			message;
 	int					message_pos;
 
 	// constructor
-	ConnectedClient(int const connected_fd, struct sockaddr_in client_addr);
+	ConnectedClient(int const connected_fd, struct sockaddr_in client_addr, void *default_server_ptr);
 
 	// destructor
 	~ConnectedClient();

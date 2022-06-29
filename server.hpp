@@ -49,7 +49,7 @@ public:
 
 	// communication
 	// void prepareResponse(ConnectedClient &client, void *default_server);
-	void prepareResponse(ConnectedClient &client, const Request &request);
+	void prepareResponse(ConnectedClient *client, const Request &request);
 
 	// utility
 	bool	isName(std::string const &name_to_match) const;
