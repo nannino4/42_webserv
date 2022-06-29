@@ -1,49 +1,17 @@
 // https://www.jmarshall.com/easy/http/#whatis
 
 #include "Response.hpp"
-#include "Request.hpp"
 
-Response::Response(const Request & request)
-	: message(), response()
+Response::Response(const Request & request, std::map<std::string,Location> loc)
+	: message(), response(), locations(loc), path(request.getPath())
 {
 	version = request.getVersion();
 	if (request.getMethod() == "GET")
 	{
-		std::string path = request.getPath();
-		path.erase(0, 1);
-		ifstream file(path);
-		size_t lenght = 0;
-		if (file.is_open())
-		{
-			string line;
-			while(getline(file, line))
-			{
-				lenght += line.length();
-				message += line + "\r\n";
-			}
-			response_status_code = "200";
-			reason_phrase = "OK";
-			headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
-		}
-		else
-		{
-			file.open("error_pages/404.html");
-			if (file.is_open())
-			{
-				string line;
-				while(getline(file, line))
-				{
-					lenght += line.length();
-					message += line + "\r\n";
-				}
-			}
-			response_status_code = "404";
-			reason_phrase = "File Not Found";
-			headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
-		}
+		get();
 	}
 	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
-	unordered_map<string, string>::const_iterator it = headers.begin();
+	std::unordered_map<std::string, std::string>::const_iterator it = headers.begin();
 	while (it != headers.end())
 	{
 		response += it->first + ": " + it->second + "\r\n";
@@ -52,13 +20,100 @@ Response::Response(const Request & request)
 	response += "\r\n" + message;
 }
 
+void Response::get()
+{
+	std::ifstream file;
+	struct stat buf;
+	std::stringstream line;
+
+	path.erase(0, 1);
+	stat(path.c_str(), &buf);
+	if (S_ISDIR(buf.st_mode))
+		manageDir();
+	else
+	{
+		if (fileTobody(path))
+		{
+			response_status_code = "200";
+			reason_phrase = "OK";
+		}
+		else
+		{
+			fileTobody("error_pages/404.html");
+			response_status_code = "404";
+			reason_phrase = "File Not Found";
+		}
+	}
+}
+
+bool Response::fileTobody(std::string const & index)
+{
+	std::ifstream file;
+	std::stringstream line;
+
+	file.open(index);
+	if (file.is_open())
+	{
+		line << file.rdbuf();
+		message = line.str();
+		return true;
+	}
+	return false;
+}
+
+void Response::manageDir()
+{
+
+	std::map<std::string,Location>::iterator it = locations.begin();
+	while(it != locations.end())
+	{
+		if (it->first == path)
+		{
+			if (it->second.isAutoindex())
+			{
+				generateAutoIndex();
+				break;
+			}
+			fileTobody(path + it->second.getIndex());
+		}
+		++it;
+	}
+}
+
+void Response::generateAutoIndex()
+{
+	DIR *dir;
+	struct dirent *ent;
+	std::stringstream line;
+
+	if ((dir = opendir(path.c_str())) != NULL)
+	{
+		line << "<html>\n" << "<body>\n" << "<h1>Index of " << path << "</h1>\n";
+		/* print all the files and directories within directory */
+		while ((ent = readdir(dir)) != NULL)
+		{
+			line << "<table><a href=\"" << ent->d_name << "\">";
+			line << ent->d_name << "</a></table>";
+		}
+		line << "</body>\n</html>";
+		message = line.str();
+		closedir (dir);
+	}
+	else
+	{
+		/* could not open directory */
+		perror ("could not open directory");
+		exit(EXIT_FAILURE);
+	}
+}
+
 Response::~Response() {}
 
-string Response::getResponse() { return response; }
+std::string Response::getResponse() { return response; }
 
-ostream& operator<<(ostream & out, const Response& m)
+std::ostream& operator<<(std::ostream & out, const Response& m)
 {
-	out << "HTTP Response:" << endl;
+	out << "HTTP Response:" << std::endl;
 	// out << "\tMethod: " << m.version << endl;
 	// out << "\tPath: " << m.response_status_code << endl;
 	// out << "\tVersion: " << m.reason_phrase << endl;
@@ -70,6 +125,6 @@ ostream& operator<<(ostream & out, const Response& m)
 	// 	++it;
 	// }
 	// out << "\tMessage: " << m.message << endl;
-	out << "Response: "<< endl << m.response << endl;
+	out << "Response: "<< std::endl << m.response << std::endl;
 	return out;
 }

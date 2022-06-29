@@ -7,19 +7,28 @@
 #include <sstream>
 #include <fstream>
 #include <unordered_map>
-using namespace std;
+#include <sstream>
+#include "Request.hpp"
+
+#include <sys/stat.h>
+
+#include "location.hpp"
+
+#include "dirent.h"
 
 class Request;
 
 class Response
 {
 	private:
-		string							version;
-		string							response_status_code;
-		string							reason_phrase;
-		unordered_map<string, string>	headers;
-		string							message;
-		string							response;
+		std::string							version;
+		std::string							response_status_code;
+		std::string							reason_phrase;
+		std::unordered_map<std::string, std::string>	headers;
+		std::string							message;
+		std::string							response;
+		std::map<std::string,Location>		locations;
+		std::string 						path;
 
 		Response();
 		Response(const Response &);
@@ -27,12 +36,17 @@ class Response
 
 	public:
 
-		Response(const Request & request);
+		Response(const Request & request, std::map<std::string,Location> loc);
 
 		~Response();
+		
+		void get();
+		void manageDir();
+		void generateAutoIndex();
+		bool fileTobody(std::string const & index);
 
-		string getResponse();
-		friend ostream& operator<<(ostream & out, const Response& m);
+		std::string getResponse();
+		friend std::ostream& operator<<(std::ostream & out, const Response& m);
 };
 
 #endif

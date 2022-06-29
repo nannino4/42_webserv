@@ -1,4 +1,4 @@
-//#include "cluster.hpp"
+#include "cluster.hpp"
 #include "Cgi.hpp"
 
 std::string get_working_path()

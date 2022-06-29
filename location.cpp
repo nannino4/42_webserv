@@ -62,6 +62,10 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), index
 		{
 			parseIndex(stream);
 		}
+		else if (!directive.compare("autoindex"))
+		{
+			autoindex = true;
+		}
 		else if (!directive.compare("return"))
 		{
 			parseReturn(stream);
@@ -80,7 +84,6 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), index
 			exit(EXIT_FAILURE);
 		}
 	}
-
 	// set pos after found_pos - which is pointing to '}'
 	pos = found_pos + 1;
 }
@@ -108,6 +111,7 @@ std::ostream &operator<<(std::ostream &os, Location const &location)
 
 // getters
 std::string const					&Location::getRoot() const { return root; }
+std::string const					&Location::getIndex() const { return index; }
 bool 								Location::isAutoindex() const { return autoindex; }
 std::pair<std::string,int> const	&Location::getRedirection() const { return redirection; }
 bool 								Location::isMethodAllowed(std::string method) const

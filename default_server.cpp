@@ -67,7 +67,7 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::st
 			}
 
 			// check that stream reached EOF
-			if (!stream.eof())
+			if (stream.eof())
 			{
 				//TODO handle error
 				std::cerr << "\nERROR\nDefaultServer::DefaultServer(): too many parameters parsing \"[location] [path] {\"" << std::endl;

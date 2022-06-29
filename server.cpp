@@ -29,7 +29,7 @@ std::vector<std::string> const	&Server::getNames() const { return names; }
 // utility
 bool	Server::isName(std::string const &name_to_match) const
 {
-	for (vector<std::string>::const_iterator i = names.begin(); i != names.end(); ++i)
+	for (std::vector<std::string>::const_iterator i = names.begin(); i != names.end(); ++i)
 	{
 		if (!i->compare(name_to_match))
 			return true;
@@ -70,7 +70,7 @@ void Server::prepareResponse(ConnectedClient &client, const Request & request)
 	//debug
 	// Server *ptr = (Server*)default_server;
 	// ptr = nullptr;
-	Response response(request);
+	Response response(request, locations);
 	std::cout << "-----------------------------------------------------------" << std::endl;
 	std::cout << "\nServer:prepareResponse():\n\nTHE REQUEST FROM FD " << client.connected_fd << " IS: \"" << request << "\"" << std::endl;	//DEBUG
 	// client.message = std::string("HTTP/1.1 200 OK\r\n\r\n<html><body> <h> SONO UNA RESPONSE </h> </body> </html>");	//DEBUG
