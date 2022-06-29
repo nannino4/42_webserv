@@ -6,7 +6,7 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 
 #ifdef __MACH__
 	kqueue_epoll_fd = kqueue();
-#else if defined(__linux__)
+#elif defined(__linux__)
 	kqueue_epoll_fd = epoll_create1(0);
 #endif
 	if (kqueue_epoll_fd == -1)
@@ -146,7 +146,7 @@ void Cluster::run()
 	{
 	#ifdef __MACH__
 		num_ready_fds = kevent(kqueue_epoll_fd, nullptr, 0, triggered_events, N_EVENTS, nullptr);
-	#else if defined(__linux__)
+	#elif defined(__linux__)
 		num_ready_fds = epoll_wait(kqueue_epoll_fd, triggered_events, N_EVENTS, -1);
 	#endif
 
@@ -173,7 +173,7 @@ void Cluster::run()
 		#ifdef __MACH__
 			Event *current_event = (Event *)(triggered_events[i].udata);
 			current_event->is_hang_up = (triggered_events[i].flags == EV_EOF);
-		#else if defined(__linux__)
+		#elif defined(__linux__)
 			Event *current_event = (Event *)(triggered_events[i].data.ptr);
 			current_event->is_hang_up = (triggered_events[i].events & EPOLLHUP);
 		#endif
@@ -193,7 +193,7 @@ void Cluster::run()
 
 		#ifdef __MACH__
 			if (triggered_events[i].filter == EVFILT_WRITE)
-		#else if defined(__linux__)
+		#elif defined(__linux__)
 			if (triggered_events[i].events == EPOLLOUT)
 		#endif
 			{
@@ -205,14 +205,14 @@ void Cluster::run()
 			}
 		#ifdef __MACH__
 			else if (triggered_events[i].filter == EVFILT_READ)
-		#else if defined(__linux__)
+		#elif defined(__linux__)
 			else if (triggered_events[i].events == EPOLLIN)
 		#endif
 			{
 				//debug
 				std::cout << "the event has filter = EVFILT_READ\n" << std::endl;
 
-				if (current_event->fd == (unsigned long)default_server->getListeningFd())
+				if (current_event->fd == default_server->getListeningFd())
 				{
 					//debug
 					std::cout << "the event has fd = listening_fd\n" << std::endl;

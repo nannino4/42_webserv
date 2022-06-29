@@ -9,7 +9,7 @@
 
 #ifdef __MACH__
 	#include <sys/event.h>	//kqueue kevent
-#else if defined(__linux__)
+#elif defined(__linux__)
 	#include <sys/epoll.h>  //epoll for linux
 #endif
 
@@ -34,7 +34,7 @@ private:
 
 	#ifdef __MACH__
 		struct kevent					triggered_events[N_EVENTS];
-	#else if defined(__linux__)
+	#elif defined(__linux__)
 		struct epoll_event				triggered_events[N_EVENTS];
 	#endif
 

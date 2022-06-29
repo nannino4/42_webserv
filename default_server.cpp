@@ -204,7 +204,7 @@ void DefaultServer::startListening()
 	bzero(&event, sizeof(event));
 	EV_SET(&event, listening_fd, EVFILT_READ, EV_ADD, 0, 0, &triggered_event);
 	if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-#else if defined(__linux__)
+#elif defined(__linux__)
 	struct epoll_event event;
 	bzero(&event, sizeof(event));
 	event.events = EPOLLIN;
@@ -258,7 +258,7 @@ void DefaultServer::connectToClient()
 	bzero(&event, sizeof(event));
 	EV_SET(&event, connected_fd, EVFILT_READ, EV_ADD, 0, 0, &new_client.triggered_event);
 	if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-#else if defined(__linux__)
+#elif defined(__linux__)
 	struct epoll_event event;
 	bzero(&event, sizeof(event));
 	event.events = EPOLLIN;
@@ -321,7 +321,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 		bzero(&event, sizeof(event));
 		EV_SET(&event, connected_fd, EVFILT_READ, EV_DELETE, 0, 0, current_event);
 		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-	#else if defined(__linux__)
+	#elif defined(__linux__)
 		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, connected_fd, nullptr) == -1)
 	#endif
 		{
@@ -354,9 +354,9 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 #ifdef __MACH__
 	struct kevent event;
 	bzero(&event, sizeof(event));
-	EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, &client.triggered_event);
+	EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, &client->triggered_event);
 	if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-#else if defined(__linux__)
+#elif defined(__linux__)
 	struct epoll_event event;
 	bzero(&event, sizeof(event));
 	event.events = EPOLLIN;
@@ -403,7 +403,7 @@ void DefaultServer::sendResponse(Event *current_event)
 	// 		"\ndata sent = \"" << client->message.substr(client->message_pos, client->message_pos + size) << "\"\n" << std::endl;
 
 	client->message_pos += sent_bytes;
-	if (client->message_pos == client->message.size())
+	if ((size_t)client->message_pos == client->message.size())
 	{
 		//The whole response has been sent
 
@@ -416,7 +416,7 @@ void DefaultServer::sendResponse(Event *current_event)
 		bzero(&event, sizeof(event));
 		EV_SET(&event, connected_fd, EVFILT_WRITE, EV_DELETE, 0, 0, current_event);
 		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-	#else if defined(__linux__)
+	#elif defined(__linux__)
 		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, connected_fd, nullptr) == -1)
 	#endif
 		{

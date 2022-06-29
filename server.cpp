@@ -7,7 +7,7 @@ Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd)
 }
 
 // copy constructor
-Server::Server(Server const &other) : kqueue_epoll_fd(other.getKqueueFd()) { *this = other; }
+Server::Server(Server const &other) : kqueue_epoll_fd(other.getKqueueEpollFd()) { *this = other; }
 
 // assign operator overload
 Server &Server::operator=(Server const &other)
