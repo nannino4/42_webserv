@@ -263,7 +263,7 @@ void DefaultServer::connectToClient()
 	bzero(&event, sizeof(event));
 	event.events = EPOLLIN;
 	event.data.ptr = &new_client.triggered_event;
-	if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, connected_fd, ) == -1)
+	if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, connected_fd, &event) == -1)
 #endif
 	{
 		//TODO handle error
@@ -301,13 +301,13 @@ void DefaultServer::receiveRequest(Event *current_event)
 	}
 	client->message += buf;
 
-	// //debug
-	// std::cout << "\nreceived data = \"" << buf << "\"" \
-	// 		"\nreceived request = \"" << client->message << "\"" \
-	// 		"\nread_bytes = " << read_bytes << \
-	// 		"\nBUFFER_SIZE - 1 = " << BUFFER_SIZE - 1 << \
-	// 		"\nEOF = " << (event.flags & EV_EOF) << std::endl;
-
+	// debug
+	/* std::cout << "\nreceived data = \"" << buf << "\"" \
+ 		"\nreceived request = \"" << client->message << "\"" \
+ 		"\nread_bytes = " << read_bytes << \
+		"\nBUFFER_SIZE - 1 = " << BUFFER_SIZE - 1 << \
+		"\nEOF = " << (event.flags & EV_EOF) << std::endl;
+	*/
 	bzero(buf, BUFFER_SIZE);
 
 	if ((read_bytes < (BUFFER_SIZE - 1)) && current_event->is_hang_up)
@@ -360,8 +360,8 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 	struct epoll_event event;
 	bzero(&event, sizeof(event));
 	event.events = EPOLLIN;
-	event.data.ptr = &new_client.triggered_event;
-	if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, connected_fd, ) == -1)
+	event.data.ptr = &client->triggered_event;
+	if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
 #endif
 	{
 		//TODO handle error
@@ -392,16 +392,16 @@ void DefaultServer::sendResponse(Event *current_event)
 		std::cerr << "ERROR\nDefaultServer.sendResponse(): send()" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-
-	// std::cout << "\nsent some data to fd = " << connected_fd << \
-	// 		"\nmessage to be sent = \"" << client->message << "\"" << \
-	// 		"\nmessage position = " << client->message_pos << \
-	// 		"\nmessage size = " << client->message.size() << \
-	// 		"\nsize of data remaining to be sent = " << client->message.size() - client->message_pos << \
-	// 		"\nbuffer size = " << BUFFER_SIZE << \
-	// 		"\nsize of data sent = " << size << \
-	// 		"\ndata sent = \"" << client->message.substr(client->message_pos, client->message_pos + size) << "\"\n" << std::endl;
-
+/*
+	std::cout << "\nsent some data to fd = " << connected_fd << \
+			"\nmessage to be sent = \"" << client->message << "\"" << \
+			"\nmessage position = " << client->message_pos << \
+			"\nmessage size = " << client->message.size() << \
+			"\nsize of data remaining to be sent = " << client->message.size() - client->message_pos << \
+			"\nbuffer size = " << BUFFER_SIZE << \
+			"\nsize of data sent = " << size << \
+			"\ndata sent = \"" << client->message.substr(client->message_pos, client->message_pos + size) << "\"\n" << std::endl;
+*/
 	client->message_pos += sent_bytes;
 	if ((size_t)client->message_pos == client->message.size())
 	{

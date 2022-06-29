@@ -9,7 +9,11 @@
 #include <cstring>		//bzero()
 #include <unistd.h>		//close()
 
-#include <sys/event.h>	//kqueue kevent
+#ifdef __MACH__
+	#include <sys/event.h>	//kqueue kevent
+#elif defined(__linux__)
+	#include <sys/epoll.h>  //epoll for linux
+#endif
 
 #include "location.hpp"
 #include "connected_client.hpp"
