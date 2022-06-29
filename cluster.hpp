@@ -29,8 +29,8 @@ private:
 
 private:
 	// attributes
-	std::map<address,DefaultServer>	default_servers;
-	int								kqueue_epoll_fd;
+	std::map<address,DefaultServer&>	default_servers;
+	int									kqueue_epoll_fd;
 
 	#ifdef __MACH__
 		struct kevent					triggered_events[N_EVENTS];

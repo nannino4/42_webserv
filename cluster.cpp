@@ -82,18 +82,19 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 			}
 			else
 			{
-				DefaultServer newServer(kqueue_epoll_fd, BACKLOG_SIZE, whole_file, pos);		// still can't know if it's going to be a Server or DefaultServer
+				DefaultServer *new_server = new DefaultServer(kqueue_epoll_fd, BACKLOG_SIZE, whole_file, pos);		// still can't know if it's going to be a Server or DefaultServer
 	
 				//check whether there is already a default server with the same address:port combination
-				if (default_servers.find(newServer.getAddress()) == default_servers.end())
+				if (default_servers.find(new_server->getAddress()) == default_servers.end())
 				{
 					// adding new default server
-					default_servers.insert(std::pair<address,DefaultServer>(newServer.getAddress(), newServer));
+					default_servers.insert(std::pair<address,DefaultServer&>(new_server->getAddress(), *new_server));
 				}
 				else
 				{
 					// adding new virtual server because there is already a default server with same address:port combination
-					(default_servers.find(newServer.getAddress()))->second.addVirtualServer(newServer);
+					(default_servers.find(new_server->getAddress()))->second.addVirtualServer(*new_server);
+					delete new_server;
 				}
 			}
 		}
@@ -109,7 +110,14 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 }
 
 // destructor
-Cluster::~Cluster() {}
+Cluster::~Cluster()
+{
+	for (std::map<Cluster::address,DefaultServer&>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
+	{
+		it->second.~DefaultServer();
+		delete &it->second;
+	}
+}
 
 // operator overload
 std::ostream &operator<<(std::ostream &os, Cluster const &cluster)
@@ -117,9 +125,9 @@ std::ostream &operator<<(std::ostream &os, Cluster const &cluster)
 	os << "\nCluster introducing itself:\n";
 	os << "kqueue_epoll_fd: " << cluster.kqueue_epoll_fd << std::endl;
 	os << "default servers: " << cluster.default_servers.size() << std::endl;
-	for (std::map<Cluster::address,DefaultServer>::const_iterator it = cluster.default_servers.begin(); it != cluster.default_servers.end(); ++it)
+	for (std::map<Cluster::address,DefaultServer&>::const_iterator it = cluster.default_servers.begin(); it != cluster.default_servers.end(); ++it)
 	{
-		os << it->second << std::endl;
+		os << it->second;
 	}
 	os << "Cluster introduction is over\n" << std::endl;
 	return os;
@@ -135,7 +143,7 @@ int Cluster::getKqueueEpollFd() const
 void Cluster::run()
 {
 	// make servers listen and add them to kqueue
-	for (std::map<address,DefaultServer>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
+	for (std::map<Cluster::address,DefaultServer&>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
 	{
 		it->second.startListening();
 	}
@@ -164,11 +172,10 @@ void Cluster::run()
 		}
 
 		// handle the event triggered on the monitored fds
+		//debug
+		std::cout << "\nstarting new loop\n" << std::endl;
 		for (int i = 0; i < num_ready_fds; ++i)
 		{
-			//debug
-			std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
-			std::cout << "\nnew 'for loop' starting with index = " << i << std::endl;
 
 		#ifdef __MACH__
 			Event *current_event = (Event *)(triggered_events[i].udata);
@@ -179,6 +186,12 @@ void Cluster::run()
 		#endif
 
 			DefaultServer *default_server = (DefaultServer *)(current_event->default_server_ptr);
+
+			//debug
+			std::cout << "\nloop with index = " << i << std::endl;
+			std::cout << "current_event.fd =\t" << current_event->fd << std::endl;
+			std::cout << "current_event.is_hang_up =\t" << std::boolalpha << current_event->is_hang_up << std::endl;
+			std::cout << "current_event.default_server =\t" << *(DefaultServer *)current_event->default_server_ptr << std::endl << std::endl;
 
 			// if (triggered_events[i].flags == EV_ERROR)
 			// {
@@ -231,8 +244,7 @@ void Cluster::run()
 			}
 
 			//debug
-			std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
-			std::cout << "\nCluster.run():\n\n'for loop' with index = " << i << " is over. Maximum index = " << num_ready_fds - 1 << std::endl << std::endl;
+			std::cout << "\n\n'for loop' with index = " << i << " is over. Maximum index = " << num_ready_fds - 1 << std::endl << *this << std::endl;
 		}
 	}
 }

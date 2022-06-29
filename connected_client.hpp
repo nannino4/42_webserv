@@ -20,6 +20,18 @@ struct ConnectedClient
 	// constructor
 	ConnectedClient(int const connected_fd, struct sockaddr_in client_addr, void *default_server_ptr);
 
+	// copy constructor
+	ConnectedClient(ConnectedClient const &other) : connected_fd(other.connected_fd), triggered_event(other.triggered_event) { *this = other; }
+
+	// assign operator
+	ConnectedClient &operator=(ConnectedClient const &other)
+	{
+		client_addr = other.client_addr;
+		message = other.message;
+		message_pos = other.message_pos;
+		return *this;
+	}
+
 	// destructor
 	~ConnectedClient();
 

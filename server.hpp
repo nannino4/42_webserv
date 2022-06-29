@@ -29,7 +29,7 @@ protected:
 	int const							&kqueue_epoll_fd;
 	// configuration parameters
 	std::vector<std::string>			names;
-	std::map<int, std::string>			error_pages;
+	std::map<int,std::string>			error_pages;
 	size_t								client_body_size;
 	std::map<std::string,Location>		locations;
 
@@ -48,7 +48,7 @@ public:
 	friend std::ostream &operator<<(std::ostream &os, Server const &server);
 
 	// getters
-	int const					&getKqueueEpollFd() const;
+	int const						&getKqueueEpollFd() const;
 	std::vector<std::string> const	&getNames() const;
 
 	// communication

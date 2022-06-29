@@ -43,7 +43,7 @@ private:
 	struct sockaddr_in					server_addr;
 	std::vector<Server>					virtual_servers;
 	// communication
-	std::map<int,ConnectedClient>		clients;
+	std::map<int,ConnectedClient&>		clients;
 	int									listening_fd;
 	Event								triggered_event;
 	char								buf[BUFFER_SIZE];
@@ -70,7 +70,7 @@ public:
 	int const			&getListeningFd() const;
 
 	// initialization
-	void addVirtualServer(DefaultServer newServer);
+	void addVirtualServer(DefaultServer &newServer);
 
 	// communication
 	void startListening();

@@ -1,7 +1,7 @@
 #include "default_server.hpp"
 
 // default constructor
-DefaultServer::DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, std::string &config_file, int &pos) : Server(kqueue_epoll_fd), backlog(backlog), triggered_event(listening_fd, this, this)
+DefaultServer::DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, std::string &config_file, int &pos) : Server(kqueue_epoll_fd), backlog(backlog), listening_fd(-1), triggered_event(this->listening_fd, this, this)
 {
 	// default initialization
 	bzero(buf, BUFFER_SIZE);
@@ -96,7 +96,7 @@ DefaultServer::DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, s
 }
 
 // copy constructor
-DefaultServer::DefaultServer(DefaultServer const &other) : Server(other), triggered_event(listening_fd, this, this) { *this = other; }
+DefaultServer::DefaultServer(DefaultServer const &other) : Server(other), triggered_event(other.triggered_event) { *this = other; }
 
 // assign operator
 DefaultServer &DefaultServer::operator=(DefaultServer const &other)
@@ -115,32 +115,38 @@ DefaultServer::~DefaultServer()
 {
 	if (listening_fd != -1)
 		close(listening_fd);
+	for (std::map<int,ConnectedClient&>::iterator it = clients.begin(); it != clients.end(); ++it)
+	{
+		it->second.~ConnectedClient();
+		delete &(*it);
+	}
 }
 
 // operator overload
 std::ostream &operator<<(std::ostream &os, DefaultServer const &def_serv)
 {
-	os << "\nDefaultServer introducing itself:\n";
-	os << "backlog: " << def_serv.backlog << std::endl;
-	os << "server_addr: " << inet_ntoa(def_serv.server_addr.sin_addr) << ":" << ntohs(def_serv.server_addr.sin_port) << std::endl;
-	os << "virtual_servers: " << def_serv.virtual_servers.size() << std::endl;
+	os << "\n\tDefaultServer introducing itself:\n";
+	os << "\tserver_addr:\t\t" << inet_ntoa(def_serv.server_addr.sin_addr) << ":" << ntohs(def_serv.server_addr.sin_port) << std::endl;
+	os << "\tlistening_fd:\t\t" << def_serv.listening_fd << std::endl;
+	os << "\ttriggered_event.fd:\t" << def_serv.triggered_event.fd << std::endl;
+	os << "\tvirtual_servers:\t" << def_serv.virtual_servers.size() << std::endl;
 	for (std::vector<Server>::const_iterator it = def_serv.virtual_servers.begin(); it != def_serv.virtual_servers.end(); ++it)
 	{
-		os << "\tvirtual server names:" << std::endl;
-		os << "\t\t";
+		os << "\t\tvirtual server names:\t";
 		for (std::vector<std::string>::const_iterator name = it->getNames().begin(); name != it->getNames().end(); ++name)
 		{
-			os << *name;
+			os << " " << *name;
 		}
 		os << std::endl;
 	}
-	os << "clients: " << def_serv.clients.size() << std::endl;
-	// for (std::map<int,ConnectedClient>::const_iterator it = def_serv.clients.begin(); it != def_serv.clients.end(); ++it)
-	// {
-	// 	os << it->second << std::endl;
-	// }
-	os << "listening_fd:\n" << def_serv.listening_fd << std::endl;
-	os << "\nDefaultServer introduction is over" << std::endl;
+	os << "\tclients:\t\t" << def_serv.clients.size() << std::endl;
+	for (std::map<int,ConnectedClient&>::const_iterator it = def_serv.clients.begin(); it != def_serv.clients.end(); ++it)
+	{
+		os << "\t\tconnected_fd:\t\t" << it->second.connected_fd << std::endl;
+		os << "\t\ttriggered_event.fd:\t" << it->second.triggered_event.fd << std::endl;
+		os << "\t\ttriggered_event.message:\t\"" << it->second.message << "\"" << std::endl;
+	}
+	os << "\tDefaultServer introduction is over" << std::endl;
 	return os;
 }
 
@@ -153,10 +159,9 @@ int const				&DefaultServer::getListeningFd() const { return listening_fd; }
 
 // initialization
 // add virtual server
-void DefaultServer::addVirtualServer(DefaultServer tmp_serv)
+void DefaultServer::addVirtualServer(DefaultServer &new_serv)
 {
-	Server 						newServer = (Server)tmp_serv;
-	std::vector<std::string>	tmp_names = newServer.getNames();
+	std::vector<std::string>	tmp_names = new_serv.getNames();
 
 	for (std::vector<std::string>::const_iterator name_to_match = tmp_names.begin(); name_to_match != tmp_names.end(); ++name_to_match)
 	{
@@ -170,7 +175,7 @@ void DefaultServer::addVirtualServer(DefaultServer tmp_serv)
 			}
 		}
 	}
-	virtual_servers.push_back(newServer);
+	virtual_servers.push_back((Server)new_serv);
 }
 
 // communication
@@ -249,20 +254,20 @@ void DefaultServer::connectToClient()
 			"\nip = " << inet_ntoa(client_addr.sin_addr) << std::endl << std::endl;
 
 	// create new ConnectedClient
-	ConnectedClient new_client(connected_fd, client_addr, this);
-	clients.insert(std::pair<int,ConnectedClient>(connected_fd, new_client));
+	ConnectedClient *new_client = new ConnectedClient(connected_fd, client_addr, this);
+	clients.insert(std::pair<int,ConnectedClient&>(connected_fd, *new_client));
 
 	// add new connected_fd to kqueue for READ monitoring
 #ifdef __MACH__
 	struct kevent event;
 	bzero(&event, sizeof(event));
-	EV_SET(&event, connected_fd, EVFILT_READ, EV_ADD, 0, 0, &new_client.triggered_event);
+	EV_SET(&event, connected_fd, EVFILT_READ, EV_ADD, 0, 0, &clients.at(connected_fd).triggered_event);
 	if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
 #elif defined(__linux__)
 	struct epoll_event event;
 	bzero(&event, sizeof(event));
 	event.events = EPOLLIN;
-	event.data.ptr = &new_client.triggered_event;
+	event.data.ptr = &clients[connected_fd].triggered_event;
 	if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, connected_fd, &event) == -1)
 #endif
 	{
@@ -273,7 +278,7 @@ void DefaultServer::connectToClient()
 
 	//debug
 	std::cout << "\nThe event with ident = " << connected_fd << " and filter EVFILT_READ has been added to kqueue" << \
-			"\nthere are currently " << clients.size() << " clients connected\n" << std::endl;
+			"\nThere are currently " << clients.size() << " clients connected to this address:port\n" << std::endl;
 }
 
 void DefaultServer::receiveRequest(Event *current_event)
@@ -301,6 +306,9 @@ void DefaultServer::receiveRequest(Event *current_event)
 	}
 	client->message += buf;
 
+	//debug
+	std::cout << "\nread_bytes = " << read_bytes << "\ntotal message = \n\"" << client->message << "\"" << std::endl;
+
 	// debug
 	/* std::cout << "\nreceived data = \"" << buf << "\"" \
  		"\nreceived request = \"" << client->message << "\"" \
@@ -310,7 +318,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	*/
 	bzero(buf, BUFFER_SIZE);
 
-	if ((read_bytes < (BUFFER_SIZE - 1)) && current_event->is_hang_up)
+	if ((read_bytes < (BUFFER_SIZE - 1))) // && current_event->is_hang_up) //TODO understand how to check eof
 	{
 		//DEBUG
 		std::cout << "\nThe whole request has been received" << std::endl;
@@ -425,16 +433,17 @@ void DefaultServer::sendResponse(Event *current_event)
 			exit(EXIT_FAILURE);
 		}
 
-		// close connected_fd
-		if (close(connected_fd) == -1)
-		{
-			//TODO handle error
-			perror("\nERROR\nDefaultServer.sendResponse(): close()");
-			exit(EXIT_FAILURE);
-		}
+		// // close connected_fd
+		// if (close(connected_fd) == -1)
+		// {
+		// 	//TODO handle error
+		// 	perror("\nERROR\nDefaultServer.sendResponse(): close()");
+		// 	exit(EXIT_FAILURE);
+		// }
 
-		// erase client from the map of clients
+		// erase client from the map of clients and delete it from memory
 		clients.erase(connected_fd);
+		delete client;
 
 		//debug
 		std::cout << "\nThe event with ident = " << connected_fd << " and filter EVFILT_WRITE has been removed from kqueue" << \
