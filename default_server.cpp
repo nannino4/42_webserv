@@ -318,7 +318,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	*/
 	bzero(buf, BUFFER_SIZE);
 
-	if ((read_bytes < (BUFFER_SIZE - 1)) && current_event->is_hang_up) //TODO understand how to check eof
+	if ((read_bytes < (BUFFER_SIZE - 1)))
 	{
 		//DEBUG
 		std::cout << "\nThe whole request has been received" << std::endl;
@@ -401,23 +401,18 @@ void DefaultServer::sendResponse(Event *current_event)
 		std::cerr << "ERROR\nDefaultServer.sendResponse(): send()" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-/*
-	std::cout << "\nsent some data to fd = " << connected_fd << \
-			"\nmessage to be sent = \"" << client->message << "\"" << \
-			"\nmessage position = " << client->message_pos << \
-			"\nmessage size = " << client->message.size() << \
-			"\nsize of data remaining to be sent = " << client->message.size() - client->message_pos << \
-			"\nbuffer size = " << BUFFER_SIZE << \
-			"\nsize of data sent = " << size << \
-			"\ndata sent = \"" << client->message.substr(client->message_pos, client->message_pos + size) << "\"\n" << std::endl;
-*/
+
 	client->message_pos += sent_bytes;
-	if ((size_t)client->message_pos == client->message.size())
+
+	//debug
+	std::cout << "\nsent_bytes = " << sent_bytes << "\ntotal message sent = \n\"" << client->message.substr(0, client->message_pos) << "\"" << std::endl;
+
+	if ((size_t)client->message_pos == client->message.size() || current_event->is_error || current_event->is_hang_up)
 	{
 		//The whole response has been sent
 
 		//debug
-		std::cout << "\nThe whole response has been sent" << std::endl;
+		std::cout << "\nClosing connection with fd " << client->connected_fd << std::endl;
 
 		// remove connected_fd from kqueue
 	#ifdef __MACH__
@@ -434,20 +429,8 @@ void DefaultServer::sendResponse(Event *current_event)
 			exit(EXIT_FAILURE);
 		}
 
-		// // close connected_fd
-		// if (close(connected_fd) == -1)
-		// {
-		// 	//TODO handle error
-		// 	perror("\nERROR\nDefaultServer.sendResponse(): close()");
-		// 	exit(EXIT_FAILURE);
-		// }
-
 		// erase client from the map of clients and delete it from memory
 		clients.erase(connected_fd);
 		delete client;
-
-		//debug
-		std::cout << "\nThe event with ident = " << connected_fd << " and filter EVFILT_WRITE has been removed from kqueue" << \
-				"\nthere are currently " << clients.size() << " clients connected\n" << std::endl;
 	}
 }

@@ -171,9 +171,7 @@ void Cluster::run()
 			exit(EXIT_FAILURE);
 		}
 
-		// handle the event triggered on the monitored fds
-		//debug
-		std::cout << "\nstarting new loop\n" << std::endl;
+		// handle the fds triggered
 		for (int i = 0; i < num_ready_fds; ++i)
 		{
 
