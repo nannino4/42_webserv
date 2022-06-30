@@ -128,7 +128,6 @@ std::ostream &operator<<(std::ostream &os, DefaultServer const &def_serv)
 	os << "\n\tDefaultServer introducing itself:\n";
 	os << "\tserver_addr:\t\t" << inet_ntoa(def_serv.server_addr.sin_addr) << ":" << ntohs(def_serv.server_addr.sin_port) << std::endl;
 	os << "\tlistening_fd:\t\t" << def_serv.listening_fd << std::endl;
-	os << "\ttriggered_event.fd:\t" << def_serv.triggered_event.fd << std::endl;
 	os << "\tvirtual_servers:\t" << def_serv.virtual_servers.size() << std::endl;
 	for (std::vector<Server>::const_iterator it = def_serv.virtual_servers.begin(); it != def_serv.virtual_servers.end(); ++it)
 	{
@@ -143,8 +142,7 @@ std::ostream &operator<<(std::ostream &os, DefaultServer const &def_serv)
 	for (std::map<int,ConnectedClient&>::const_iterator it = def_serv.clients.begin(); it != def_serv.clients.end(); ++it)
 	{
 		os << "\t\tconnected_fd:\t\t" << it->second.connected_fd << std::endl;
-		os << "\t\ttriggered_event.fd:\t" << it->second.triggered_event.fd << std::endl;
-		os << "\t\ttriggered_event.message:\t\"" << it->second.message << "\"" << std::endl;
+		os << "\t\tmessage:\t\"" << it->second.message << "\"" << std::endl;
 	}
 	os << "\tDefaultServer introduction is over" << std::endl;
 	return os;
@@ -204,6 +202,7 @@ void DefaultServer::startListening()
 		exit(EXIT_FAILURE);
 	}
 
+	triggered_event.events = READ;
 #ifdef __MACH__
 	struct kevent event;
 	bzero(&event, sizeof(event));
@@ -258,16 +257,17 @@ void DefaultServer::connectToClient()
 	clients.insert(std::pair<int,ConnectedClient&>(connected_fd, *new_client));
 
 	// add new connected_fd to kqueue for READ monitoring
+	new_client->triggered_event.events = READ;
 #ifdef __MACH__
 	struct kevent event;
 	bzero(&event, sizeof(event));
-	EV_SET(&event, connected_fd, EVFILT_READ, EV_ADD, 0, 0, &clients.at(connected_fd).triggered_event);
+	EV_SET(&event, connected_fd, EVFILT_READ, EV_ADD, 0, 0, &new_client->triggered_event);
 	if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
 #elif defined(__linux__)
 	struct epoll_event event;
 	bzero(&event, sizeof(event));
 	event.events = EPOLLIN;
-	event.data.ptr = &clients[connected_fd].triggered_event;
+	event.data.ptr = &new_client->triggered_event;
 	if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, connected_fd, &event) == -1)
 #endif
 	{
@@ -318,7 +318,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	*/
 	bzero(buf, BUFFER_SIZE);
 
-	if ((read_bytes < (BUFFER_SIZE - 1))) // && current_event->is_hang_up) //TODO understand how to check eof
+	if ((read_bytes < (BUFFER_SIZE - 1)) && current_event->is_hang_up) //TODO understand how to check eof
 	{
 		//DEBUG
 		std::cout << "\nThe whole request has been received" << std::endl;
@@ -359,6 +359,7 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 	serverRequested->prepareResponse(client, request);
 	
 	// add connected_fd to kqueue for WRITE monitoring
+	client->triggered_event.events = WRITE;
 #ifdef __MACH__
 	struct kevent event;
 	bzero(&event, sizeof(event));

@@ -179,72 +179,52 @@ void Cluster::run()
 
 		#ifdef __MACH__
 			Event *current_event = (Event *)(triggered_events[i].udata);
-			current_event->is_hang_up = (triggered_events[i].flags == EV_EOF);
+			current_event->is_hang_up = (triggered_events[i].flags & EV_EOF);
+			current_event->is_error = (triggered_events[i].flags & EV_ERROR);
 		#elif defined(__linux__)
 			Event *current_event = (Event *)(triggered_events[i].data.ptr);
 			current_event->is_hang_up = (triggered_events[i].events & EPOLLHUP);
+			current_event->is_error = (triggered_events[i].events & EPOLLERR);
 		#endif
 
 			DefaultServer *default_server = (DefaultServer *)(current_event->default_server_ptr);
 
 			//debug
-			std::cout << "\nloop with index = " << i << std::endl;
-			std::cout << "current_event.fd =\t" << current_event->fd << std::endl;
-			std::cout << "current_event.is_hang_up =\t" << std::boolalpha << current_event->is_hang_up << std::endl;
-			std::cout << "current_event.default_server =\t" << *(DefaultServer *)current_event->default_server_ptr << std::endl << std::endl;
+			std::cout << "\nloop with index =\t" << i << std::endl << std::endl;
+			std::cout << "current_event:\n";
+			std::cout << "\tfd =\t\t" << current_event->fd << std::endl;
+			std::cout << "\tevents =\t" << current_event->events << std::endl;
+			std::cout << "\tis_hang_up =\t" << std::boolalpha << current_event->is_hang_up << std::endl;
+			std::cout << "\tdefault_server:" << *(DefaultServer *)current_event->default_server_ptr << std::endl << std::endl;
 
-			// if (triggered_events[i].flags == EV_ERROR)
-			// {
-			// 	//debug
-			// 	std::cout << "the event has flags = EV_ERROR\n" << std::endl;
+			//TODO manage the case in which (current_event->is_error == true)
+			// if fd == connected_fd : close fd and erase client
+			// if fd == listening_fd : boh, maybe just ignore it (?)
 
-			// 	//the connected_fd got an error_filter
-			// 	//TODO handle error
-			// 	std::cout << "\nERROR\nan event reported EV_ERROR in flags" << std::endl;
-			// 	strerror(triggered_events[i].data);
-			// }
-
-		#ifdef __MACH__
-			if (triggered_events[i].filter == EVFILT_WRITE)
-		#elif defined(__linux__)
-			if (triggered_events[i].events == EPOLLOUT)
-		#endif
+			if (current_event->events == WRITE)
 			{
-				//debug
-				std::cout << "the event has filter = EVFILT_WRITE\n" << std::endl;
+				//TODO handle case in which (current_event->is_hang_up == true)
+				// close fd and erase client
 
 				// response can be sent to connected_fd
 				default_server->sendResponse(current_event);
 			}
-		#ifdef __MACH__
-			else if (triggered_events[i].filter == EVFILT_READ)
-		#elif defined(__linux__)
-			else if (triggered_events[i].events == EPOLLIN)
-		#endif
+			else if (current_event->events == READ)
 			{
-				//debug
-				std::cout << "the event has filter = EVFILT_READ\n" << std::endl;
-
 				if (current_event->fd == default_server->getListeningFd())
 				{
-					//debug
-					std::cout << "the event has fd = listening_fd\n" << std::endl;
-
 					// listening_fd ready to accept a new connection from client
 					default_server->connectToClient();
 				}
 				else
 				{
-					//debug
-					std::cout << "the event has fd = " << current_event->fd << " != listening_fd\n" << std::endl;
-
 					// request can be received from connected_fd
 					default_server->receiveRequest(current_event);
 				}
 			}
 
 			//debug
-			std::cout << "\n\n'for loop' with index = " << i << " is over. Maximum index = " << num_ready_fds - 1 << std::endl << *this << std::endl;
+			std::cout << "\n\n'for loop' with index = " << i << " is over. Maximum index = " << num_ready_fds - 1 << std::endl << std::endl;
 		}
 	}
 }
