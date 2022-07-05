@@ -1,8 +1,4 @@
-<html>
-	<head></head>
-	<body>
-	<?php		
-		phpinfo();
-	?>
-	</body>
-</html>
+
+<?php		
+	phpinfo();
+?>

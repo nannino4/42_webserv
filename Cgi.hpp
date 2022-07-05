@@ -22,6 +22,6 @@ public:
 	~Cgi();
 	const std::string & getNew_body() const;
 	std::string run_cgi(std::string script_name);
-	char **map_to_char(std::map<std::string, std::string> _env);
+	char **map_to_char();//std::map<std::string, std::string> _env);
 	void get_env(void);
 };
