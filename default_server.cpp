@@ -368,7 +368,7 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 #elif defined(__linux__)
 	struct epoll_event event;
 	bzero(&event, sizeof(event));
-	event.events = EPOLLIN;
+	event.events = EPOLLOUT;
 	event.data.ptr = &client->triggered_event;
 	if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
 #endif
