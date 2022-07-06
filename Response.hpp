@@ -43,7 +43,7 @@ class Response
 		void get();
 		void manageDir();
 		void generateAutoIndex();
-		bool fileTobody(std::string const & index);
+		void fileTobody(std::string const & index);
 
 		std::string getResponse();
 		friend std::ostream& operator<<(std::ostream & out, const Response& m);

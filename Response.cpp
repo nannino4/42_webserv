@@ -7,9 +7,23 @@ Response::Response(const Request & request, std::map<std::string,Location> loc)
 {
 	version = request.getVersion();
 	if (request.getMethod() == "GET")
-	{
 		get();
-	}
+	// it ha to be check if the method is allowed
+	// {
+	// 	std::map<std::string,Location>::iterator it = locations.begin();
+	// 	while(it != locations.end())
+	// 	{
+	// 		if (it->first == path)
+	// 		{
+	// 			if (it->second.isMethodAllowed("GET"))
+	// 			{
+	// 				get();
+	// 				break;
+	// 			}
+	// 		}
+	// 	++it;
+	// 	}
+	// }
 	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
 	std::unordered_map<std::string, std::string>::const_iterator it = headers.begin();
 	while (it != headers.end())
@@ -30,23 +44,17 @@ void Response::get()
 	stat(path.c_str(), &buf);
 	if (S_ISDIR(buf.st_mode))
 		manageDir();
+	else if (S_ISREG(buf.st_mode))
+		fileTobody(path);
 	else
 	{
-		if (fileTobody(path))
-		{
-			response_status_code = "200";
-			reason_phrase = "OK";
-		}
-		else
-		{
-			fileTobody("error_pages/404.html");
-			response_status_code = "404";
-			reason_phrase = "File Not Found";
-		}
+		fileTobody("error_pages/404.html");
+		response_status_code = "404";
+		reason_phrase = "File Not Found";
 	}
 }
 
-bool Response::fileTobody(std::string const & index)
+void Response::fileTobody(std::string const & index)
 {
 	std::ifstream file;
 	std::stringstream line;
@@ -56,14 +64,20 @@ bool Response::fileTobody(std::string const & index)
 	{
 		line << file.rdbuf();
 		message = line.str();
-		return true;
+		response_status_code = "200";
+		reason_phrase = "OK";
+		// return true;
 	}
-	return false;
+	else if (file.fail())
+	{
+		fileTobody("error_pages/403.html");
+		response_status_code = "403";
+		reason_phrase = "Forbidden";
+	}
 }
 
 void Response::manageDir()
 {
-
 	std::map<std::string,Location>::iterator it = locations.begin();
 	while(it != locations.end())
 	{
@@ -74,7 +88,11 @@ void Response::manageDir()
 				generateAutoIndex();
 				break;
 			}
-			fileTobody(path + it->second.getIndex());
+			if (!it->second.getIndex().empty())
+			{
+				fileTobody(path + it->second.getIndex());
+				break;
+			}
 		}
 		++it;
 	}
@@ -89,13 +107,17 @@ void Response::generateAutoIndex()
 	if ((dir = opendir(path.c_str())) != NULL)
 	{
 		line << "<html>\n" << "<body>\n" << "<h1>Index of " << path << "</h1>\n";
+		line << "<table>";
 		/* print all the files and directories within directory */
 		while ((ent = readdir(dir)) != NULL)
 		{
-			line << "<table><a href=\"" << ent->d_name << "\">";
-			line << ent->d_name << "</a></table>";
+			if (std::string(ent->d_name) != ".")
+			{
+				line << "<tr><td><a href=\"" << ent->d_name << "\">";
+				line << ent->d_name << "</a></td></tr>";
+			}
 		}
-		line << "</body>\n</html>";
+		line << "</table></body>\n</html>";
 		message = line.str();
 		closedir (dir);
 	}
