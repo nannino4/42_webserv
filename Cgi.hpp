@@ -5,11 +5,12 @@
 #include <unistd.h>
 #include <iostream>
 #include <unistd.h>
-#ifdef __linux__
 #include <sys/wait.h>
-#endif
+#include <cstring>
+#include <cstdio>
 
-#include "utility.hpp"
+
+#include "Request.hpp"
 
 
 class Cgi
@@ -17,11 +18,14 @@ class Cgi
 private:
 	std::map<std::string, std::string> _env; // execve accetta mappa?/// pescare conf && request
 	std::string new_body;
+    std::map<std::string, std::string> cgi_header;
 public:
-	Cgi();
+	Cgi(const Request &request);
 	~Cgi();
-	const std::string & getNew_body() const;
 	std::string run_cgi(std::string script_name);
-	char **map_to_char();//std::map<std::string, std::string> _env);
+	char **map_to_char();
 	void get_env(void);
+
+    //TODO: eliminare
+    void setCgiHeader(std::map<std::string, std::string> resp_header);
 };

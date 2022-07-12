@@ -2,7 +2,7 @@
 
 #include "Request.hpp"
 
-Request::Request(const std::string & raw_request)
+Request::Request(const std::string &raw_request)
 {
 	std::stringstream file(raw_request);
 	std::string line;
@@ -29,18 +29,15 @@ Request::Request(const std::string & raw_request)
 
 Request::~Request() {}
 
-//____dbalducc___test___for___CGI//
-const std::map<std::string, std::string> & Request::getHeader() const{return headers;}
-//______________________________//
+const std::string	&Request::getVersion() const { return version; }
+const std::string	&Request::getMethod() const { return method; }
+const std::string	&Request::getPath() const { return path; }
+const std::map<std::string, std::string> &Request::getHeader() const {return headers;}
 
-const std::string & Request::getVersion() const { return version; }
-const std::string & Request::getMethod() const { return method; }
-const std::string & Request::getPath() const { return path; }
-
-std::string Request::getRequestHeaderHost() const
+std::string Request::getHostname() const
 {
 	std::string ret;
-	for (HeaderConstIterator it = headers.begin(); it != headers.end(); ++it)
+	for (const_iterator it = headers.begin(); it != headers.end(); ++it)
 	{
 		if (it->first == "Host")
 			ret = it->second;
@@ -53,7 +50,7 @@ std::ostream& operator<<(std::ostream & out, const Request& m)
 {
 	out << "HTTP Request:" << std::endl;
 	out << "\tMethod: " << m.method << std::endl;
-	out << "\tPath: " << m.path << std::endl; // ???
+	out << "\tPath: " << m.path << std::endl;
 	out << "\tVersion: " << m.version << std::endl;
 	out << "\tHeaders: " << std::endl;
 	for (std::map<std::string, std::string>::const_iterator it = m.headers.begin(); it != m.headers.end(); ++it)

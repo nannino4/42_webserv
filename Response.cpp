@@ -2,34 +2,36 @@
 
 #include "Response.hpp"
 #include "Request.hpp"
-#include <filesystem>
 
 Response::Response(const Request & request)
 	: message(), response()
 {
-	Cgi cgi;
-	version = request.getVersion();
-	size_t lenght = 0;
+    Cgi cgi(request);
 	if (request.getMethod() == "GET")
 	{
+        if(request.getPath().find(".php")) {
+            std::cout << "VERO" << std::endl;
+            cgi.run_cgi("/usr/bin/php-cgi");
+        }
 		std::string path = request.getPath();
-		std::cout << "PATH: "<< path << std::endl;
-		std::cout << "pwd PATH: "<< get_working_path() << std::endl;
 		path.erase(0, 1);
-		//____dbalducc___test___for___CGI//
-		if (path.find(".php") && check_file_exist(get_working_path() + "/" + path))
+		ifstream file(path);
+		size_t lenght = 0;
+		if (file.is_open())
 		{
-			message = cgi.run_cgi(path);
-			lenght = message.length();
+			string line;
+			while(getline(file, line))
+			{
+				lenght += line.length();
+				message += line + "\r\n";
+			}
 			response_status_code = "200";
 			reason_phrase = "OK";
 			headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
 		}
-		//______________________________//
-		//____dbalducc___test___for___CGI//
-		else{
-		//______________________________//
-			ifstream file(path);
+		else
+		{
+			file.open("error_pages/404.html");
 			if (file.is_open())
 			{
 				string line;
@@ -38,29 +40,11 @@ Response::Response(const Request & request)
 					lenght += line.length();
 					message += line + "\r\n";
 				}
-				response_status_code = "200";
-				reason_phrase = "OK";
-				headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
 			}
-			else
-			{
-				file.open("error_pages/404.html");
-				if (file.is_open())
-				{
-					string line;
-					while(getline(file, line))
-					{
-						lenght += line.length();
-						message += line + "\r\n";
-					}
-				}
-				response_status_code = "404";
-				reason_phrase = "File Not Found";
-				headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
-			}
-		//____dbalducc___test___for___CGI//
+			response_status_code = "404";
+			reason_phrase = "File Not Found";
+			headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
 		}
-		//______________________________//
 	}
 	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
 	unordered_map<string, string>::const_iterator it = headers.begin();

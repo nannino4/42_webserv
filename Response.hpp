@@ -9,7 +9,7 @@
 #include <unordered_map>
 
 #include "Cgi.hpp"
-#include "utility.hpp"
+
 using namespace std;
 
 class Request;
@@ -28,8 +28,8 @@ class Response
 		Response(const Response &);
 		Response& operator=(const Response &);
 
-		//____dbalducc___test___for___CGI//
-		public:
+	public:
+
 		Response(const Request & request);
 
 		~Response();
