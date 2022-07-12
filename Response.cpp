@@ -9,42 +9,41 @@ Response::Response(const Request & request)
     Cgi cgi(request);
 	if (request.getMethod() == "GET")
 	{
+        std::cout << "PATH: " << request.getPath() << std::endl;
         if(request.getPath().find(".php")) {
-            std::cout << "VERO" << std::endl;
-            cgi.run_cgi("/usr/bin/php-cgi");
+            message += cgi.run_cgi("/usr/bin/php-cgi");
+            response_status_code = "200";
+            reason_phrase = "OK";
+            headers.insert(pair<string, string>("Content-Length", to_string(message.length())));
         }
-		std::string path = request.getPath();
-		path.erase(0, 1);
-		ifstream file(path);
-		size_t lenght = 0;
-		if (file.is_open())
-		{
-			string line;
-			while(getline(file, line))
-			{
-				lenght += line.length();
-				message += line + "\r\n";
-			}
-			response_status_code = "200";
-			reason_phrase = "OK";
-			headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
-		}
-		else
-		{
-			file.open("error_pages/404.html");
-			if (file.is_open())
-			{
-				string line;
-				while(getline(file, line))
-				{
-					lenght += line.length();
-					message += line + "\r\n";
-				}
-			}
-			response_status_code = "404";
-			reason_phrase = "File Not Found";
-			headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
-		}
+        else {
+            std::string path = request.getPath();
+            path.erase(0, 1);
+            ifstream file(path);
+            size_t lenght = 0;
+            if (file.is_open()) {
+                string line;
+                while (getline(file, line)) {
+                    lenght += line.length();
+                    message += line + "\r\n";
+                }
+                response_status_code = "200";
+                reason_phrase = "OK";
+                headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
+            } else {
+                file.open("error_pages/404.html");
+                if (file.is_open()) {
+                    string line;
+                    while (getline(file, line)) {
+                        lenght += line.length();
+                        message += line + "\r\n";
+                    }
+                }
+                response_status_code = "404";
+                reason_phrase = "File Not Found";
+                headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
+            }
+        }
 	}
 	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
 	unordered_map<string, string>::const_iterator it = headers.begin();

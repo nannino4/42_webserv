@@ -35,7 +35,7 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 	int fd_safe[2];
 	pid_t pid;
 	//char buffer[65536];
-    std::string new_body;
+    std::string tmp;
     char **env = map_to_char();
 
     FILE	*fIn = tmpfile();
@@ -70,10 +70,10 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
             memset(buffer, 0, 65536);
             ret = read(fdOut, buffer, 65536 - 1);
             //std::cout << buffer << std::endl
-            new_body += buffer;
+            tmp += buffer;
 
         }
-        std::cout << new_body << endl;
+        std::cout << tmp << endl;
 		dup2(STDOUT_FILENO, fd_safe[1]);
 		dup2(STDIN_FILENO, fd_safe[0]);
         fclose(fIn);
@@ -83,7 +83,8 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 		close(fd_safe[0]);
         close(fd_safe[1]);
 	}
-	return("ciao");
+    new_body =  tmp.substr(tmp.find_first_of('>') + 1, tmp.size());
+	return(new_body);
 	// php restituisce su stdout````
 	// restituire tramite stdout al server
 }
