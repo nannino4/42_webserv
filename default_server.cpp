@@ -179,7 +179,7 @@ void DefaultServer::addVirtualServer(DefaultServer &new_serv)
 // communication
 void DefaultServer::startListening()
 {
-	int optval = true;
+	int optval = true;		// used in setsockopt()
 
 	listening_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (listening_fd < 0)
@@ -301,7 +301,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	{
 		//TODO handle error
 		
-		// perror("ERROR\nDefaultServer.receiveRequest(): recv");
+		perror("ERROR\nDefaultServer.receiveRequest(): recv");
 		exit(EXIT_FAILURE);
 	}
 	client->message += buf;
@@ -316,6 +316,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 		"\nBUFFER_SIZE - 1 = " << BUFFER_SIZE - 1 << \
 		"\nEOF = " << (event.flags & EV_EOF) << std::endl;
 	*/
+
 	bzero(buf, BUFFER_SIZE);
 
 	if ((read_bytes < (BUFFER_SIZE - 1)))
@@ -344,20 +345,19 @@ void DefaultServer::receiveRequest(Event *current_event)
 	}
 }
 
-void DefaultServer::dispatchRequest(ConnectedClient *client)
+void DefaultServer::dispatchRequest(ConnectedClient *client)		//dispatch the request to the corresponding server, based on the 'host' value
 {
-	//TODO dispatch the request to the corresponding server, based on the 'host' value
 	Request request(client->message);
-	
+
 	Server *serverRequested = this;
 	for (std::vector<Server>::iterator it = virtual_servers.begin(); it != virtual_servers.end(); ++it)
 	{
 		if (it->isName(request.getHostname()))
 			serverRequested = &(*it);
 	}
-	
+
 	serverRequested->prepareResponse(client, request);
-	
+
 	// add connected_fd to kqueue for WRITE monitoring
 	client->triggered_event.events = WRITE;
 #ifdef __MACH__

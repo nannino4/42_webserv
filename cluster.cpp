@@ -1,7 +1,7 @@
 #include "cluster.hpp"
 
 // default constructor
-Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not valid, then default config file is used
+Cluster::Cluster(std::string config_file_name)
 {
 
 #ifdef __MACH__
@@ -16,7 +16,7 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 		exit(EXIT_FAILURE);
 	}
 
-	std::ifstream config_file(config_file_name);
+	std::ifstream		config_file(config_file_name);
 	std::stringstream	stream;
 	std::string			whole_file("");
 	std::string			directive;
