@@ -7,6 +7,7 @@ Response::Response(const Request & request)
 	: message(), response()
 {
     Cgi cgi(request);
+	version = request.getVersion();
 	if (request.getMethod() == "GET")
 	{
         std::cout << "PATH: " << request.getPath() << std::endl;
