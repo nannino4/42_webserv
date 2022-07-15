@@ -27,7 +27,7 @@ class Response
 		std::unordered_map<std::string, std::string>	headers;
 		std::string							message;
 		std::string							response;
-		std::map<std::string,Location>		locations;
+		std::map<std::string,Location>		&locations;
 		std::string 						path;
 
 		Response();
@@ -36,14 +36,16 @@ class Response
 
 	public:
 
-		Response(const Request & request, std::map<std::string,Location> loc);
+		Response(const Request & request, std::map<std::string,Location> &loc);
 
 		~Response();
 		
 		void get();
 		void manageDir();
 		void generateAutoIndex();
+		void generateErrorPage();
 		void fileTobody(std::string const & index);
+		void checkMethod(std::string path, void (*f)());
 
 		std::string getResponse();
 		friend std::ostream& operator<<(std::ostream & out, const Response& m);

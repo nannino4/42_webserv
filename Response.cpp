@@ -2,28 +2,12 @@
 
 #include "Response.hpp"
 
-Response::Response(const Request & request, std::map<std::string,Location> loc)
+Response::Response(const Request & request, std::map<std::string,Location> &loc)
 	: message(), response(), locations(loc), path(request.getPath())
 {
 	version = request.getVersion();
 	if (request.getMethod() == "GET")
-		get();
-	// it ha to be check if the method is allowed
-	// {
-	// 	std::map<std::string,Location>::iterator it = locations.begin();
-	// 	while(it != locations.end())
-	// 	{
-	// 		if (it->first == path)
-	// 		{
-	// 			if (it->second.isMethodAllowed("GET"))
-	// 			{
-	// 				get();
-	// 				break;
-	// 			}
-	// 		}
-	// 	++it;
-	// 	}
-	// }
+		checkMethod(request.getPath(), &Response::get);
 	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
 	std::unordered_map<std::string, std::string>::const_iterator it = headers.begin();
 	while (it != headers.end())
@@ -32,6 +16,19 @@ Response::Response(const Request & request, std::map<std::string,Location> loc)
 		++it;
 	}
 	response += "\r\n" + message;
+}
+
+void Response::checkMethod(std::string path, void (Response::*f)())
+{
+	std::map<std::string,Location>::iterator it;
+	if ((it = locations.find(path.substr(0, path.find_last_of('/')))) != locations.end() && !it->second.isMethodAllowed("GET"))
+	{
+		response_status_code = "405";
+		reason_phrase = "Method Not Allowed : location= " + path.substr(0, path.find_last_of('/'));
+		generateErrorPage();
+	}
+	else
+		f();
 }
 
 void Response::get()
@@ -48,9 +45,9 @@ void Response::get()
 		fileTobody(path);
 	else
 	{
-		fileTobody("error_pages/404.html");
 		response_status_code = "404";
 		reason_phrase = "File Not Found";
+		generateErrorPage();
 	}
 }
 
@@ -66,13 +63,12 @@ void Response::fileTobody(std::string const & index)
 		message = line.str();
 		response_status_code = "200";
 		reason_phrase = "OK";
-		// return true;
 	}
 	else if (file.fail())
 	{
-		fileTobody("error_pages/403.html");
 		response_status_code = "403";
 		reason_phrase = "Forbidden";
+		generateErrorPage();
 	}
 }
 
@@ -97,6 +93,17 @@ void Response::manageDir()
 		++it;
 	}
 }
+
+void Response::generateErrorPage()
+{
+	std::stringstream line;
+	line << "<html>\n<body>\n";
+	line << "<h1 style=\"text-align:center;\">Error: " << response_status_code << "</h1>\n";
+	line << "<div style=\"text-align:center;\"> " << reason_phrase << "</div>\n";
+	line << "</body>\n</html>";
+	message = line.str();
+}
+
 
 void Response::generateAutoIndex()
 {
