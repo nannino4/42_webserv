@@ -347,15 +347,18 @@ void DefaultServer::receiveRequest(Event *current_event)
 
 void DefaultServer::dispatchRequest(ConnectedClient *client)		//dispatch the request to the corresponding server, based on the 'host' value
 {
+	// parse request
 	Request request(client->message);
 
 	Server *serverRequested = this;
-	for (std::vector<Server>::iterator it = virtual_servers.begin(); it != virtual_servers.end(); ++it)
+	if (request.isValid())
 	{
-		if (it->isName(request.getHostname()))
-			serverRequested = &(*it);
+		for (std::vector<Server>::iterator it = virtual_servers.begin(); it != virtual_servers.end(); ++it)
+		{
+			if (it->isName(request.getHostname()))
+				serverRequested = &(*it);
+		}
 	}
-
 	serverRequested->prepareResponse(client, request);
 
 	// add connected_fd to kqueue for WRITE monitoring
@@ -433,4 +436,23 @@ void DefaultServer::sendResponse(Event *current_event)
 		clients.erase(connected_fd);
 		delete client;
 	}
+}
+
+void DefaultServer::closeTimedOutConnections()
+{
+	for (std::map<int,ConnectedClient&>::iterator it = clients.begin(); it != clients.end(); ++it)
+	{
+		if (getTimeDifference(it->second.time_since_last_action) > TIMEOUT)
+		{
+			if (it->second.message.empty())
+			{
+				//TODO close connection
+			}
+			else
+			{
+				//TODO finish reading request
+			}
+		}
+	}
+	
 }

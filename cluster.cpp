@@ -142,6 +142,9 @@ int Cluster::getKqueueEpollFd() const
 // run
 void Cluster::run()
 {
+	struct timespec time_of_last_timeout_check;
+	clock_gettime(CLOCK_BOOTTIME, &time_of_last_timeout_check);
+
 	// make servers listen and add them to kqueue
 	for (std::map<Cluster::address,DefaultServer&>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
 	{
@@ -155,8 +158,11 @@ void Cluster::run()
 	#ifdef __MACH__
 		num_ready_fds = kevent(kqueue_epoll_fd, nullptr, 0, triggered_events, N_EVENTS, nullptr);
 	#elif defined(__linux__)
-		num_ready_fds = epoll_wait(kqueue_epoll_fd, triggered_events, N_EVENTS, -1);
+		num_ready_fds = epoll_wait(kqueue_epoll_fd, triggered_events, N_EVENTS, 0);
 	#endif
+
+		//debug
+		sleep(1);
 
 		//debug
 		std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
@@ -223,6 +229,17 @@ void Cluster::run()
 
 			//debug
 			std::cout << "\n\n'for loop' with index = " << i << " is over. Maximum index = " << num_ready_fds - 1 << std::endl << std::endl;
+
+		} //for loop on num_ready_fds
+
+		// close timed out connections & finish reading timed out requests
+		if (getTimeDifference(time_of_last_timeout_check) > HOW_OFTEN)
+		{
+			for (std::map<Cluster::address,DefaultServer&>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
+			{
+				it->second.closeTimedOutConnections();
+			}
 		}
-	}
+
+	} //while (1)
 }

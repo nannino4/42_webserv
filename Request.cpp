@@ -2,7 +2,11 @@
 
 #include "Request.hpp"
 
-Request::Request(const std::string &raw_request)
+// default constructor
+Request::Request() : is_valid(true) {}
+
+// constructor
+Request::Request(const std::string &raw_request) : is_valid(true)
 {
 	std::stringstream file(raw_request);
 	std::string line;
@@ -22,28 +26,36 @@ Request::Request(const std::string &raw_request)
 			if (getline(sline, value))
 				headers.insert(std::pair<std::string, std::string>(key, value));
 			else
-				message = key;
+				body = key;
 		}
 	}
 }
 
-Request::~Request() {}
+// copy constructor
+Request::Request(const Request &other) { *this = other; }
 
-const std::string	&Request::getVersion() const { return version; }
-const std::string	&Request::getMethod() const { return method; }
-const std::string	&Request::getPath() const { return path; }
-
-std::string Request::getHostname() const
+// assign operator oveload
+Request &Request::operator=(const Request &other)
 {
-	std::string ret;
-	for (const_iterator it = headers.begin(); it != headers.end(); ++it)
-	{
-		if (it->first == "Host")
-			ret = it->second;
-	}
-	return ret;
+	method = other.getMethod();
+	path = other.getPath();
+	version = other.getVersion();
+	headers = other.getHeaders();
+	body = other.getBody();
+	is_valid = other.isValid();
+	return *this;
 }
 
+// destructor
+Request::~Request() {}
+
+const std::string						&Request::getVersion() const { return version; }
+const std::string						&Request::getMethod() const { return method; }
+const std::string						&Request::getPath() const { return path; }
+const std::string						&Request::getBody() const { return body; }
+const std::map<std::string,std::string>	&Request::getHeaders() const { return headers; }
+const bool								&Request::isValid() const { return is_valid; }
+const std::string						&Request::getHostname() const { return (headers.find("Host"))->second; }
 
 std::ostream& operator<<(std::ostream & out, const Request& m)
 {
@@ -54,6 +66,6 @@ std::ostream& operator<<(std::ostream & out, const Request& m)
 	out << "\tHeaders: " << std::endl;
 	for (std::map<std::string, std::string>::const_iterator it = m.headers.begin(); it != m.headers.end(); ++it)
 		out << "\t\t" << it->first << ": " << it->second << std::endl;
-	out << "\tMessage: " << m.message << std::endl;
+	out << "\tBody: " << m.body << std::endl;
 	return out;
 }

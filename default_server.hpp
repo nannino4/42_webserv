@@ -18,10 +18,12 @@
 
 #include "server.hpp"
 #include "event.hpp"
+#include "utils.hpp"
 
 #define DEF_ADDR INADDR_ANY
 #define DEF_PORT 8000
-#define BUFFER_SIZE BUFSIZ
+#define BUFFER_SIZE 6
+#define TIMEOUT 10
 
 class DefaultServer : public Server
 {
@@ -79,6 +81,7 @@ public:
 	void dispatchRequest(ConnectedClient *client);
 	// void prepareResponse(ConnectedClient &client);		// inherited from Server
 	void sendResponse(Event *current_event);
+	void closeTimedOutConnections();
 
 private:
 	// initialization

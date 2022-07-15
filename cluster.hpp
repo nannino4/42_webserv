@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <ctime>
 
 #ifdef __MACH__
 	#include <sys/event.h>	//kqueue kevent
@@ -16,10 +17,12 @@
 #include <arpa/inet.h>	//inet_addr
 
 #include "default_server.hpp"
+#include "utils.hpp"
 
 #define DEF_CONF "./config_files/default.conf"
 #define N_EVENTS 1000
 #define BACKLOG_SIZE 128
+#define HOW_OFTEN 15
 
 class Cluster
 {
@@ -58,9 +61,10 @@ public:
 	void run();
 
 private:
-	// utils
+	//--------- utils
+	// init
 	std::ifstream	&openConfigFile(std::string config_file_name);
 	std::string		fileToString(std::ifstream &config_file);
 	
-};
+}; // end of cluster class
 

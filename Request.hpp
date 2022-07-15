@@ -10,34 +10,36 @@
 class Request
 {
 	private:
-		// aliases
-		typedef std::map<std::string, std::string>::const_iterator const_iterator;
-	
-	private:
 		// attributes
-		std::string	method;
-		std::string	path;
-		std::string	version;
+		std::string							method;
+		std::string							path;
+		std::string							version;
 		std::map<std::string, std::string>	headers;
-		std::string	message;
-
-		// coplien form
-		Request();
-		Request(const Request &);
-		Request& operator=(const Request &);
+		std::string							body;
+		bool								is_valid;
 
 	public:
+		// default constructor
+		Request();
 		// constructor
 		Request(const std::string &raw_request);
+
+		// copy constructor
+		Request(const Request &other);
+		// assign operator overload
+		Request& operator=(const Request &other);
 
 		// destructor
 		~Request();
 
 		// getters
-		const std::string	&getVersion() const;
-		const std::string	&getMethod() const;
-		const std::string	&getPath() const;
-		std::string			getHostname() const; // WARNING: return of not const and reference string
+		const std::string						&getVersion() const;
+		const std::string						&getMethod() const;
+		const std::string						&getPath() const;
+		const std::map<std::string,std::string>	&getHeaders() const;
+		const std::string						&getBody() const;
+		const std::string						&getHostname() const;
+		const bool								&isValid() const;
 
 		// operator overloads
 		friend std::ostream	&operator<<(std::ostream &out, const Request &m);
