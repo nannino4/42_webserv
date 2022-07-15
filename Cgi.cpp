@@ -55,7 +55,7 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
         dup2(fdIn, STDIN_FILENO);
 		dup2(fdOut, STDOUT_FILENO);
 		execve((char*)file_name.c_str(), nll , env); // chiamare php passare filename e passare variabili decodificate
-        cout << "NO EXECVE" << endl;
+        cout << "NO EXECVE" << endl; //TODO handle error
 		exit(0);
 	}
 	else{
@@ -69,11 +69,9 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 		while(ret > 0) {
             memset(buffer, 0, 65536);
             ret = read(fdOut, buffer, 65536 - 1);
-            //std::cout << buffer << std::endl
             tmp += buffer;
 
         }
-        std::cout << tmp << endl;
 		dup2(STDOUT_FILENO, fd_safe[1]);
 		dup2(STDIN_FILENO, fd_safe[0]);
         fclose(fIn);
@@ -83,6 +81,8 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 		close(fd_safe[0]);
         close(fd_safe[1]);
 	}
+    std::cout << "VERO" << std::endl << std::endl;
+    std::cout << tmp << endl;
     new_body =  tmp.substr(tmp.find_first_of('>') + 1, tmp.size());
 	return(new_body);
 	// php restituisce su stdout````
