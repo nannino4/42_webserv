@@ -8,6 +8,8 @@ Response::Response(const Request & r, Server &other)
 	version = request.getVersion();
 	if (request.getMethod() == "GET")
 		checkMethod("GET", &Response::get);
+	if (request.getMethod() == "DELETE")
+		checkMethod("DELETE", &Response::delet);
 	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
 	headers["Content-Length"] = std::to_string(body.size());
 	std::unordered_map<std::string, std::string>::const_iterator it = headers.begin();
@@ -33,6 +35,28 @@ void Response::checkMethod(std::string method, void (Response::*f)())
 		(this->*f)();
 }
 
+void Response::delet()
+{
+	std::ifstream file;
+	struct stat buf;
+
+	std::string path = request.getPath();
+	path.erase(0, 1);
+	stat(path.c_str(), &buf);
+	if (S_ISREG(buf.st_mode))
+	{
+		unlink(path.c_str());
+		response_status_code = "200";
+		reason_phrase = "OK";
+	}
+	else
+	{
+		response_status_code = "404";
+		reason_phrase = "File Not Found";
+		generateErrorPage();
+	}
+}
+
 void Response::get()
 {
 	size_t pos = request.getPath().find(".php");
@@ -45,7 +69,6 @@ void Response::get()
 		reason_phrase = "OK";
 		headers["Content-Length"] = std::to_string(body.size());
 		return;
-		// headers.insert(std::pair<std::string, std::string>("Content-Length", std::to_string(body.length())));
 	}
 	std::ifstream file;
 	struct stat buf;

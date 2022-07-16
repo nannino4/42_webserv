@@ -42,6 +42,7 @@ class Response
 		~Response();
 		
 		void get();
+		void delet();
 		void manageDir();
 		void generateAutoIndex();
 		void generateErrorPage();
