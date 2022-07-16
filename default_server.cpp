@@ -210,11 +210,11 @@ void DefaultServer::startListening()
 	}
 
 	//DEBUG
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nDefaultServer:startListening:\n\nlistening on fd = " << listening_fd << \
-			"\nport = " << ntohs(server_addr.sin_port) << \
-			"\nip = " << inet_ntoa(server_addr.sin_addr) << std::endl << std::endl;
+	// std::cout << "-----------------------------------------------------------" << std::endl;
+	// std::cout << "-----------------------------------------------------------" << std::endl;
+	// std::cout << "\nDefaultServer:startListening:\n\nlistening on fd = " << listening_fd << \
+	// 		"\nport = " << ntohs(server_addr.sin_port) << \
+	// 		"\nip = " << inet_ntoa(server_addr.sin_addr) << std::endl << std::endl;
 }
 
 void DefaultServer::connectToClient()
@@ -237,11 +237,11 @@ void DefaultServer::connectToClient()
 	// fcntl(connected_fd, F_SETFL, O_NONBLOCK);
 
 	//DEBUG
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nDefaultServer:connectToClient()\n\nconnected to fd = " << connected_fd << \
-			"\nport = " << ntohs(client_addr.sin_port) << \
-			"\nip = " << inet_ntoa(client_addr.sin_addr) << std::endl << std::endl;
+	// std::cout << "-----------------------------------------------------------" << std::endl;
+	// std::cout << "-----------------------------------------------------------" << std::endl;
+	// std::cout << "\nDefaultServer:connectToClient()\n\nconnected to fd = " << connected_fd << \
+	// 		"\nport = " << ntohs(client_addr.sin_port) << \
+	// 		"\nip = " << inet_ntoa(client_addr.sin_addr) << std::endl << std::endl;
 
 	// create new ConnectedClient
 	clients.insert(std::pair<int,ConnectedClient>(connected_fd, ConnectedClient(connected_fd, client_addr)));
@@ -258,15 +258,15 @@ void DefaultServer::connectToClient()
 	}
 
 	//debug
-	std::cout << "\nThe event with ident = " << connected_fd << " and filter EVFILT_READ has been added to kqueue" << \
-			"\nthere are currently " << clients.size() << " clients connected\n" << std::endl;
+	// std::cout << "\nThe event with ident = " << connected_fd << " and filter EVFILT_READ has been added to kqueue" << \
+	// 		"\nthere are currently " << clients.size() << " clients connected\n" << std::endl;
 }
 
 void DefaultServer::receiveRequest(struct kevent const event)
 {
 	//debug
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nDefaultServer.receiveRequest():" << std::endl;
+	// std::cout << "-----------------------------------------------------------" << std::endl;
+	// std::cout << "\nDefaultServer.receiveRequest():" << std::endl;
 
 	int connected_fd = event.ident;
 
@@ -282,7 +282,7 @@ void DefaultServer::receiveRequest(struct kevent const event)
 	// read from connected_fd into client->message
 
 	//debug
-	std::cout << "\ngoing to try recv" << std::endl;
+	// std::cout << "\ngoing to try recv" << std::endl;
 
 	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE - 1, 0);
 	if (read_bytes == -1)
@@ -295,18 +295,18 @@ void DefaultServer::receiveRequest(struct kevent const event)
 	client.message += buf;
 
 	//debug
-	std::cout << "\nreceived data = \"" << buf << "\"" \
-			"\nreceived request = \"" << client.message << "\"" \
-			"\nread_bytes = " << read_bytes << \
-			"\nBUFFER_SIZE - 1 = " << BUFFER_SIZE - 1 << \
-			"\nEOF = " << (event.flags & EV_EOF) << std::endl;
+	// std::cout << "\nreceived data = \"" << buf << "\"" \
+	// 		"\nreceived request = \"" << client.message << "\"" \
+	// 		"\nread_bytes = " << read_bytes << \
+	// 		"\nBUFFER_SIZE - 1 = " << BUFFER_SIZE - 1 << \
+	// 		"\nEOF = " << (event.flags & EV_EOF) << std::endl;
 
 	bzero(buf, BUFFER_SIZE);
 
 	if (read_bytes < (BUFFER_SIZE - 1))// && event.flags & EV_EOF)
 	{
 		//DEBUG
-		std::cout << "\nThe whole request has been received" << std::endl;
+		// std::cout << "\nThe whole request has been received" << std::endl;
 
 		// remove connected_fd to kqueue from READ monitoring
 		struct kevent event;
@@ -320,7 +320,7 @@ void DefaultServer::receiveRequest(struct kevent const event)
 		}
 
 		//debug
-		std::cout << "\nThe event with ident = " << client.connected_fd << " and filter EVFILT_READ has been removed from kqueue\n" << std::endl;
+		// std::cout << "\nThe event with ident = " << client.connected_fd << " and filter EVFILT_READ has been removed from kqueue\n" << std::endl;
 		dispatchRequest(client);
 	}
 }
@@ -353,7 +353,7 @@ void DefaultServer::dispatchRequest(ConnectedClient &client)
 	}
 
 	//debug
-	std::cout << "\nThe event with ident = " << client.connected_fd << " and filter EVFILT_WRITE has been added to kqueue\n" << std::endl;
+	// std::cout << "\nThe event with ident = " << client.connected_fd << " and filter EVFILT_WRITE has been added to kqueue\n" << std::endl;
 }
 
 void DefaultServer::sendResponse(int const connected_fd, int const buf_size)
@@ -368,8 +368,8 @@ void DefaultServer::sendResponse(int const connected_fd, int const buf_size)
 	ConnectedClient &client = clients.find(connected_fd)->second;
 
 	//DEBUG
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nDefaultServer:sendResponse():\n\nTHE RESPONSE TO FD " << connected_fd << " IS: \"" << client.message << "\"" << std::endl;	//DEBUG
+	// std::cout << "-----------------------------------------------------------" << std::endl;
+	// std::cout << "\nDefaultServer:sendResponse():\n\nTHE RESPONSE TO FD " << connected_fd << " IS: \"" << client.message << "\"" << std::endl;	//DEBUG
 	
 	int size = ((unsigned long)(client.message_pos + buf_size) > client.message.size()) ? (client.message.size() - client.message_pos) : buf_size;
 	if (send(connected_fd, client.message.substr(client.message_pos, client.message_pos + size).c_str(), size, 0) == -1)
@@ -378,19 +378,19 @@ void DefaultServer::sendResponse(int const connected_fd, int const buf_size)
 		std::cerr << "ERROR\nDefaultServer.sendResponse(): send()" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	std::cout << "\nsent some data to fd = " << connected_fd << \
-			"\nmessage to be sent = \"" << client.message << "\"" << \
-			"\nmessage position = " << client.message_pos << \
-			"\nmessage size = " << client.message.size() << \
-			"\nsize of data remaining to be sent = " << client.message.size() - client.message_pos << \
-			"\nbuffer size = " << buf_size << \
-			"\nsize of data sent = " << size << \
-			"\ndata sent = \"" << client.message.substr(client.message_pos, client.message_pos + size) << "\"\n" << std::endl;
+	// std::cout << "\nsent some data to fd = " << connected_fd << \
+	// 		"\nmessage to be sent = \"" << client.message << "\"" << \
+	// 		"\nmessage position = " << client.message_pos << \
+	// 		"\nmessage size = " << client.message.size() << \
+	// 		"\nsize of data remaining to be sent = " << client.message.size() - client.message_pos << \
+	// 		"\nbuffer size = " << buf_size << \
+	// 		"\nsize of data sent = " << size << \
+	// 		"\ndata sent = \"" << client.message.substr(client.message_pos, client.message_pos + size) << "\"\n" << std::endl;
 	client.message_pos += size;
 	if (size < buf_size)
 	{
 		//debug
-		std::cout << "\nThe whole response has been sent" << std::endl;
+		// std::cout << "\nThe whole response has been sent" << std::endl;
 		// remove connected_fd from kqueue
 		struct kevent event;
 		bzero(&event, sizeof(event));
@@ -413,7 +413,7 @@ void DefaultServer::sendResponse(int const connected_fd, int const buf_size)
 		clients.erase(connected_fd);
 
 		//debug
-		std::cout << "\nThe event with ident = " << connected_fd << " and filter EVFILT_WRITE has been removed from kqueue" << \
-				"\nthere are currently " << clients.size() << " clients connected\n" << std::endl;
+		// std::cout << "\nThe event with ident = " << connected_fd << " and filter EVFILT_WRITE has been removed from kqueue" << \
+		// 		"\nthere are currently " << clients.size() << " clients connected\n" << std::endl;
 	}
 }

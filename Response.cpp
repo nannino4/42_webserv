@@ -7,8 +7,9 @@ Response::Response(const Request & request, Server &other)
 {
 	version = request.getVersion();
 	if (request.getMethod() == "GET")
-		checkMethod(request.getPath(), "GET", &Response::get);
+		checkMethod("GET", &Response::get);
 	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
+	headers["Content Lenght"] = std::to_string(body.size());
 	std::unordered_map<std::string, std::string>::const_iterator it = headers.begin();
 	while (it != headers.end())
 	{
@@ -18,7 +19,7 @@ Response::Response(const Request & request, Server &other)
 	response += "\r\n" + body;
 }
 
-void Response::checkMethod(std::string path, std::string method, void (Response::*f)())
+void Response::checkMethod(std::string method, void (Response::*f)())
 {
 	std::map<std::string,Location>::const_iterator it;
 	if ((it = srv.getLocations().find(path.substr(1, path.find_last_of('/')))) != srv.getLocations().end()

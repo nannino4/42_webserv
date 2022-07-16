@@ -223,5 +223,4 @@ void DefaultServer::parseErrorPage(std::stringstream &stream)
 	}
 	file.close();
 	error_pages[code] = path;
-	std::cout << "+++++++ page added\n";
 }

@@ -25,8 +25,7 @@ class Response
 		std::unordered_map<std::string, std::string>	headers;
 		std::string										body;
 		std::string										response;
-
-		Server srv;
+		Server											srv;
 		std::string 									path;
 
 		Response();
@@ -44,7 +43,7 @@ class Response
 		void generateAutoIndex();
 		void generateErrorPage();
 		void fileTobody(std::string const & index);
-		void checkMethod(std::string path, std::string method, void (Response::*f)());
+		void checkMethod(std::string method, void (Response::*f)());
 
 		std::string getResponse();
 		friend std::ostream& operator<<(std::ostream & out, const Response& m);
