@@ -15,7 +15,6 @@ struct Event
     void        *default_server_ptr;
     void        *owner;
     int         events;
-	Request		request;
 
     Event(int const &fd, void *default_server_ptr, void *owner) : fd(fd), is_hang_up(false), is_error(false), default_server_ptr(default_server_ptr), owner(owner), events(-1) {}
     Event(Event const &other) : fd(other.fd) { *this = other; }
@@ -25,7 +24,6 @@ struct Event
         default_server_ptr = other.default_server_ptr;
         owner = other.owner;
         events = other.events;
-		request = other.request;
         return *this;
     }
     ~Event() {}

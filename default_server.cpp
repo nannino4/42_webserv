@@ -291,11 +291,10 @@ void DefaultServer::receiveRequest(Event *current_event)
 
 	ConnectedClient *client = (ConnectedClient *)current_event->owner;
 
-	// read from connected_fd into client->message
-
 	//debug
 	std::cout << "\ngoing to try recv" << std::endl;
 
+	// read from connected_fd into client->message
 	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE - 1, 0);
 	if (read_bytes == -1)
 	{
@@ -308,14 +307,6 @@ void DefaultServer::receiveRequest(Event *current_event)
 
 	//debug
 	std::cout << "\nread_bytes = " << read_bytes << "\ntotal message = \n\"" << client->message << "\"" << std::endl;
-
-	// debug
-	/* std::cout << "\nreceived data = \"" << buf << "\"" \
- 		"\nreceived request = \"" << client->message << "\"" \
- 		"\nread_bytes = " << read_bytes << \
-		"\nBUFFER_SIZE - 1 = " << BUFFER_SIZE - 1 << \
-		"\nEOF = " << (event.flags & EV_EOF) << std::endl;
-	*/
 
 	bzero(buf, BUFFER_SIZE);
 
@@ -341,25 +332,28 @@ void DefaultServer::receiveRequest(Event *current_event)
 
 		//debug
 		std::cout << "\nThe event with ident = " << client->connected_fd << " and filter EVFILT_READ has been removed from kqueue\n" << std::endl;
+
 		dispatchRequest(client);
 	}
 }
 
-void DefaultServer::dispatchRequest(ConnectedClient *client)		//dispatch the request to the corresponding server, based on the 'host' value
+void DefaultServer::dispatchRequest(ConnectedClient *client)
 {
-	// parse request
-	Request request(client->message);
+	// // parse request
+	// Request request(client->message);		//TODO should be done directly in DefaultServer::receiveRequest()
 
+	// find the server corresponding to the hostname
 	Server *serverRequested = this;
-	if (request.isValid())
+	if (client->request.isValid())
 	{
 		for (std::vector<Server>::iterator it = virtual_servers.begin(); it != virtual_servers.end(); ++it)
 		{
-			if (it->isName(request.getHostname()))
+			if (it->isName(client->request.getHostname()))
 				serverRequested = &(*it);
 		}
 	}
-	serverRequested->prepareResponse(client, request);
+	// let the server prepare the response
+	serverRequested->prepareResponse(client, client->request);
 
 	// add connected_fd to kqueue for WRITE monitoring
 	client->triggered_event.events = WRITE;
@@ -440,17 +434,80 @@ void DefaultServer::sendResponse(Event *current_event)
 
 void DefaultServer::closeTimedOutConnections()
 {
+	Event			*current_event;
+	ConnectedClient	*current_client;
+
 	for (std::map<int,ConnectedClient&>::iterator it = clients.begin(); it != clients.end(); ++it)
 	{
-		if (getTimeDifference(it->second.time_since_last_action) > TIMEOUT)
+		current_client = &it->second;
+		current_event = &current_client->triggered_event;
+
+		// check if the connection is timed out
+		if (getTimeDifference(current_client->time_since_last_action) > TIMEOUT)
 		{
-			if (it->second.message.empty())
+			if (current_client->triggered_event.events == WRITE)	// client timed out reading the response
 			{
-				//TODO close connection
+				// remove connected_fd from kqueue
+			#ifdef __MACH__
+				struct kevent event;
+				bzero(&event, sizeof(event));
+				EV_SET(&event, current_client->connected_fd, EVFILT_WRITE, EV_DELETE, 0, 0, current_event);
+				if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+			#elif defined(__linux__)
+				if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, current_client->connected_fd, nullptr) == -1)
+			#endif
+				{
+					//TODO handle error
+					perror("\nERROR\nDefaultServer.closeTimedOutConnections(): kevent()/epoll_ctl()");
+					exit(EXIT_FAILURE);
+				}
+				// erase client from the map of clients and delete it from memory
+				clients.erase(current_client->connected_fd);
+				delete current_client;
 			}
-			else
+			else if (current_client->message.empty())						// client didn't send any request and the connection timed out
 			{
-				//TODO finish reading request
+				// remove connected_fd from kqueue
+			#ifdef __MACH__
+				struct kevent event;
+				bzero(&event, sizeof(event));
+				EV_SET(&event, current_client->connected_fd, EVFILT_READ, EV_DELETE, 0, 0, current_event);
+				if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+			#elif defined(__linux__)
+				if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, current_client->connected_fd, nullptr) == -1)
+			#endif
+				{
+					//TODO handle error
+					perror("\nERROR\nDefaultServer.closeTimedOutConnections(): kevent()/epoll_ctl()");
+					exit(EXIT_FAILURE);
+				}
+				// erase client from the map of clients and delete it from memory
+				clients.erase(current_client->connected_fd);
+				delete current_client;
+			}
+			else														// client timed out sending the request
+			{
+				// the request is considered complete, even though invalid
+				
+				// remove connected_fd to kqueue from READ monitoring
+			#ifdef __MACH__
+				struct kevent event;
+				bzero(&event, sizeof(event));
+				EV_SET(&event, connected_fd, EVFILT_READ, EV_DELETE, 0, 0, current_event);
+				if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+			#elif defined(__linux__)
+				if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, current_client->connected_fd, nullptr) == -1)
+			#endif
+				{
+					//TODO handle error
+					perror("ERROR\nDefaultServer.closeTimedOutConnections: kevent()/epoll_ctl()");
+					exit(EXIT_FAILURE);
+				}
+
+				//debug
+				std::cout << "\nThe event with ident = " << current_client->connected_fd << " and filter EVFILT_READ has been removed from kqueue\n" << std::endl;
+
+				dispatchRequest(current_client);
 			}
 		}
 	}
