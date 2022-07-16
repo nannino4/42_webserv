@@ -28,8 +28,8 @@ void Location::parseAllowedMethods(std::stringstream &stream)
 
 	while (stream.good())
 	{
-		stream >> newMethod;
 		stream >> std::ws;
+		stream >> newMethod;
 
 		// check that stream didn't fail reading
 		if (stream.fail())

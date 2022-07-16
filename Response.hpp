@@ -45,7 +45,7 @@ class Response
 		void generateAutoIndex();
 		void generateErrorPage();
 		void fileTobody(std::string const & index);
-		void checkMethod(std::string path, void (*f)());
+		void checkMethod(std::string path, std::string method, void (Response::*f)());
 
 		std::string getResponse();
 		friend std::ostream& operator<<(std::ostream & out, const Response& m);

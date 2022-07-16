@@ -1,4 +1,4 @@
-// https://www.jmarshall.com/easy/http/#whatis
+ // https://www.jmarshall.com/easy/http/#whatis
 
 #include "Response.hpp"
 
@@ -7,7 +7,7 @@ Response::Response(const Request & request, std::map<std::string,Location> &loc)
 {
 	version = request.getVersion();
 	if (request.getMethod() == "GET")
-		checkMethod(request.getPath(), &Response::get);
+		checkMethod(request.getPath(), "GET", &Response::get);
 	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
 	std::unordered_map<std::string, std::string>::const_iterator it = headers.begin();
 	while (it != headers.end())
@@ -18,17 +18,18 @@ Response::Response(const Request & request, std::map<std::string,Location> &loc)
 	response += "\r\n" + message;
 }
 
-void Response::checkMethod(std::string path, void (Response::*f)())
+void Response::checkMethod(std::string path, std::string method, void (Response::*f)())
 {
 	std::map<std::string,Location>::iterator it;
-	if ((it = locations.find(path.substr(0, path.find_last_of('/')))) != locations.end() && !it->second.isMethodAllowed("GET"))
+	if ((it = locations.find(path.substr(1, path.find_last_of('/')))) != locations.end()
+		&& !it->second.isMethodAllowed(method))
 	{
 		response_status_code = "405";
-		reason_phrase = "Method Not Allowed : location= " + path.substr(0, path.find_last_of('/'));
+		reason_phrase = "Method Not Allowed";
 		generateErrorPage();
 	}
 	else
-		f();
+		(this->*f)();
 }
 
 void Response::get()
