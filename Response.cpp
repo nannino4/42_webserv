@@ -40,10 +40,11 @@ void Response::get()
 	{
 		std::cout << "executing cgi file: " << pos << "\n";
 		Cgi cgi(request);
-		body += cgi.run_cgi("/usr/bin/php-cgi");
+		body += cgi.run_cgi("./cgi_tester");
 		response_status_code = "200";
 		reason_phrase = "OK";
 		headers["Content-Length"] = std::to_string(body.size());
+		return;
 		// headers.insert(std::pair<std::string, std::string>("Content-Length", std::to_string(body.length())));
 	}
 	std::ifstream file;
