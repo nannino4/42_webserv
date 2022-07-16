@@ -12,13 +12,11 @@
 
 struct ConnectedClient
 {
-	struct sockaddr_in	client_addr;	
+	struct sockaddr_in	client_addr;
 	int	const			connected_fd;
 	Event				triggered_event;
 	Request				request;
 	// Response			response;
-	std::string			message;
-	int					message_pos;
 	struct timespec		time_since_last_action;
 
 

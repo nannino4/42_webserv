@@ -11,6 +11,8 @@ class Request
 {
 	private:
 		// attributes
+		std::string							message;
+		int									message_pos;
 		std::string							method;
 		std::string							path;
 		std::string							version;
@@ -21,9 +23,6 @@ class Request
 	public:
 		// default constructor
 		Request();
-		// constructor
-		Request(const std::string &raw_request);
-
 		// copy constructor
 		Request(const Request &other);
 		// assign operator overload
@@ -33,6 +32,8 @@ class Request
 		~Request();
 
 		// getters
+		const std::string						&getMessage() const;
+		const int								&getMessagePos() const;
 		const std::string						&getVersion() const;
 		const std::string						&getMethod() const;
 		const std::string						&getPath() const;
@@ -40,6 +41,11 @@ class Request
 		const std::string						&getBody() const;
 		const std::string						&getHostname() const;
 		const bool								&isValid() const;
+		bool									areHeadersComplete() const;
+
+		// setters
+		void	setMessage(std::string new_message);
+		void	setMessagePos(int new_message_pos);
 
 		// operator overloads
 		friend std::ostream	&operator<<(std::ostream &out, const Request &m);

@@ -21,6 +21,7 @@ struct Event
     Event &operator=(Event const &other)
     {
         is_hang_up = other.is_hang_up;
+		is_error = other.is_error;
         default_server_ptr = other.default_server_ptr;
         owner = other.owner;
         events = other.events;

@@ -142,7 +142,7 @@ std::ostream &operator<<(std::ostream &os, DefaultServer const &def_serv)
 	for (std::map<int,ConnectedClient&>::const_iterator it = def_serv.clients.begin(); it != def_serv.clients.end(); ++it)
 	{
 		os << "\t\tconnected_fd:\t\t" << it->second.connected_fd << std::endl;
-		os << "\t\tmessage:\t\"" << it->second.message << "\"" << std::endl;
+		os << "\t\tmessage:\t\"" << it->second.request.getMessage() << "\"" << std::endl;
 	}
 	os << "\tDefaultServer introduction is over" << std::endl;
 	return os;
@@ -283,7 +283,9 @@ void DefaultServer::connectToClient()
 
 void DefaultServer::receiveRequest(Event *current_event)
 {
-	int connected_fd = current_event->fd;
+	int 				connected_fd = current_event->fd;
+	int 				found_pos;
+	std::stringstream	stream;
 
 	//debug
 	std::cout << "-----------------------------------------------------------" << std::endl;
@@ -294,7 +296,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	//debug
 	std::cout << "\ngoing to try recv" << std::endl;
 
-	// read from connected_fd into client->message
+	// read from connected_fd into client->request.getMessage()
 	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE - 1, 0);
 	if (read_bytes == -1)
 	{
@@ -303,14 +305,33 @@ void DefaultServer::receiveRequest(Event *current_event)
 		perror("ERROR\nDefaultServer.receiveRequest(): recv");
 		exit(EXIT_FAILURE);
 	}
-	client->message += buf;
-
-	//debug
-	std::cout << "\nread_bytes = " << read_bytes << "\ntotal message = \n\"" << client->message << "\"" << std::endl;
-
+	client->request.setMessage(client->request.getMessage() + buf);
 	bzero(buf, BUFFER_SIZE);
 
-	if ((read_bytes < (BUFFER_SIZE - 1)))
+	//debug
+	std::cout << "\nread_bytes = " << read_bytes << "\ntotal message = \n\"" << client->request.getMessage() << "\"" << std::endl;
+
+	while ((unsigned long)(found_pos = client->request.getMessage().find('\n', client->request.getMessagePos())) != std::string::npos)
+	{
+		stream.clear();
+		stream.str(client->request.getMessage().substr(client->request.getMessagePos(), (found_pos - client->request.getMessagePos())));
+		client->request.setMessagePos(client->request.getMessagePos() + found_pos + 1);
+
+		if (client->request.getMethod().empty())
+		{
+			//TODO stream contains the first line of the request
+		}
+		else if (client->request.areHeadersComplete())
+		{
+			//TODO stream contains a line of the body
+		}
+		else
+		{
+			//TODO strema contains a header line || an empty line (end of headers)
+		}
+	}
+
+	if ((!client->request.getMethod().compare("GET") && client->request.areHeadersComplete())) //TODO add other methods with respective conditions of complete request
 	{
 		//DEBUG
 		std::cout << "\nThe whole request has been received" << std::endl;
@@ -339,9 +360,6 @@ void DefaultServer::receiveRequest(Event *current_event)
 
 void DefaultServer::dispatchRequest(ConnectedClient *client)
 {
-	// // parse request
-	// Request request(client->message);		//TODO should be done directly in DefaultServer::receiveRequest()
-
 	// find the server corresponding to the hostname
 	Server *serverRequested = this;
 	if (client->request.isValid())
@@ -386,10 +404,10 @@ void DefaultServer::sendResponse(Event *current_event)
 
 	//DEBUG
 	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nDefaultServer:sendResponse():\n\nTHE RESPONSE TO FD " << connected_fd << " IS: \"" << client->message << "\"" << std::endl;	//DEBUG
+	std::cout << "\nDefaultServer:sendResponse():\n\nTHE RESPONSE TO FD " << connected_fd << " IS: \"" << client->request.getMessage() << "\"" << std::endl;	//DEBUG
 	
-	int buf_siz = ((unsigned long)(client->message_pos + BUFFER_SIZE) > client->message.size()) ? (client->message.size() - client->message_pos) : BUFFER_SIZE;
-	int sent_bytes = send(connected_fd, client->message.substr(client->message_pos).c_str(), buf_siz, 0);
+	int buf_siz = ((unsigned long)(client->request.getMessagePos() + BUFFER_SIZE) > client->request.getMessage().size()) ? (client->request.getMessage().size() - client->request.getMessagePos()) : BUFFER_SIZE;
+	int sent_bytes = send(connected_fd, client->request.getMessage().substr(client->request.getMessagePos()).c_str(), buf_siz, 0);
 
 	// check that send() didn't fail
 	if (sent_bytes == -1)
@@ -399,12 +417,12 @@ void DefaultServer::sendResponse(Event *current_event)
 		exit(EXIT_FAILURE);
 	}
 
-	client->message_pos += sent_bytes;
+	client->request.setMessagePos(client->request.getMessagePos() + sent_bytes);
 
 	//debug
-	std::cout << "\nsent_bytes = " << sent_bytes << "\ntotal message sent = \n\"" << client->message.substr(0, client->message_pos) << "\"" << std::endl;
+	std::cout << "\nsent_bytes = " << sent_bytes << "\ntotal message sent = \n\"" << client->request.getMessage().substr(0, client->request.getMessagePos()) << "\"" << std::endl;
 
-	if ((size_t)client->message_pos == client->message.size() || current_event->is_error || current_event->is_hang_up)
+	if ((size_t)client->request.getMessagePos() == client->request.getMessage().size() || current_event->is_error || current_event->is_hang_up)
 	{
 		//The whole response has been sent
 
@@ -465,7 +483,7 @@ void DefaultServer::closeTimedOutConnections()
 				clients.erase(current_client->connected_fd);
 				delete current_client;
 			}
-			else if (current_client->message.empty())						// client didn't send any request and the connection timed out
+			else if (current_client->request.getMessage().empty())						// client didn't send any request and the connection timed out
 			{
 				// remove connected_fd from kqueue
 			#ifdef __MACH__

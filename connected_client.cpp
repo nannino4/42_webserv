@@ -2,10 +2,12 @@
 
 // default constructor
 ConnectedClient::ConnectedClient(int const connected_fd, struct sockaddr_in client_addr, void *default_server_ptr)
-:	connected_fd(connected_fd), \
-	triggered_event(this->connected_fd, \
-	default_server_ptr, this), \
+:	\
 	client_addr(client_addr), \
+	connected_fd(connected_fd), \
+	triggered_event(this->connected_fd, default_server_ptr, this), \
+	request(), \
+	// response(),
 	message(""), \
 	message_pos(0) \
 	{
@@ -19,6 +21,8 @@ ConnectedClient::ConnectedClient(ConnectedClient const &other) : connected_fd(ot
 ConnectedClient &ConnectedClient::operator=(ConnectedClient const &other)
 {
 	client_addr = other.client_addr;
+	request = other.request;
+	// response = other.response;
 	message = other.message;
 	message_pos = other.message_pos;
 	time_since_last_action.tv_sec = other.time_since_last_action.tv_sec;
