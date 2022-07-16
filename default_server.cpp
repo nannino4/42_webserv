@@ -315,7 +315,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	{
 		stream.clear();
 		stream.str(client->request.getMessage().substr(client->request.getMessagePos(), (found_pos - client->request.getMessagePos())));
-		client->request.setMessagePos(client->request.getMessagePos() + found_pos + 1);
+		client->request.setMessagePos(found_pos + 1);
 
 		if (client->request.getMethod().empty())
 		{
