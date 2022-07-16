@@ -2,14 +2,14 @@
 
 #include "Response.hpp"
 
-Response::Response(const Request & request, Server &other)
-	: body(), response(), srv(other), path(request.getPath())
+Response::Response(const Request & r, Server &other)
+	: body(), response(), srv(other), request(r)
 {
 	version = request.getVersion();
 	if (request.getMethod() == "GET")
 		checkMethod("GET", &Response::get);
 	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
-	headers["Content Lenght"] = std::to_string(body.size());
+	headers["Content-Length"] = std::to_string(body.size());
 	std::unordered_map<std::string, std::string>::const_iterator it = headers.begin();
 	while (it != headers.end())
 	{
@@ -22,7 +22,7 @@ Response::Response(const Request & request, Server &other)
 void Response::checkMethod(std::string method, void (Response::*f)())
 {
 	std::map<std::string,Location>::const_iterator it;
-	if ((it = srv.getLocations().find(path.substr(1, path.find_last_of('/')))) != srv.getLocations().end()
+	if ((it = srv.getLocations().find(request.getPath().substr(1, request.getPath().find_last_of('/')))) != srv.getLocations().end()
 		&& !it->second.isMethodAllowed(method))
 	{
 		response_status_code = "405";
@@ -35,10 +35,22 @@ void Response::checkMethod(std::string method, void (Response::*f)())
 
 void Response::get()
 {
+	size_t pos = request.getPath().find(".php");
+	if(pos < request.getPath().size())
+	{
+		std::cout << "executing cgi file: " << pos << "\n";
+		Cgi cgi(request);
+		body += cgi.run_cgi("/usr/bin/php-cgi");
+		response_status_code = "200";
+		reason_phrase = "OK";
+		headers["Content-Length"] = std::to_string(body.size());
+		// headers.insert(std::pair<std::string, std::string>("Content-Length", std::to_string(body.length())));
+	}
 	std::ifstream file;
 	struct stat buf;
 	std::stringstream line;
 
+	std::string path = request.getPath();
 	path.erase(0, 1);
 	stat(path.c_str(), &buf);
 	if (S_ISDIR(buf.st_mode))
@@ -79,7 +91,7 @@ void Response::manageDir()
 	std::map<std::string,Location>::const_iterator it = srv.getLocations().begin();
 	while(it != srv.getLocations().end())
 	{
-		if (it->first == path)
+		if (it->first == request.getPath())
 		{
 			if (it->second.isAutoindex())
 			{
@@ -88,7 +100,7 @@ void Response::manageDir()
 			}
 			if (!it->second.getIndex().empty())
 			{
-				fileTobody(path + it->second.getIndex());
+				fileTobody(request.getPath() + it->second.getIndex());
 				break;
 			}
 		}
@@ -131,9 +143,9 @@ void Response::generateAutoIndex()
 	struct dirent *ent;
 	std::stringstream line;
 
-	if ((dir = opendir(path.c_str())) != NULL)
+	if ((dir = opendir(request.getPath().c_str())) != NULL)
 	{
-		line << "<html>\n" << "<body>\n" << "<h1>Index of " << path << "</h1>\n";
+		line << "<html>\n" << "<body>\n" << "<h1>Index of " << request.getPath() << "</h1>\n";
 		line << "<table>";
 		/* print all the files and directories within directory */
 		while ((ent = readdir(dir)) != NULL)

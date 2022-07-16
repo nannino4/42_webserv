@@ -23,12 +23,12 @@ class Request
 
 		// coplien form
 		Request();
-		Request(const Request &);
 		Request& operator=(const Request &);
 
 	public:
 		// constructor
 		Request(const std::string &raw_request);
+		Request(const Request &);
 
 		// destructor
 		~Request();
@@ -37,6 +37,7 @@ class Request
 		const std::string	&getVersion() const;
 		const std::string	&getMethod() const;
 		const std::string	&getPath() const;
+        const std::map<std::string, std::string> &getHeader() const;
 		std::string			getHostname() const; // WARNING: return of not const and reference string
 
 		// operator overloads

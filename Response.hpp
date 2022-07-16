@@ -13,6 +13,9 @@
 #include "dirent.h"
 
 #include "server.hpp"
+#include "Request.hpp"
+
+#include "Cgi.hpp"
 
 class Request;
 
@@ -26,7 +29,7 @@ class Response
 		std::string										body;
 		std::string										response;
 		Server											srv;
-		std::string 									path;
+		Request 										request;
 
 		Response();
 		Response(const Response &);

@@ -28,10 +28,13 @@ Request::Request(const std::string &raw_request)
 }
 
 Request::~Request() {}
+Request::Request(const Request & other)
+	: method(other.method), path(other.path), version(other.version), headers(other.headers), message(other.message) {};
 
 const std::string	&Request::getVersion() const { return version; }
 const std::string	&Request::getMethod() const { return method; }
 const std::string	&Request::getPath() const { return path; }
+const std::map<std::string, std::string> &Request::getHeader() const {return headers;}
 
 std::string Request::getHostname() const
 {

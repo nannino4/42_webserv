@@ -10,6 +10,7 @@ SRCS		= 	main.cpp \
 				Response.cpp \
 				Request.cpp \
 				location.cpp \
+				Cgi.cpp \
 				location_init.cpp
 
 OBJS		= 	$(SRCS:.cpp=.o)
