@@ -9,26 +9,25 @@
 #include <unordered_map>
 #include <sstream>
 #include "Request.hpp"
-
 #include <sys/stat.h>
-
-#include "location.hpp"
-
 #include "dirent.h"
+
+#include "server.hpp"
 
 class Request;
 
 class Response
 {
 	private:
-		std::string							version;
-		std::string							response_status_code;
-		std::string							reason_phrase;
+		std::string										version;
+		std::string										response_status_code;
+		std::string										reason_phrase;
 		std::unordered_map<std::string, std::string>	headers;
-		std::string							message;
-		std::string							response;
-		std::map<std::string,Location>		&locations;
-		std::string 						path;
+		std::string										body;
+		std::string										response;
+
+		Server srv;
+		std::string 									path;
 
 		Response();
 		Response(const Response &);
@@ -36,7 +35,7 @@ class Response
 
 	public:
 
-		Response(const Request & request, std::map<std::string,Location> &loc);
+		Response(const Request & request, Server &other);
 
 		~Response();
 		

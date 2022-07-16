@@ -9,7 +9,6 @@ DefaultServer::DefaultServer(int const &kqueue_fd, unsigned int backlog, std::st
 	server_addr.sin_addr.s_addr = DEF_ADDR;
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(DEF_PORT);
-	error_pages[404] = std::string(DEF_404);	//TODO aggiungi altre pagine di errore
 
 	// specific initialization
 

@@ -13,10 +13,7 @@
 
 #include "location.hpp"
 #include "connected_client.hpp"
-#include "Response.hpp"
 #include "Request.hpp"
-
-#define DEF_404 "./error_pages/404.html"
 
 class Server
 {
@@ -46,6 +43,8 @@ public:
 	// getters
 	int const					&getKqueueFd() const;
 	std::vector<std::string> const	&getNames() const;
+	std::map<int, std::string> const	&getErrorPages() const { return error_pages; };
+	std::map<std::string,Location> const	&getLocations() const { return locations; };
 
 	// communication
 	// void prepareResponse(ConnectedClient &client, void *default_server);

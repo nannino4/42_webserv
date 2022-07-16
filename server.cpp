@@ -1,10 +1,8 @@
 #include "server.hpp"
+#include "Response.hpp"
 
 // default constructor
-Server::Server(int const &kqueue_fd) : kqueue_fd(kqueue_fd)
-{
-	error_pages[404] = DEF_404;	//TODO aggiungi altre pagine di errore
-}
+Server::Server(int const &kqueue_fd) : kqueue_fd(kqueue_fd){}
 
 // copy constructor
 Server::Server(Server const &other) : kqueue_fd(other.getKqueueFd()) { *this = other; }
@@ -70,7 +68,7 @@ void Server::prepareResponse(ConnectedClient &client, const Request & request)
 	//debug
 	// Server *ptr = (Server*)default_server;
 	// ptr = nullptr;
-	Response response(request, locations);
+	Response response(request, *this);
 	std::cout << "-----------------------------------------------------------" << std::endl;
 	std::cout << "\nServer:prepareResponse():\n\nTHE REQUEST FROM FD " << client.connected_fd << " IS: \"" << request << "\"" << std::endl;	//DEBUG
 	// client.message = std::string("HTTP/1.1 200 OK\r\n\r\n<html><body> <h> SONO UNA RESPONSE </h> </body> </html>");	//DEBUG
