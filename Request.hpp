@@ -37,6 +37,7 @@ class Request
 		const std::string	&getVersion() const;
 		const std::string	&getMethod() const;
 		const std::string	&getPath() const;
+		void				setPath(std::string newpath){ path = newpath; };
         const std::map<std::string, std::string> &getHeader() const;
 		std::string			getHostname() const; // WARNING: return of not const and reference string
 
