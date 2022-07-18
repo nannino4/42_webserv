@@ -70,10 +70,9 @@ void Server::prepareResponse(ConnectedClient *client, const Request &request)
 	//debug
 	// Server *ptr = (Server*)default_server;
 	// ptr = nullptr;
-	Response response(request);
+	client->response = Response(request);
 	std::cout << "-----------------------------------------------------------" << std::endl;
 	std::cout << "\nServer:prepareResponse():\n\nTHE REQUEST FROM FD " << client->connected_fd << " IS: \"" << request << "\"" << std::endl;	//DEBUG
 	// client->message = std::string("HTTP/1.1 200 OK\r\n\r\n<html><body> <h> SONO UNA RESPONSE </h> </body> </html>");	//DEBUG
-	client->message = response.getResponse();	//DEBUG
 }
 

@@ -1,10 +1,28 @@
 // https://www.jmarshall.com/easy/http/#whatis
 
-#include "Response.hpp"
-#include "Request.hpp"
+#include "response.hpp"
+#include "request.hpp"
 
-Response::Response(const Request & request)
-	: message(), response()
+// default constructor
+Response::Response() {}
+
+// copy constructor
+Response::Response(const Response &other) { *this = other; }
+
+// assign operator overload
+Response &Response::operator=(const Response &other)
+{
+	//TODO
+	version = other.getVersion();
+	status_code = other.getStatusCode();
+	reason_phrase = other.getReasonPhrase();
+	response = other.getResponse();
+	response_pos = other.getResponsePos();
+	return *this;
+}
+
+Response::Response(const Request &request)
+	: message(), response(), response_pos()
 {
 	version = request.getVersion();
 	if (request.getMethod() == "GET")
@@ -21,7 +39,7 @@ Response::Response(const Request & request)
 				lenght += line.length();
 				message += line + "\r\n";
 			}
-			response_status_code = "200";
+			status_code = "200";
 			reason_phrase = "OK";
 			headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
 		}
@@ -37,13 +55,13 @@ Response::Response(const Request & request)
 					message += line + "\r\n";
 				}
 			}
-			response_status_code = "404";
+			status_code = "404";
 			reason_phrase = "File Not Found";
 			headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
 		}
 	}
-	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
-	unordered_map<string, string>::const_iterator it = headers.begin();
+	response += version + " " + status_code + " " + reason_phrase + "\r\n";
+	map<string, string>::const_iterator it = headers.begin();
 	while (it != headers.end())
 	{
 		response += it->first + ": " + it->second + "\r\n";
@@ -54,13 +72,21 @@ Response::Response(const Request & request)
 
 Response::~Response() {}
 
-string Response::getResponse() { return response; }
+// getters
+string const	&Response::getVersion() const { return version; }
+string const	&Response::getStatusCode() const { return status_code; }
+string const	&Response::getReasonPhrase() const { return reason_phrase; }
+string const	&Response::getResponse() const { return response; }
+int const		&Response::getResponsePos() const { return response_pos; }
+
+// setters
+void	Response::setResponsePos(int new_pos) { response_pos = new_pos; }
 
 ostream& operator<<(ostream & out, const Response& m)
 {
 	out << "HTTP Response:" << endl;
 	// out << "\tMethod: " << m.version << endl;
-	// out << "\tPath: " << m.response_status_code << endl;
+	// out << "\tPath: " << m.status_code << endl;
 	// out << "\tVersion: " << m.reason_phrase << endl;
 	// out << "\tHeaders: " << endl;
 	// unordered_map<string, string>::const_iterator it = m.headers.begin();

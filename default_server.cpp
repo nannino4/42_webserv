@@ -331,6 +331,9 @@ void DefaultServer::receiveRequest(Event *current_event)
 		}
 	}
 
+	// update client timeout
+	clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
+
 	if ((!client->request.getMethod().compare("GET") && client->request.areHeadersComplete())) //TODO add other methods with respective conditions of complete request
 	{
 		//DEBUG
@@ -393,6 +396,9 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 		exit(EXIT_FAILURE);
 	}
 
+	// update client timeout
+	clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
+
 	//debug
 	std::cout << "\nThe event with ident = " << client->connected_fd << " and filter EVFILT_WRITE has been added to kqueue\n" << std::endl;
 }
@@ -404,10 +410,10 @@ void DefaultServer::sendResponse(Event *current_event)
 
 	//DEBUG
 	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nDefaultServer:sendResponse():\n\nTHE RESPONSE TO FD " << connected_fd << " IS: \"" << client->request.getMessage() << "\"" << std::endl;	//DEBUG
+	std::cout << "\nDefaultServer:sendResponse():\n\nTHE RESPONSE TO FD " << connected_fd << " IS: \"" << client->response.getResponse() << "\"" << std::endl;	//DEBUG
 	
-	int buf_siz = ((unsigned long)(client->request.getMessagePos() + BUFFER_SIZE) > client->request.getMessage().size()) ? (client->request.getMessage().size() - client->request.getMessagePos()) : BUFFER_SIZE;
-	int sent_bytes = send(connected_fd, client->request.getMessage().substr(client->request.getMessagePos()).c_str(), buf_siz, 0);
+	int buf_siz = ((unsigned long)(client->response.getResponsePos() + BUFFER_SIZE) > client->response.getResponse().size()) ? (client->response.getResponse().size() - client->response.getResponsePos()) : BUFFER_SIZE;
+	int sent_bytes = send(connected_fd, client->response.getResponse().substr(client->response.getResponsePos()).c_str(), buf_siz, 0);
 
 	// check that send() didn't fail
 	if (sent_bytes == -1)
@@ -417,15 +423,17 @@ void DefaultServer::sendResponse(Event *current_event)
 		exit(EXIT_FAILURE);
 	}
 
-	client->request.setMessagePos(client->request.getMessagePos() + sent_bytes);
+	client->response.setResponsePos(client->response.getResponsePos() + sent_bytes);
 
 	//debug
-	std::cout << "\nsent_bytes = " << sent_bytes << "\ntotal message sent = \n\"" << client->request.getMessage().substr(0, client->request.getMessagePos()) << "\"" << std::endl;
+	std::cout << "\nsent_bytes = " << sent_bytes << "\ntotal message sent = \n\"" << client->response.getResponse().substr(0, client->response.getResponsePos()) << "\"" << std::endl;
 
-	if ((size_t)client->request.getMessagePos() == client->request.getMessage().size() || current_event->is_error || current_event->is_hang_up)
+	// update client timeout
+	clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
+
+	// check if whole response has been sent
+	if ((size_t)client->response.getResponsePos() == client->response.getResponse().size() || current_event->is_error || current_event->is_hang_up)
 	{
-		//The whole response has been sent
-
 		//debug
 		std::cout << "\nClosing connection with fd " << client->connected_fd << std::endl;
 
@@ -452,13 +460,11 @@ void DefaultServer::sendResponse(Event *current_event)
 
 void DefaultServer::closeTimedOutConnections()
 {
-	Event			*current_event;
 	ConnectedClient	*current_client;
 
 	for (std::map<int,ConnectedClient&>::iterator it = clients.begin(); it != clients.end(); ++it)
 	{
 		current_client = &it->second;
-		current_event = &current_client->triggered_event;
 
 		// check if the connection is timed out
 		if (getTimeDifference(current_client->time_since_last_action) > TIMEOUT)
@@ -469,7 +475,7 @@ void DefaultServer::closeTimedOutConnections()
 			#ifdef __MACH__
 				struct kevent event;
 				bzero(&event, sizeof(event));
-				EV_SET(&event, current_client->connected_fd, EVFILT_WRITE, EV_DELETE, 0, 0, current_event);
+				EV_SET(&event, current_client->connected_fd, EVFILT_WRITE, EV_DELETE, 0, 0, &current_client->triggered_event);
 				if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
 			#elif defined(__linux__)
 				if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, current_client->connected_fd, nullptr) == -1)
@@ -480,6 +486,7 @@ void DefaultServer::closeTimedOutConnections()
 					exit(EXIT_FAILURE);
 				}
 				// erase client from the map of clients and delete it from memory
+				--it;
 				clients.erase(current_client->connected_fd);
 				delete current_client;
 			}
@@ -489,7 +496,7 @@ void DefaultServer::closeTimedOutConnections()
 			#ifdef __MACH__
 				struct kevent event;
 				bzero(&event, sizeof(event));
-				EV_SET(&event, current_client->connected_fd, EVFILT_READ, EV_DELETE, 0, 0, current_event);
+				EV_SET(&event, current_client->connected_fd, EVFILT_READ, EV_DELETE, 0, 0, &current_client->triggered_event);
 				if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
 			#elif defined(__linux__)
 				if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, current_client->connected_fd, nullptr) == -1)
@@ -500,6 +507,7 @@ void DefaultServer::closeTimedOutConnections()
 					exit(EXIT_FAILURE);
 				}
 				// erase client from the map of clients and delete it from memory
+				--it;
 				clients.erase(current_client->connected_fd);
 				delete current_client;
 			}
@@ -511,7 +519,7 @@ void DefaultServer::closeTimedOutConnections()
 			#ifdef __MACH__
 				struct kevent event;
 				bzero(&event, sizeof(event));
-				EV_SET(&event, connected_fd, EVFILT_READ, EV_DELETE, 0, 0, current_event);
+				EV_SET(&event, connected_fd, EVFILT_READ, EV_DELETE, 0, 0, &current_client->triggered_event);
 				if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
 			#elif defined(__linux__)
 				if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, current_client->connected_fd, nullptr) == -1)

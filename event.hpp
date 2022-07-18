@@ -1,8 +1,5 @@
 #pragma once
 
-#include "Request.hpp"
-#include "Response.hpp"
-
 #define READ 0
 #define WRITE 1
 #define ERROR 2

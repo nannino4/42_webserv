@@ -1,12 +1,12 @@
 // https://www.jmarshall.com/easy/http/#whatis
-#ifndef RESPONSE_HPP
-# define RESPONSE_HPP
+#pragma once
 
 #include <iostream>
 #include <string>
 #include <sstream>
 #include <fstream>
-#include <unordered_map>
+#include <map>
+
 using namespace std;
 
 class Request;
@@ -15,24 +15,35 @@ class Response
 {
 	private:
 		string							version;
-		string							response_status_code;
+		string							status_code;
 		string							reason_phrase;
-		unordered_map<string, string>	headers;
+		map<string, string>				headers;
 		string							message;
 		string							response;
-
-		Response();
-		Response(const Response &);
-		Response& operator=(const Response &);
+		int								response_pos;
 
 	public:
-
-		Response(const Request & request);
-
+		// default constructor
+		Response();
+		// constructor
+		Response(const Request &request);
+		// copy constructor
+		Response(const Response &other);
+		// assign operator overload
+		Response& operator=(const Response &other);
+		// destructor
 		~Response();
 
-		string getResponse();
+		// getters
+		const string	&getVersion() const;
+		const string	&getStatusCode() const;
+		const string	&getReasonPhrase() const;
+		const string	&getResponse() const;
+		const int		&getResponsePos() const;
+
+		// setters
+		void	setResponsePos(int new_pos);
+
+		// operator overloads
 		friend ostream& operator<<(ostream & out, const Response& m);
 };
-
-#endif

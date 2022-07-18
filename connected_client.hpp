@@ -9,6 +9,8 @@
 #include <ctime>		//struct timespec
 
 #include "event.hpp"
+#include "request.hpp"
+#include "response.hpp"
 
 struct ConnectedClient
 {
@@ -16,7 +18,7 @@ struct ConnectedClient
 	int	const			connected_fd;
 	Event				triggered_event;
 	Request				request;
-	// Response			response;
+	Response			response;
 	struct timespec		time_since_last_action;
 
 

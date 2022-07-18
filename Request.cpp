@@ -1,6 +1,6 @@
 // https://www.jmarshall.com/easy/http/#whatis
 
-#include "Request.hpp"
+#include "request.hpp"
 
 // default constructor
 Request::Request() : is_valid(false) {}

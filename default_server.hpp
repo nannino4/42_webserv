@@ -22,7 +22,7 @@
 
 #define DEF_ADDR INADDR_ANY
 #define DEF_PORT 8000
-#define BUFFER_SIZE 6
+#define BUFFER_SIZE BUFSIZ
 #define TIMEOUT 10
 
 class DefaultServer : public Server
