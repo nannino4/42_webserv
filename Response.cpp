@@ -119,6 +119,13 @@ void Response::manageDir()
 		request.setPath(it->second.getRoot());
 		manageDir();
 	}
+	else if (!it->second.getRedirection().first.empty())
+	{
+		response_status_code = std::to_string(it->second.getRedirection().second);
+		reason_phrase = "Moved Permanently";
+		headers["Location"] = it->second.getRedirection().first;
+		generateAutoIndex();
+	}
 	else if (it->second.isAutoindex())
 		generateAutoIndex();
 	else if (!it->second.getIndex().empty())
@@ -129,8 +136,8 @@ void Response::manageDir()
 
 void Response::generateErrorPage()
 {
-	std::stringstream s_to_int;
 	std::map<int, std::string>::const_iterator it;
+	std::stringstream s_to_int;
 	int code;
 
 	s_to_int << response_status_code;
@@ -171,7 +178,7 @@ void Response::generateAutoIndex()
 
 	if ((dir = opendir(("./" + request.getPath()).c_str())) != NULL)
 	{
-		line << "<html><head><title>Error "<< response_status_code <<" - " << reason_phrase << "</title>";
+		line << "<html><head><title>Index of " << request.getPath() << reason_phrase << "</title>";
 		line << "<link rel=\"stylesheet\" href=\"/pages/base.css\"";
 		line << "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
 		line << "</head><body><main>";
