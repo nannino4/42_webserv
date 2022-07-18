@@ -23,7 +23,8 @@
 #define DEF_ADDR INADDR_ANY
 #define DEF_PORT 8000
 #define BUFFER_SIZE BUFSIZ
-#define TIMEOUT 10
+#define TIMEOUT 15
+#define REQUEST_SIZE_LIMIT (1000 * BUFFER_SIZE)
 
 class DefaultServer : public Server
 {

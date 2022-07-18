@@ -142,7 +142,7 @@ std::ostream &operator<<(std::ostream &os, DefaultServer const &def_serv)
 	for (std::map<int,ConnectedClient&>::const_iterator it = def_serv.clients.begin(); it != def_serv.clients.end(); ++it)
 	{
 		os << "\t\tconnected_fd:\t\t" << it->second.connected_fd << std::endl;
-		os << "\t\tmessage:\t\"" << it->second.request.getMessage() << "\"" << std::endl;
+		os << "\t\tRequest:\t\"" << it->second.request.getRequest() << "\"" << std::endl;
 	}
 	os << "\tDefaultServer introduction is over" << std::endl;
 	return os;
@@ -296,7 +296,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	//debug
 	std::cout << "\ngoing to try recv" << std::endl;
 
-	// read from connected_fd into client->request.getMessage()
+	// read from connected_fd into client->request.getRequest()
 	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE - 1, 0);
 	if (read_bytes == -1)
 	{
@@ -305,36 +305,121 @@ void DefaultServer::receiveRequest(Event *current_event)
 		perror("ERROR\nDefaultServer.receiveRequest(): recv");
 		exit(EXIT_FAILURE);
 	}
-	client->request.setMessage(client->request.getMessage() + buf);
+	client->request.setRequest(client->request.getRequest() + buf);
 	bzero(buf, BUFFER_SIZE);
 
 	//debug
-	std::cout << "\nread_bytes = " << read_bytes << "\ntotal message = \n\"" << client->request.getMessage() << "\"" << std::endl;
+	std::cout << "\nread_bytes = " << read_bytes << "\ntotal Request = \n\"" << client->request.getRequest() << "\"" << std::endl;
 
-	while ((unsigned long)(found_pos = client->request.getMessage().find('\n', client->request.getMessagePos())) != std::string::npos)
+	while ((unsigned long)(found_pos = client->request.getRequest().find("\n", client->request.getRequestPos())) != std::string::npos)
 	{
 		stream.clear();
-		stream.str(client->request.getMessage().substr(client->request.getMessagePos(), (found_pos - client->request.getMessagePos())));
-		client->request.setMessagePos(found_pos + 1);
+		stream.str(client->request.getRequest().substr(client->request.getRequestPos(), (found_pos - client->request.getRequestPos())));
+		client->request.setRequestPos(found_pos + 1);
 
-		if (client->request.getMethod().empty())
+		if (client->request.getMethod().empty())		// first line
 		{
-			//TODO stream contains the first line of the request
+			std::string method;
+			std::string path;
+			std::string version;
+
+			stream >> method >> path >> version >> std::ws;
+
+			client->request.setMethod(method);
+			client->request.setPath(path);
+			client->request.setVersion(version);
+
+			// check that stream didn't fail reading && stream reached EOF && version is correct (HTTP/1.1)
+			if (stream.fail() || !stream.eof() || client->request.getVersion().compare("HTTP/1.1"))
+			{
+				// the request will stop being handled
+				client->request.setIsComplete(true);
+			}
 		}
-		else if (client->request.areHeadersComplete())
+		else if (client->request.areHeadersComplete())	// body line || last line
 		{
-			//TODO stream contains a line of the body
+			if (!stream.str().compare("\r\n") || !stream.str().compare("\n"))
+			{
+				client->request.setIsComplete(true);
+			}
+			else
+			{
+				std::string body;
+
+				stream >> body >> std::ws;
+				client->request.setBody(client->request.getBody() + body);
+
+				// check that stream didn't fail reading && stream reached EOF
+				if (stream.fail() || !stream.eof())
+				{
+					// the request will stop being handled
+					client->request.setIsComplete(true);
+				}
+			}
 		}
-		else
+		else											// header line || empty line
 		{
-			//TODO strema contains a header line || an empty line (end of headers)
+			if (!stream.str().compare("\r\n") || !stream.str().compare("\n"))
+			{
+				client->request.setAreHeadersComplete(true);
+				if (!client->request.getMethod().compare("GET"))
+				{
+					client->request.setIsComplete(true);
+				}
+			}
+			else if (stream.str().find(":") != std::string::npos)
+			{
+				// parse header
+				std::string key;
+				std::string value;
+
+				stream >> std::ws;
+				std::getline(stream, key, ':');
+				stream >> value >> std::ws;
+
+				client->request.addHeader(std::pair<std::string,std::string>(key, value));
+
+				// check that stream didn't fail reading && stream reached EOF
+				if (stream.fail() || !stream.eof())
+				{
+					// the request will stop being handled
+					client->request.setIsComplete(true);
+				}
+			}
+			else
+			{
+				// header is invalid and is ignored
+			}
+		}
+
+		//check if the request is too long
+		if (client->request.getRequest().size() > REQUEST_SIZE_LIMIT)
+		{
+			//TODO close connection && remove client && free its memory
+			// remove connected_fd from kqueue
+		#ifdef __MACH__
+			struct kevent event;
+			bzero(&event, sizeof(event));
+			EV_SET(&event, client->connected_fd, EVFILT_READ, EV_DELETE, 0, 0, &client->triggered_event);
+			if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+		#elif defined(__linux__)
+			if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, client->connected_fd, nullptr) == -1)
+		#endif
+			{
+				//TODO handle error
+				perror("\nERROR\nDefaultServer.receiveRequest(): kevent()/epoll_ctl()");
+				exit(EXIT_FAILURE);
+			}
+			// erase client from the map of clients and delete it from memory
+			clients.erase(client->connected_fd);
+			delete client;
 		}
 	}
 
 	// update client timeout
 	clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
 
-	if ((!client->request.getMethod().compare("GET") && client->request.areHeadersComplete())) //TODO add other methods with respective conditions of complete request
+	if (client->request.isComplete())
 	{
 		//DEBUG
 		std::cout << "\nThe whole request has been received" << std::endl;
@@ -490,7 +575,7 @@ void DefaultServer::closeTimedOutConnections()
 				clients.erase(current_client->connected_fd);
 				delete current_client;
 			}
-			else if (current_client->request.getMessage().empty())						// client didn't send any request and the connection timed out
+			else if (current_client->request.getRequest().empty())						// client didn't send any request and the connection timed out
 			{
 				// remove connected_fd from kqueue
 			#ifdef __MACH__
