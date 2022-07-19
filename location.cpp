@@ -15,6 +15,10 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), index
 		exit(EXIT_FAILURE);
 	}
 
+	allowed_methods.push_back("GET");
+	allowed_methods.push_back("POST");
+	allowed_methods.push_back("DELETE");
+
 	// parse location block searching for directives
 	while (config_file[found_pos] != '}')
 	{

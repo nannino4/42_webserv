@@ -26,6 +26,7 @@ void Location::parseAllowedMethods(std::stringstream &stream)
 {
 	std::string	newMethod;
 
+	allowed_methods.clear();
 	while (stream.good())
 	{
 		stream >> newMethod;
