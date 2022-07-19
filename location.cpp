@@ -116,9 +116,6 @@ bool 								Location::isAutoindex() const { return autoindex; }
 std::pair<std::string,int> const	&Location::getRedirection() const { return redirection; }
 bool 								Location::isMethodAllowed(std::string method) const
 {
-	if (allowed_methods.empty())
-		return true;
-
 	for (std::vector<std::string>::const_iterator it = allowed_methods.begin(); it != allowed_methods.end(); ++it)
 	{
 		if (!it->compare(method.c_str()))
