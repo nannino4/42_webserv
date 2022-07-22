@@ -22,14 +22,14 @@ Request::Request(const std::string &raw_request)
 			if (getline(sline, value))
 				headers.insert(std::pair<std::string, std::string>(key, value));
 			else
-				message = key;
+				body = key;
 		}
 	}
 }
 
 Request::~Request() {}
 Request::Request(const Request & other)
-	: method(other.method), path(other.path), version(other.version), headers(other.headers), message(other.message) {};
+	: method(other.method), path(other.path), version(other.version), headers(other.headers), body(other.body) {};
 
 const std::string	&Request::getVersion() const { return version; }
 const std::string	&Request::getMethod() const { return method; }
@@ -56,6 +56,6 @@ std::ostream& operator<<(std::ostream & out, const Request& m)
 	out << "\tHeaders: " << std::endl;
 	for (std::map<std::string, std::string>::const_iterator it = m.headers.begin(); it != m.headers.end(); ++it)
 		out << "\t\t" << it->first << ": " << it->second << std::endl;
-	out << "\tMessage: " << m.message << std::endl;
+	out << "\tbody: " << m.body << std::endl;
 	return out;
 }

@@ -5,14 +5,15 @@
 Response::Response(const Request & r, Server &other)
 	: body(), response(), srv(other), request(r)
 {
-	version = request.getVersion();
 	if (request.getMethod() == "GET")
 		checkMethod("GET", &Response::get);
 	if (request.getMethod() == "POST")
 		checkMethod("POST", &Response::post);
 	if (request.getMethod() == "DELETE")
 		checkMethod("DELETE", &Response::delet);
-	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
+
+	// creazione risposta
+	response += request.getVersion() + " " + response_status_code + " " + reason_phrase + "\r\n";
 	headers["Content-Length"] = std::to_string(body.size());
 	std::unordered_map<std::string, std::string>::const_iterator it = headers.begin();
 	while (it != headers.end())
@@ -67,7 +68,7 @@ void Response::post() // TODO more test
 		reason_phrase = "Created";
 	}
 	std::fstream file(("." + request.getPath()).c_str(), std::fstream::in | std::fstream::out | std::fstream::trunc);
-	file << request.getMessage();
+	file << request.getBody();
 	file.close();
 }
 

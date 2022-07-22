@@ -22,7 +22,6 @@ class Request;
 class Response
 {
 	private:
-		std::string										version;
 		std::string										response_status_code;
 		std::string										reason_phrase;
 		std::unordered_map<std::string, std::string>	headers;
