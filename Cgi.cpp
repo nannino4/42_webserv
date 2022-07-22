@@ -6,7 +6,7 @@ using namespace std;
 Cgi::Cgi(const Request &request){
     this->_env["REDIRECT_STATUS"] = "200";
     this->cgi_header = request.getHeader();
-    this->_env["SERVER_SOFTWARE"] = "Weebserv/1.0";
+    this->_env["SERVER_SOFTWARE"] = "Webserv/1.0";
     this->_env["REQUEST_METHOD"] = "GET"; //request.getMethod();
     this->_env["SERVER_PROTOCOL"] = request.getVersion();
     this->_env["PATH_INFO"] = request.getPath();
@@ -26,9 +26,7 @@ Cgi::Cgi(const Request &request){
 
 }
 
-Cgi::~Cgi(){
-
-}
+Cgi::~Cgi(){}
 
 std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 	//int fd_pipe[2];
@@ -55,7 +53,7 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
         dup2(fdIn, STDIN_FILENO);
 		dup2(fdOut, STDOUT_FILENO);
 		execve((char*)file_name.c_str(), nll , env); // chiamare php passare filename e passare variabili decodificate
-        cout << "NO EXECVE" << endl; //TODO handle error
+        cout << "NO EXECVE on "<< file_name << endl; //TODO handle error
 		exit(0);
 	}
 	else{
@@ -81,8 +79,8 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 		close(fd_safe[0]);
         close(fd_safe[1]);
 	}
-    std::cout << "VERO" << std::endl << std::endl;
-    std::cout << tmp << endl;
+    // std::cout << "VERO" << std::endl << std::endl;
+    // std::cout << tmp << endl;
     new_body =  tmp.substr(tmp.find_first_of('>') + 1, tmp.size());
 	return(new_body);
 	// php restituisce su stdout````

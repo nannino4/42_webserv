@@ -9,9 +9,7 @@
 #include <cstring>
 #include <cstdio>
 
-
 #include "Request.hpp"
-
 
 class Cgi
 {

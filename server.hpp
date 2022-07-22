@@ -9,8 +9,6 @@
 #include <cstring>		//bzero()
 #include <unistd.h>		//close()
 
-#include "Cgi.hpp"
-
 #ifdef __MACH__
 	#include <sys/event.h>	//kqueue kevent
 #elif defined(__linux__)
@@ -19,10 +17,7 @@
 
 #include "location.hpp"
 #include "connected_client.hpp"
-#include "Response.hpp"
 #include "Request.hpp"
-
-#define DEF_404 "./error_pages/404.html"
 
 class Server
 {
@@ -37,7 +32,7 @@ protected:
 
 public:
 	// default constructor
-	Server(int const &kqueue_epoll_fd);
+	Server(int const &kqueue_fd);
 	// copy constructor
 	Server(Server const &other);
 	// assign operator oveload
@@ -50,12 +45,20 @@ public:
 	friend std::ostream &operator<<(std::ostream &os, Server const &server);
 
 	// getters
-	int const						&getKqueueEpollFd() const;
+
+	#ifdef __MACH__
+		int const	&getKqueueFd() const;
+	#elif defined(__linux__)
+		int const	&getKqueueEpollFd() const;
+	#endif
+
 	std::vector<std::string> const	&getNames() const;
+	std::map<int, std::string> const	&getErrorPages() const { return error_pages; };
+	std::map<std::string,Location> const	&getLocations() const { return locations; };
 
 	// communication
 	// void prepareResponse(ConnectedClient &client, void *default_server);
-	void prepareResponse(ConnectedClient *client, const Request &request);
+	void prepareResponse(ConnectedClient &client, const Request &request);
 
 	// utility
 	bool	isName(std::string const &name_to_match) const;

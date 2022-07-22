@@ -1,68 +1,236 @@
-// https://www.jmarshall.com/easy/http/#whatis
+ // https://www.jmarshall.com/easy/http/#whatis
 
 #include "Response.hpp"
-#include "Request.hpp"
 
-Response::Response(const Request & request)
-	: message(), response()
+Response::Response(const Request & r, Server &other)
+	: body(), response(), srv(other), request(r)
 {
-    Cgi cgi(request);
 	version = request.getVersion();
 	if (request.getMethod() == "GET")
-	{
-        std::cout << "PATH: " << request.getPath() << std::endl;
-        if(request.getPath().find(".php")) {
-            message += cgi.run_cgi("/usr/bin/php-cgi");
-            response_status_code = "200";
-            reason_phrase = "OK";
-            headers.insert(pair<string, string>("Content-Length", to_string(message.length())));
-        }
-        else {
-            std::string path = request.getPath();
-            path.erase(0, 1);
-            ifstream file(path);
-            size_t lenght = 0;
-            if (file.is_open()) {
-                string line;
-                while (getline(file, line)) {
-                    lenght += line.length();
-                    message += line + "\r\n";
-                }
-                response_status_code = "200";
-                reason_phrase = "OK";
-                headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
-            } else {
-                file.open("error_pages/404.html");
-                if (file.is_open()) {
-                    string line;
-                    while (getline(file, line)) {
-                        lenght += line.length();
-                        message += line + "\r\n";
-                    }
-                }
-                response_status_code = "404";
-                reason_phrase = "File Not Found";
-                headers.insert(pair<string, string>("Content-Length", to_string(lenght)));
-            }
-        }
-	}
+		checkMethod("GET", &Response::get);
+	if (request.getMethod() == "DELETE")
+		checkMethod("DELETE", &Response::delet);
 	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
-	unordered_map<string, string>::const_iterator it = headers.begin();
+	headers["Content-Length"] = std::to_string(body.size());
+	std::unordered_map<std::string, std::string>::const_iterator it = headers.begin();
 	while (it != headers.end())
 	{
 		response += it->first + ": " + it->second + "\r\n";
 		++it;
 	}
-	response += "\r\n" + message;
+	response += "\r\n" + body;
+}
+
+void Response::checkMethod(std::string method, void (Response::*f)())
+{
+	std::map<std::string,Location>::const_iterator it;
+	if ((it = srv.getLocations().find(request.getPath().substr(1, request.getPath().find_last_of('/')))) != srv.getLocations().end()
+		&& !it->second.isMethodAllowed(method))
+	{
+		response_status_code = "405";
+		reason_phrase = "Method Not Allowed";
+		generateErrorPage();
+	}
+	else
+		(this->*f)();
+}
+
+void Response::delet()
+{
+	std::ifstream file;
+	struct stat buf;
+
+    stat(("." + request.getPath()).c_str(), &buf);
+
+    #ifdef __MACH__
+        if (S_ISREG(buf.st_mode))
+    #elif defined(__linux__)
+        if ((buf.st_mode & S_IFMT) == S_IFREG)
+    #endif
+	{
+		unlink(("." + request.getPath()).c_str());
+		response_status_code = "200";
+		reason_phrase = "OK";
+	}
+	else
+	{
+		response_status_code = "404";
+		reason_phrase = "File Not Found";
+		generateErrorPage();
+	}
+}
+
+void Response::get()
+{
+	size_t pos = request.getPath().find(".php");
+	if(pos < request.getPath().size())
+	{
+		// std::cout << "executing cgi file: " << pos << "\n";
+		Cgi cgi(request);
+		body += cgi.run_cgi("/usr/local/bin/php-cgi");
+		response_status_code = "200";
+		reason_phrase = "OK";
+		headers["Content-Length"] = std::to_string(body.size());
+		return;
+	}
+	std::ifstream file;
+	struct stat buf;
+	std::stringstream line;
+
+	stat(("." + request.getPath()).c_str(), &buf);
+    
+    #ifdef __MACH__
+        if (S_ISDIR(buf.st_mode))
+            manageDir();
+        else if (S_ISREG(buf.st_mode))
+            fileTobody(("." + request.getPath()));
+    #elif defined(__linux__)
+        if ((buf.st_mode & S_IFMT) == S_IFDIR)
+            manageDir();
+        else if ((buf.st_mode & S_IFMT) == S_IFREG)
+        {
+            fileTobody(("." + request.getPath()));
+        }
+    #endif
+	else
+	{
+		response_status_code = "404";
+		reason_phrase = "File Not Found";
+		generateErrorPage();
+	}
+}
+
+void Response::fileTobody(std::string const & index)
+{
+	std::ifstream file;
+	std::stringstream line;
+
+	file.open(index);
+	if (file.is_open())
+	{
+		line << file.rdbuf();
+		body = line.str();
+		response_status_code = "200";
+		reason_phrase = "OK";
+	}
+	else if (file.fail())
+	{
+            std::cout << "something wrong here" << index << "\n";
+		response_status_code = "403";
+		reason_phrase = "Forbidden";
+		generateErrorPage();
+	}
+}
+
+void Response::manageDir()
+{
+	std::map<std::string,Location>::const_iterator it = srv.getLocations().find(request.getPath());
+	if (it == srv.getLocations().end())
+	{
+		if ((it = srv.getLocations().find(request.getPath().substr(1, request.getPath().size()))) == srv.getLocations().end())
+			return ;
+	}
+	if (!it->second.getRoot().empty())
+	{
+		request.setPath(it->second.getRoot());
+		manageDir();
+	}
+	else if (!it->second.getRedirection().first.empty())
+	{
+		response_status_code = std::to_string(it->second.getRedirection().second);
+		reason_phrase = "Moved Permanently";
+		headers["Location"] = it->second.getRedirection().first;
+		generateAutoIndex();
+	}
+	else if (it->second.isAutoindex())
+		generateAutoIndex();
+	else if (!it->second.getIndex().empty())
+		fileTobody("./" + it->first + it->second.getIndex());
+	else
+		std::cout << "nothing to do with " << request.getPath();
+}
+
+void Response::generateErrorPage()
+{
+	std::map<int, std::string>::const_iterator it;
+	std::stringstream s_to_int;
+	int code;
+
+	s_to_int << response_status_code;
+	s_to_int >> code;
+	
+	// Managing Declared Error Page
+	if ((it = srv.getErrorPages().find(code)) != srv.getErrorPages().end())
+	{
+		std::ifstream file(it->second);
+		if (file.is_open())
+		{
+			std::string line;
+			while(getline(file, line))
+				body += line + "\n";
+			return ;
+		}
+	}
+
+	// AutoGenerating an Error Page 
+	std::stringstream line;
+	line << "<html><head><title>Error "<< response_status_code <<" - " << reason_phrase << "</title>";
+	line << "<link rel=\"stylesheet\" href=\"/pages/base.css\"";
+	line << "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+	line << "</head><body><main><center><br /><br /><br /><br /><br /><br/>";
+	line << "<h1>Autogenerated Error Page</h1>";
+	line << "<h2>Error: " << response_status_code << "</h1>";
+	line << "<h2>" << reason_phrase << "</h3>";
+	line << "<br /><br /><br /><br /></center></main></body></html>";
+	body = line.str();
+}
+
+
+void Response::generateAutoIndex()
+{
+	DIR *dir;
+	struct dirent *ent;
+	std::stringstream line;
+
+	if ((dir = opendir(("./" + request.getPath()).c_str())) != NULL)
+	{
+		line << "<html><head><title>Index of " << request.getPath() << reason_phrase << "</title>";
+		line << "<link rel=\"stylesheet\" href=\"/pages/base.css\"";
+		line << "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+		line << "</head><body><main>";
+		
+		line << "<h1>Index of " << request.getPath() << "</h1>\n";
+		line << "<table>";
+		/* print all the files and directories within directory */
+		while ((ent = readdir(dir)) != NULL)
+		{
+			if (std::string(ent->d_name) != ".")
+			{
+				line << "<tr><td><a href=\"" << ent->d_name << "\">";
+				line << ent->d_name << "</a></td></tr>";
+			}
+		}
+		line << "</table></main></body></html>";
+		body = line.str();
+		closedir (dir);
+	}
+	else
+	{
+		/* could not open directory */
+		perror ("could not open directory");
+		response_status_code = "404";
+		reason_phrase = "File Not Found";
+		generateErrorPage();
+	}
 }
 
 Response::~Response() {}
 
-string Response::getResponse() { return response; }
+std::string Response::getResponse() { return response; }
 
-ostream& operator<<(ostream & out, const Response& m)
+std::ostream& operator<<(std::ostream & out, const Response& m)
 {
-	out << "HTTP Response:" << endl;
+	out << "HTTP Response:" << std::endl;
 	// out << "\tMethod: " << m.version << endl;
 	// out << "\tPath: " << m.response_status_code << endl;
 	// out << "\tVersion: " << m.reason_phrase << endl;
@@ -73,7 +241,7 @@ ostream& operator<<(ostream & out, const Response& m)
 	// 	out << "\t\t" << it->first << ": " << it->second << endl;
 	// 	++it;
 	// }
-	// out << "\tMessage: " << m.message << endl;
-	out << "Response: "<< endl << m.response << endl;
+	// out << "\tbody: " << m.body << endl;
+	out << "Response: "<< std::endl << m.response << std::endl;
 	return out;
 }

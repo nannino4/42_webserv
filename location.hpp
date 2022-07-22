@@ -34,6 +34,7 @@ public:
 
 	// getters
 	std::string const					&getRoot() const;
+	std::string const					&getIndex() const;
 	bool								isMethodAllowed(std::string method) const;
 	bool								isAutoindex() const;
 	std::pair<std::string,int> const	&getRedirection() const;

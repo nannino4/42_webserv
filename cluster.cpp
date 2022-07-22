@@ -33,7 +33,7 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 	}
 	if (!config_file.is_open() && config_file_name.compare(DEF_CONF))
 	{
-		std::cout << "\nWARNING\n\"" << config_file_name << "\" is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
+		// std::cout << "\nWARNING\n\"" << config_file_name << "\" is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
 		config_file.open(DEF_CONF);
 		if (!config_file.is_open())
 		{
@@ -106,7 +106,7 @@ Cluster::Cluster(std::string config_file_name)	//NOTE: if the config file is not
 		//TODO handle error
 		std::cerr << "\nERROR\nCluster::Cluster(): found invalid text after the last '}'" << std::endl;
 	}
-	std::cout << "Cluster initialization has been completed.\n" << *this << std::endl;		//debug
+	// std::cout << "Cluster initialization has been completed.\n" << *this << std::endl;		//debug
 }
 
 // destructor
@@ -159,10 +159,10 @@ void Cluster::run()
 	#endif
 
 		//debug
-		std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
-		std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
-		std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
-		std::cout << "\nCluster.run():\n\nkevent()/epoll_wait() returned " << num_ready_fds << " events\n" << std::endl;
+		// std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+		// std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+		// std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+		// std::cout << "\nCluster.run():\n\nkevent()/epoll_wait() returned " << num_ready_fds << " events\n" << std::endl;
 
 		if (num_ready_fds == -1)
 		{
@@ -188,12 +188,12 @@ void Cluster::run()
 			DefaultServer *default_server = (DefaultServer *)(current_event->default_server_ptr);
 
 			//debug
-			std::cout << "\nloop with index =\t" << i << std::endl << std::endl;
-			std::cout << "current_event:\n";
-			std::cout << "\tfd =\t\t" << current_event->fd << std::endl;
-			std::cout << "\tevents =\t" << current_event->events << std::endl;
-			std::cout << "\tis_hang_up =\t" << std::boolalpha << current_event->is_hang_up << std::endl;
-			std::cout << "\tdefault_server:" << *(DefaultServer *)current_event->default_server_ptr << std::endl << std::endl;
+			// std::cout << "\nloop with index =\t" << i << std::endl << std::endl;
+			// std::cout << "current_event:\n";
+			// std::cout << "\tfd =\t\t" << current_event->fd << std::endl;
+			// std::cout << "\tevents =\t" << current_event->events << std::endl;
+			// std::cout << "\tis_hang_up =\t" << std::boolalpha << current_event->is_hang_up << std::endl;
+			// std::cout << "\tdefault_server:" << *(DefaultServer *)current_event->default_server_ptr << std::endl << std::endl;
 
 			//TODO manage the case in which (current_event->is_error == true)
 			// if fd == connected_fd : close fd and erase client
@@ -222,7 +222,7 @@ void Cluster::run()
 			}
 
 			//debug
-			std::cout << "\n\n'for loop' with index = " << i << " is over. Maximum index = " << num_ready_fds - 1 << std::endl << std::endl;
+			// std::cout << "\n\n'for loop' with index = " << i << " is over. Maximum index = " << num_ready_fds - 1 << std::endl << std::endl;
 		}
 	}
 }

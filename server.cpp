@@ -1,10 +1,8 @@
 #include "server.hpp"
+#include "Response.hpp"
 
 // default constructor
-Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd)
-{
-	error_pages[404] = DEF_404;	//TODO aggiungi altre pagine di errore
-}
+Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd) {} // TODO error pages
 
 // copy constructor
 Server::Server(Server const &other) : kqueue_epoll_fd(other.getKqueueEpollFd()) { *this = other; }
@@ -29,7 +27,7 @@ std::vector<std::string> const	&Server::getNames() const { return names; }
 // utility
 bool	Server::isName(std::string const &name_to_match) const
 {
-	for (vector<std::string>::const_iterator i = names.begin(); i != names.end(); ++i)
+	for (std::vector<std::string>::const_iterator i = names.begin(); i != names.end(); ++i)
 	{
 		if (!i->compare(name_to_match))
 			return true;
@@ -65,15 +63,16 @@ std::ostream &operator<<(std::ostream &os, Server const &server)
 // ================================================================================================
 // communication - prepareResponse - MODIFIED Version, DA TESTARE
 // ================================================================================================
-void Server::prepareResponse(ConnectedClient *client, const Request &request)
+void Server::prepareResponse(ConnectedClient &client, const Request & request)
 {
 	//debug
 	// Server *ptr = (Server*)default_server;
 	// ptr = nullptr;
-	Response response(request);
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nServer:prepareResponse():\n\nTHE REQUEST FROM FD " << client->connected_fd << " IS: \"" << request << "\"" << std::endl;	//DEBUG
-	// client->message = std::string("HTTP/1.1 200 OK\r\n\r\n<html><body> <h> SONO UNA RESPONSE </h> </body> </html>");	//DEBUG
-	client->message = response.getResponse();	//DEBUG
+	Response response(request, *this);
+	// // std::cout << "-----------------------------------------------------------" << std::endl;
+	// // std::cout << "\nServer:prepareResponse():\n\nTHE REQUEST FROM FD " << client.connected_fd << " IS: \"" << request << "\"" << std::endl;	//DEBUG
+	// client.message = std::string("HTTP/1.1 200 OK\r\n\r\n<html><body> <h> SONO UNA RESPONSE </h> </body> </html>");	//DEBUG
+	client.message = response.getResponse();	//DEBUG
 }
+
 

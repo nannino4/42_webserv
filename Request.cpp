@@ -28,6 +28,8 @@ Request::Request(const std::string &raw_request)
 }
 
 Request::~Request() {}
+Request::Request(const Request & other)
+	: method(other.method), path(other.path), version(other.version), headers(other.headers), message(other.message) {};
 
 const std::string	&Request::getVersion() const { return version; }
 const std::string	&Request::getMethod() const { return method; }
@@ -44,7 +46,6 @@ std::string Request::getHostname() const
 	}
 	return ret;
 }
-
 
 std::ostream& operator<<(std::ostream & out, const Request& m)
 {
