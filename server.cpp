@@ -68,14 +68,31 @@ std::ostream &operator<<(std::ostream &os, Server const &server)
 // prepareResponse
 void Server::prepareResponse(ConnectedClient *client)
 {
-	Request		&request = client->request;
-	Response	&response = client->response;
+	Request										&request = client->request;
+	Response									&response = client->response;
+	std::map<int,std::string>::const_iterator	it;
 
 	if (!request.isValid())
 	{
 		// the request in not valid
 		response.setStatusCode("400");
 		response.setReasonPhrase("BAD REQUEST");
+		// set body accordingly
+		if ((it = error_pages.find(std::atoi(response.getStatusCode().c_str()))) != error_pages.end())
+		{
+			std::ifstream	error_page_file(it->second);
+			std::string		line;
+
+			while (error_page_file.good())
+			{
+				getline(error_page_file, line);
+				response.setBody(response.getBody() + line + "\n");
+			}
+		}
+		else
+		{
+			response.generateErrorPage();
+		}
 	}
 	else
 	{
@@ -83,8 +100,23 @@ void Server::prepareResponse(ConnectedClient *client)
 		if (!request.getLocation()->isMethodAllowed(request.getMethod()))
 		{
 			// the method requested is not allowed
-			response.setStatusCode("400");				//todo check
-			response.setReasonPhrase("BAD REQUEST");	//todo check
+			response.setStatusCode("405");
+			response.setReasonPhrase("Method Not Allowed");
+			if ((it = error_pages.find(std::atoi(response.getStatusCode().c_str()))) != error_pages.end())
+			{
+				std::ifstream	error_page_file(it->second);
+				std::string		line;
+
+				while (error_page_file.good())
+				{
+					getline(error_page_file, line);
+					response.setBody(response.getBody() + line + "\n");
+				}
+			}
+			else
+			{
+				response.generateErrorPage();
+			}
 		}
 		else
 		{
@@ -101,6 +133,7 @@ void Server::prepareResponse(ConnectedClient *client)
 			{
 				//TODO delete
 			}
+			response.createResponse();
 		}
 	}
 }

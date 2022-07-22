@@ -1,4 +1,3 @@
-// https://www.jmarshall.com/easy/http/#whatis
 #pragma once
 
 #include <iostream>
@@ -23,8 +22,6 @@ class Response
 	public:
 		// default constructor
 		Response();
-		// constructor
-		Response(const Request &request);
 		// copy constructor
 		Response(const Response &other);
 		// assign operator overload
@@ -49,6 +46,10 @@ class Response
 		void	setBody(std::string const &nw_body);
 		void	setResponse(std::string const &new_response);
 		void	setResponsePos(int new_pos);
+
+		// methods
+		void	generateErrorPage();
+		void	createResponse();
 
 		// operator overloads
 		friend std::ostream& operator<<(std::ostream & out, const Response& m);

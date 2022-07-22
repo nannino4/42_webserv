@@ -1,7 +1,5 @@
-// https://www.jmarshall.com/easy/http/#whatis
 
 #include "response.hpp"
-#include "request.hpp"
 
 // default constructor
 Response::Response() : \
@@ -33,46 +31,53 @@ Response &Response::operator=(const Response &other)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-Response::Response(const Request & r, Server &other)
-	: body(), response(), srv(other), request(r)
-{
-	version = request.getVersion();
-	if (request.getMethod() == "GET")
-		checkMethod("GET", &Response::get);
-	if (request.getMethod() == "DELETE")
-		checkMethod("DELETE", &Response::delet);
-	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
-	headers["Content-Length"] = std::to_string(body.size());
-	std::unordered_map<std::string, std::string>::const_iterator it = headers.begin();
-	while (it != headers.end())
-	{
-		response += it->first + ": " + it->second + "\r\n";
-		++it;
-	}
-	response += "\r\n" + body;
-}
 
-void Response::checkMethod(std::string method, void (Response::*f)())
+void Response::post() // TODO more test
 {
-	std::map<std::string,Location>::const_iterator it;
-	if ((it = srv.getLocations().find(request.getPath().substr(1, request.getPath().find_last_of('/')))) != srv.getLocations().end()
-		&& !it->second.isMethodAllowed(method))
+	struct stat buf;
+    stat(("." + request.getPath()).c_str(), &buf);
+
+    #ifdef __MACH__
+        if (S_ISDIR(buf.st_mode))
+    #elif defined(__linux__)
+    	if ((buf.st_mode & S_IFMT) == S_IFDIR)
+    #endif
 	{
-		response_status_code = "405";
-		reason_phrase = "Method Not Allowed";
-		generateErrorPage();
+		response_status_code = "500";
+		reason_phrase = "Internal Server Error";
+		return ;
+	}
+    #ifdef __MACH__
+        else if (S_ISREG(buf.st_mode))
+    #elif defined(__linux__)
+        else if ((buf.st_mode & S_IFMT) == S_IFREG)
+    #endif
+	{
+		response_status_code = "200";
+		reason_phrase = "OK";
 	}
 	else
-		(this->*f)();
+	{
+		response_status_code = "201";
+		reason_phrase = "Created";
+	}
+	std::fstream file(("." + request.getPath()).c_str(), std::fstream::in | std::fstream::out | std::fstream::trunc);
+	file << request.getBody();
+	file.close();
 }
 
-void Response::delet()
+void Response::delet() // TODO more test
 {
 	std::ifstream file;
 	struct stat buf;
 
-	stat(("." + request.getPath()).c_str(), &buf);
-	if (S_ISREG(buf.st_mode))
+    stat(("." + request.getPath()).c_str(), &buf);
+
+    #ifdef __MACH__
+        if (S_ISREG(buf.st_mode))
+    #elif defined(__linux__)
+        if ((buf.st_mode & S_IFMT) == S_IFREG)
+    #endif
 	{
 		unlink(("." + request.getPath()).c_str());
 		response_status_code = "200";
@@ -91,9 +96,9 @@ void Response::get()
 	size_t pos = request.getPath().find(".php");
 	if(pos < request.getPath().size())
 	{
-		std::cout << "executing cgi file: " << pos << "\n";
+		// std::cout << "executing cgi file: " << pos << "\n";
 		Cgi cgi(request);
-		body += cgi.run_cgi("./cgi_tester");
+		body += cgi.run_cgi("/usr/local/bin/php-cgi");
 		response_status_code = "200";
 		reason_phrase = "OK";
 		headers["Content-Length"] = std::to_string(body.size());
@@ -104,10 +109,18 @@ void Response::get()
 	std::stringstream line;
 
 	stat(("." + request.getPath()).c_str(), &buf);
-	if (S_ISDIR(buf.st_mode))
-		manageDir();
-	else if (S_ISREG(buf.st_mode))
-		fileTobody(("." + request.getPath()));
+    
+    #ifdef __MACH__
+        if (S_ISDIR(buf.st_mode))
+            manageDir();
+        else if (S_ISREG(buf.st_mode))
+            fileTobody(("." + request.getPath()));
+    #elif defined(__linux__)
+        if ((buf.st_mode & S_IFMT) == S_IFDIR)
+            manageDir();
+        else if ((buf.st_mode & S_IFMT) == S_IFREG)
+            fileTobody(("." + request.getPath()));
+    #endif
 	else
 	{
 		response_status_code = "404";
@@ -143,7 +156,12 @@ void Response::manageDir()
 	if (it == srv.getLocations().end())
 	{
 		if ((it = srv.getLocations().find(request.getPath().substr(1, request.getPath().size()))) == srv.getLocations().end())
+		{
+			response_status_code = "404";
+			reason_phrase = "File Not Found";
+			generateErrorPage();
 			return ;
+		}
 	}
 	if (!it->second.getRoot().empty())
 	{
@@ -162,44 +180,12 @@ void Response::manageDir()
 	else if (!it->second.getIndex().empty())
 		fileTobody("./" + it->first + it->second.getIndex());
 	else
-		std::cout << "nothing to do with " << request.getPath();
-}
-
-void Response::generateErrorPage()
-{
-	std::map<int, std::string>::const_iterator it;
-	std::stringstream s_to_int;
-	int code;
-
-	s_to_int << response_status_code;
-	s_to_int >> code;
-	
-	// Managing Declared Error Page
-	if ((it = srv.getErrorPages().find(code)) != srv.getErrorPages().end())
 	{
-		std::ifstream file(it->second);
-		if (file.is_open())
-		{
-			std::string line;
-			while(getline(file, line))
-				body += line + "\n";
-			return ;
-		}
+		response_status_code = "404";
+		reason_phrase = "File Not Found";
+		generateErrorPage();
 	}
-
-	// AutoGenerating an Error Page 
-	std::stringstream line;
-	line << "<html><head><title>Error "<< response_status_code <<" - " << reason_phrase << "</title>";
-	line << "<link rel=\"stylesheet\" href=\"/pages/base.css\"";
-	line << "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
-	line << "</head><body><main><center><br /><br /><br /><br /><br /><br/>";
-	line << "<h1>Autogenerated Error Page</h1>";
-	line << "<h2>Error: " << response_status_code << "</h1>";
-	line << "<h2>" << reason_phrase << "</h3>";
-	line << "<br /><br /><br /><br /></center></main></body></html>";
-	body = line.str();
 }
-
 
 void Response::generateAutoIndex()
 {
@@ -262,6 +248,34 @@ void	Response::setBody(std::string const &new_body) { body = new_body; }
 void	Response::setResponse(std::string const &new_response) { response = new_response; }
 void	Response::setResponsePos(int new_pos) { response_pos = new_pos; }
 
+// methods
+
+void Response::generateErrorPage()
+{
+	body = "<html><head><title>Error " + status_code + " - " + reason_phrase + "</title>";
+	body += "<link rel=\"stylesheet\" href=\"/pages/base.css\"";
+	body += "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+	body += "</head><body><main><center><br /><br /><br /><br /><br /><br/>";
+	body += "<h1>Autogenerated Error Page</h1>";
+	body += "<h2>Error: " + status_code + "</h1>";
+	body += "<h2>" + reason_phrase + "</h3>";
+	body += "<br /><br /><br /><br /></center></main></body></html>";
+	body += "\r\n\r\n";
+}
+
+void Response::createResponse()
+{
+	response += version + " " + status_code + " " + reason_phrase + "\r\n";
+	headers["Content-Length"] = std::to_string(body.size());
+	//TODO header["Date"]
+	for (std::map<std::string,std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it)
+	{
+		response += it->first + ": " + it->second + "\r\n";
+	}
+	response += "\r\n" + body;
+}
+
+// operator overloads
 std::ostream& operator<<(std::ostream &out, const Response &response)
 {
 	out << "Response: "<< std::endl << response.response << std::endl;
