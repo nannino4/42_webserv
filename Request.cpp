@@ -3,7 +3,19 @@
 #include "request.hpp"
 
 // default constructor
-Request::Request() : request_pos(0), is_valid(false), is_complete(false), are_headers_complete(false) {}
+Request::Request() : \
+	request(), \
+	request_pos(0), \
+	method(), \
+	path(), \
+	version(), \
+	headers(), \
+	body(), \
+	is_valid(true), \
+	is_complete(false), \
+	are_headers_complete(false), \
+	location(nullptr)
+	{}
 
 // copy constructor
 Request::Request(const Request &other) { *this = other; }
@@ -21,6 +33,7 @@ Request &Request::operator=(const Request &other)
 	is_valid = other.isValid();
 	is_complete = other.isComplete();
 	are_headers_complete = other.areHeadersComplete();
+	location = other.location;
 	return *this;
 }
 
@@ -39,6 +52,7 @@ const std::string						&Request::getHostname() const { return (headers.find("Hos
 const bool								&Request::isValid() const { return is_valid; }
 const bool								&Request::isComplete() const { return is_complete; }
 const bool								&Request::areHeadersComplete() const { return are_headers_complete; }
+Location const							*Request::getLocation() const { return location; }
 
 // setters
 void	Request::setRequest(std::string const new_request) { request = new_request; }
@@ -51,6 +65,7 @@ void	Request::setBody(std::string const new_body) { body = new_body; }
 void	Request::setIsValid(bool const new_is_valid) { is_valid = new_is_valid; }
 void	Request::setIsComplete(bool const new_is_complete) { is_complete = new_is_complete; }
 void	Request::setAreHeadersComplete(bool const new_are_headers_complete) { are_headers_complete = new_are_headers_complete; }
+void	Request::setLocation(Location const *new_location) { location = new_location; }
 
 // operator overloads
 std::ostream& operator<<(std::ostream & out, const Request& m)

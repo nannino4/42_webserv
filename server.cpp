@@ -23,8 +23,11 @@ Server &Server::operator=(Server const &other)
 Server::~Server() {}
 
 // getters
-int const					&Server::getKqueueEpollFd() const { return kqueue_epoll_fd; }
-std::vector<std::string> const	&Server::getNames() const { return names; }
+int const								&Server::getKqueueEpollFd() const { return kqueue_epoll_fd; }
+std::vector<std::string> const			&Server::getNames() const { return names; }
+std::map<int,std::string> const			&Server::getErrorPages() const { return error_pages; }
+size_t const							&Server::getClientBodySize() const { return client_body_size; }
+std::map<std::string,Location> const	&Server::getLocations() const { return locations; }
 
 // utility
 bool	Server::isName(std::string const &name_to_match) const
@@ -65,14 +68,9 @@ std::ostream &operator<<(std::ostream &os, Server const &server)
 // ================================================================================================
 // communication - prepareResponse - MODIFIED Version, DA TESTARE
 // ================================================================================================
-void Server::prepareResponse(ConnectedClient *client, const Request &request)
+void Server::prepareResponse(ConnectedClient *client)
 {
-	//debug
-	// Server *ptr = (Server*)default_server;
-	// ptr = nullptr;
-	client->response = Response(request);
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nServer:prepareResponse():\n\nTHE REQUEST FROM FD " << client->connected_fd << " IS: \"" << request << "\"" << std::endl;	//DEBUG
-	// client->message = std::string("HTTP/1.1 200 OK\r\n\r\n<html><body> <h> SONO UNA RESPONSE </h> </body> </html>");	//DEBUG
+	//TODO prepare the response in this scope
+	client->response = Response(client->request);
 }
 

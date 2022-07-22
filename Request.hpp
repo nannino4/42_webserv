@@ -1,4 +1,3 @@
-// https://www.jmarshall.com/easy/http/#whatis
 #pragma once
 
 #include <iostream>
@@ -6,6 +5,8 @@
 #include <sstream>
 #include <fstream>
 #include <map>
+
+#include "location.hpp"
 
 class Request
 {
@@ -21,6 +22,7 @@ class Request
 		bool								is_valid;
 		bool								is_complete;
 		bool								are_headers_complete;
+		Location const						*location;
 
 	public:
 		// default constructor
@@ -45,6 +47,7 @@ class Request
 		const bool								&isValid() const;
 		const bool								&isComplete() const;
 		const bool								&areHeadersComplete() const;
+		Location const							*getLocation() const;
 
 		// setters
 		void	setRequest(std::string const new_request);
@@ -57,6 +60,7 @@ class Request
 		void	setIsValid(bool const new_is_valid);
 		void	setIsComplete(bool const new_is_complete);
 		void	setAreHeadersComplete(bool const new_are_headers_complete);
+		void	setLocation(Location const *new_location);
 
 		// operator overloads
 		friend std::ostream	&operator<<(std::ostream &out, const Request &m);

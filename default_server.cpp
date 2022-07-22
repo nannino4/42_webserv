@@ -311,7 +311,8 @@ void DefaultServer::receiveRequest(Event *current_event)
 	//debug
 	std::cout << "\nread_bytes = " << read_bytes << "\ntotal Request = \n\"" << client->request.getRequest() << "\"" << std::endl;
 
-	while ((unsigned long)(found_pos = client->request.getRequest().find("\n", client->request.getRequestPos())) != std::string::npos)
+	while (((unsigned long)(found_pos = client->request.getRequest().find("\n", client->request.getRequestPos())) != std::string::npos) \
+			&& !client->request.isComplete())
 	{
 		stream.clear();
 		stream.str(client->request.getRequest().substr(client->request.getRequestPos(), (found_pos - client->request.getRequestPos())));
@@ -334,6 +335,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 			{
 				// the request will stop being handled
 				client->request.setIsComplete(true);
+				client->request.setIsValid(false);
 			}
 		}
 		else if (client->request.areHeadersComplete())	// body line || last line
@@ -354,6 +356,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 				{
 					// the request will stop being handled
 					client->request.setIsComplete(true);
+					client->request.setIsValid(false);
 				}
 			}
 		}
@@ -361,10 +364,18 @@ void DefaultServer::receiveRequest(Event *current_event)
 		{
 			if (!stream.str().compare("\r\n") || !stream.str().compare("\n"))
 			{
+				// headers are complete
 				client->request.setAreHeadersComplete(true);
+				// if the method is GET the request is complete
 				if (!client->request.getMethod().compare("GET"))
 				{
 					client->request.setIsComplete(true);
+				}
+				// if the header "hostname" is missing the request is invalid
+				if (client->request.getHeaders().find("hostname") == client->request.getHeaders().end())
+				{
+					client->request.setIsComplete(true);
+					client->request.setIsValid(false);
 				}
 			}
 			else if (stream.str().find(":") != std::string::npos)
@@ -449,17 +460,21 @@ void DefaultServer::receiveRequest(Event *current_event)
 void DefaultServer::dispatchRequest(ConnectedClient *client)
 {
 	// find the server corresponding to the hostname
-	Server *serverRequested = this;
+	Server *requestedServer = this;
 	if (client->request.isValid())
 	{
 		for (std::vector<Server>::iterator it = virtual_servers.begin(); it != virtual_servers.end(); ++it)
 		{
 			if (it->isName(client->request.getHostname()))
-				serverRequested = &(*it);
+				requestedServer = &(*it);
 		}
 	}
+	if (requestedServer->getLocations().find(client->request.getPath()) != requestedServer->getLocations().end())
+	{
+		client->request.setLocation(&requestedServer->getLocations().find(client->request.getPath())->second);
+	}
 	// let the server prepare the response
-	serverRequested->prepareResponse(client, client->request);
+	requestedServer->prepareResponse(client);
 
 	// add connected_fd to kqueue for WRITE monitoring
 	client->triggered_event.events = WRITE;

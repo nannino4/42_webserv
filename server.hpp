@@ -17,8 +17,8 @@
 
 #include "location.hpp"
 #include "connected_client.hpp"
-#include "Response.hpp"
-#include "Request.hpp"
+#include "request.hpp"
+#include "response.hpp"
 
 #define DEF_404 "./error_pages/404.html"
 
@@ -48,12 +48,14 @@ public:
 	friend std::ostream &operator<<(std::ostream &os, Server const &server);
 
 	// getters
-	int const						&getKqueueEpollFd() const;
-	std::vector<std::string> const	&getNames() const;
+	int const								&getKqueueEpollFd() const;
+	std::vector<std::string> const			&getNames() const;
+	std::map<int,std::string> const			&getErrorPages() const;
+	size_t const							&getClientBodySize() const;
+	std::map<std::string,Location> const	&getLocations() const;
 
 	// communication
-	// void prepareResponse(ConnectedClient &client, void *default_server);
-	void prepareResponse(ConnectedClient *client, const Request &request);
+	void prepareResponse(ConnectedClient *client);
 
 	// utility
 	bool	isName(std::string const &name_to_match) const;
