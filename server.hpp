@@ -2,6 +2,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 #include <iostream>
 
 #include <sys/socket.h>	//socket()

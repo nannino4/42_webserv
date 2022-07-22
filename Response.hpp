@@ -7,20 +7,18 @@
 #include <fstream>
 #include <map>
 
-using namespace std;
-
 class Request;
 
 class Response
 {
 	private:
-		string							version;
-		string							status_code;
-		string							reason_phrase;
-		map<string, string>				headers;
-		string							message;
-		string							response;
-		int								response_pos;
+		std::string							version;
+		std::string							status_code;
+		std::string							reason_phrase;
+		std::map<std::string, std::string>	headers;
+		std::string							body;
+		std::string							response;
+		int									response_pos;
 
 	public:
 		// default constructor
@@ -35,15 +33,23 @@ class Response
 		~Response();
 
 		// getters
-		const string	&getVersion() const;
-		const string	&getStatusCode() const;
-		const string	&getReasonPhrase() const;
-		const string	&getResponse() const;
-		const int		&getResponsePos() const;
+		const std::string						&getVersion() const;
+		const std::string						&getStatusCode() const;
+		const std::string						&getReasonPhrase() const;
+		const std::map<std::string,std::string>	&getHeaders() const;
+		const std::string						&getBody() const;
+		const std::string						&getResponse() const;
+		const int								&getResponsePos() const;
 
 		// setters
+		void	setVersion(std::string const &new_version);
+		void	setStatusCode(std::string const &new_status_code);
+		void	setReasonPhrase(std::string const &new_reason_phrase);
+		void	addNewHeader(std::pair<std::string,std::string> const &new_header);
+		void	setBody(std::string const &nw_body);
+		void	setResponse(std::string const &new_response);
 		void	setResponsePos(int new_pos);
 
 		// operator overloads
-		friend ostream& operator<<(ostream & out, const Response& m);
+		friend std::ostream& operator<<(std::ostream & out, const Response& m);
 };

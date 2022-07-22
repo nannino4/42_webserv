@@ -32,7 +32,7 @@ std::map<std::string,Location> const	&Server::getLocations() const { return loca
 // utility
 bool	Server::isName(std::string const &name_to_match) const
 {
-	for (vector<std::string>::const_iterator i = names.begin(); i != names.end(); ++i)
+	for (std::vector<std::string>::const_iterator i = names.begin(); i != names.end(); ++i)
 	{
 		if (!i->compare(name_to_match))
 			return true;
@@ -65,12 +65,43 @@ std::ostream &operator<<(std::ostream &os, Server const &server)
 	return os;
 }
 
-// ================================================================================================
-// communication - prepareResponse - MODIFIED Version, DA TESTARE
-// ================================================================================================
+// prepareResponse
 void Server::prepareResponse(ConnectedClient *client)
 {
-	//TODO prepare the response in this scope
-	client->response = Response(client->request);
+	Request		&request = client->request;
+	Response	&response = client->response;
+
+	if (!request.isValid())
+	{
+		// the request in not valid
+		response.setStatusCode("400");
+		response.setReasonPhrase("BAD REQUEST");
+	}
+	else
+	{
+		// the request is valid
+		if (!request.getLocation()->isMethodAllowed(request.getMethod()))
+		{
+			// the method requested is not allowed
+			response.setStatusCode("400");				//todo check
+			response.setReasonPhrase("BAD REQUEST");	//todo check
+		}
+		else
+		{
+			// the method requested is allowed
+			if (!request.getMethod().compare("GET"))
+			{
+				//TODO get
+			}
+			else if (!request.getMethod().compare("POST"))
+			{
+				//TODO post
+			}
+			if (!request.getMethod().compare("DELETE"))
+			{
+				//TODO delete
+			}
+		}
+	}
 }
 

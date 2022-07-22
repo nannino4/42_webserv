@@ -68,15 +68,9 @@ void	Request::setAreHeadersComplete(bool const new_are_headers_complete) { are_h
 void	Request::setLocation(Location const *new_location) { location = new_location; }
 
 // operator overloads
-std::ostream& operator<<(std::ostream & out, const Request& m)
+std::ostream& operator<<(std::ostream &out, const Request &request)
 {
-	out << "HTTP Request:" << std::endl;
-	out << "\tMethod: " << m.method << std::endl;
-	out << "\tPath: " << m.path << std::endl;
-	out << "\tVersion: " << m.version << std::endl;
-	out << "\tHeaders: " << std::endl;
-	for (std::map<std::string, std::string>::const_iterator it = m.headers.begin(); it != m.headers.end(); ++it)
-		out << "\t\t" << it->first << ": " << it->second << std::endl;
-	out << "\tBody: " << m.body << std::endl;
+	out << "Request:" << std::endl;
+	out << request.request << std::endl;
 	return out;
 }

@@ -371,8 +371,8 @@ void DefaultServer::receiveRequest(Event *current_event)
 				{
 					client->request.setIsComplete(true);
 				}
-				// if the header "hostname" is missing the request is invalid
-				if (client->request.getHeaders().find("hostname") == client->request.getHeaders().end())
+				// if the header "Host" is missing the request is invalid
+				if (client->request.getHeaders().find("Host") == client->request.getHeaders().end())
 				{
 					client->request.setIsComplete(true);
 					client->request.setIsValid(false);

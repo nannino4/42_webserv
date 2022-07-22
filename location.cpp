@@ -118,7 +118,7 @@ bool 								Location::isMethodAllowed(std::string method) const
 {
 	for (std::vector<std::string>::const_iterator it = allowed_methods.begin(); it != allowed_methods.end(); ++it)
 	{
-		if (!it->compare(method.c_str()))
+		if (!it->compare(method))
 			return true;
 	}
 	return false;
