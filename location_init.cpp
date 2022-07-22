@@ -3,7 +3,6 @@
 void Location::parseRoot(std::stringstream &stream)
 {
 	stream >> root;
-	stream >> std::ws;
 
 	// check that stream didn't fail reading
 	if (stream.fail())
@@ -61,7 +60,6 @@ void Location::parseAutoindex(std::stringstream &stream)
 	std::string flag;
 
 	stream >> flag;
-	stream >> std::ws;
 
 	// check that stream didn't fail reading
 	if (stream.fail())
@@ -99,7 +97,6 @@ void Location::parseAutoindex(std::stringstream &stream)
 void Location::parseIndex(std::stringstream &stream)
 {
 	stream >> index;
-	stream >> std::ws;
 
 	// check that stream didn't fail reading
 	if (stream.fail())
@@ -145,7 +142,6 @@ void Location::parseReturn(std::stringstream &stream)
 	}
 
 	stream >> url;
-	stream >> std::ws;
 
 	// check that stream didn't fail reading
 	if (stream.fail())

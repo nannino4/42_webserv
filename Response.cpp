@@ -8,6 +8,8 @@ Response::Response(const Request & r, Server &other)
 	version = request.getVersion();
 	if (request.getMethod() == "GET")
 		checkMethod("GET", &Response::get);
+	if (request.getMethod() == "POST")
+		checkMethod("POST", &Response::post);
 	if (request.getMethod() == "DELETE")
 		checkMethod("DELETE", &Response::delet);
 	response += version + " " + response_status_code + " " + reason_phrase + "\r\n";
@@ -35,7 +37,41 @@ void Response::checkMethod(std::string method, void (Response::*f)())
 		(this->*f)();
 }
 
-void Response::delet()
+void Response::post() // TODO more test
+{
+	struct stat buf;
+    stat(("." + request.getPath()).c_str(), &buf);
+
+    #ifdef __MACH__
+        if (S_ISDIR(buf.st_mode))
+    #elif defined(__linux__)
+    	if ((buf.st_mode & S_IFMT) == S_IFDIR)
+    #endif
+	{
+		response_status_code = "500";
+		reason_phrase = "Internal Server Error";
+		return ;
+	}
+    #ifdef __MACH__
+        else if (S_ISREG(buf.st_mode))
+    #elif defined(__linux__)
+        else if ((buf.st_mode & S_IFMT) == S_IFREG)
+    #endif
+	{
+		response_status_code = "200";
+		reason_phrase = "OK";
+	}
+	else
+	{
+		response_status_code = "201";
+		reason_phrase = "Created";
+	}
+	std::fstream file(("." + request.getPath()).c_str(), std::fstream::in | std::fstream::out | std::fstream::trunc);
+	file << request.getMessage();
+	file.close();
+}
+
+void Response::delet() // TODO more test
 {
 	std::ifstream file;
 	struct stat buf;
@@ -88,9 +124,7 @@ void Response::get()
         if ((buf.st_mode & S_IFMT) == S_IFDIR)
             manageDir();
         else if ((buf.st_mode & S_IFMT) == S_IFREG)
-        {
             fileTobody(("." + request.getPath()));
-        }
     #endif
 	else
 	{
@@ -115,7 +149,6 @@ void Response::fileTobody(std::string const & index)
 	}
 	else if (file.fail())
 	{
-            std::cout << "something wrong here" << index << "\n";
 		response_status_code = "403";
 		reason_phrase = "Forbidden";
 		generateErrorPage();
@@ -128,7 +161,12 @@ void Response::manageDir()
 	if (it == srv.getLocations().end())
 	{
 		if ((it = srv.getLocations().find(request.getPath().substr(1, request.getPath().size()))) == srv.getLocations().end())
+		{
+			response_status_code = "404";
+			reason_phrase = "File Not Found";
+			generateErrorPage();
 			return ;
+		}
 	}
 	if (!it->second.getRoot().empty())
 	{
@@ -147,7 +185,11 @@ void Response::manageDir()
 	else if (!it->second.getIndex().empty())
 		fileTobody("./" + it->first + it->second.getIndex());
 	else
-		std::cout << "nothing to do with " << request.getPath();
+	{
+		response_status_code = "404";
+		reason_phrase = "File Not Found";
+		generateErrorPage();
+	}
 }
 
 void Response::generateErrorPage()
