@@ -1,10 +1,7 @@
 #include "server.hpp"
 
 // default constructor
-Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd)
-{
-	error_pages[404] = DEF_404;	//TODO aggiungi altre pagine di errore
-}
+Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd) {}
 
 // copy constructor
 Server::Server(Server const &other) : kqueue_epoll_fd(other.getKqueueEpollFd()) { *this = other; }
@@ -123,18 +120,181 @@ void Server::prepareResponse(ConnectedClient *client)
 			// the method requested is allowed
 			if (!request.getMethod().compare("GET"))
 			{
-				//TODO get
+				methodGet(request, response);
 			}
 			else if (!request.getMethod().compare("POST"))
 			{
-				//TODO post
+				methodPost(request, response);
 			}
 			if (!request.getMethod().compare("DELETE"))
 			{
-				//TODO delete
+				methodDelete(request, response);
 			}
-			response.createResponse();
 		}
+	}
+	response.createResponse();
+}
+
+// GET method
+void Server::methodGet(Request const &request, Response &response)
+{
+	// size_t pos = request.getPath().find(".php");
+	// if(pos < request.getPath().size())
+	// {
+	// 	// std::cout << "executing cgi file: " << pos << "\n";
+	// 	Cgi cgi(request);
+	// 	response.setBody(response.getBody() + cgi.run_cgi("/usr/local/bin/php-cgi"));
+	// 	response.setStatusCode("200");
+	// 	response.setReasonPhrase("OK");
+	// 	response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(response.getBody().size())));
+	// 	return;
+	// }
+	std::ifstream		file;
+	struct stat			buf;
+	std::stringstream	line;
+
+	stat(("." + request.getPath()).c_str(), &buf);
+    
+    #ifdef __MACH__
+        if (S_ISDIR(buf.st_mode))
+            manageDir();
+        else if (S_ISREG(buf.st_mode))
+            getFile(("." + request.getPath()));
+    #elif defined(__linux__)
+        if ((buf.st_mode & S_IFMT) == S_IFDIR)
+            manageDir();
+        else if ((buf.st_mode & S_IFMT) == S_IFREG)
+            getFile(request, response);
+    #endif
+	else
+	{
+		response.setStatusCode("404");
+		response.setReasonPhrase("File Not Found");
+		response.generateErrorPage();
+	}
+	//TODO review
+}
+
+// POST method
+void Server::methodPost(Request const &request, Response &response)
+{
+	struct stat buf;
+    stat(("." + request.getPath()).c_str(), &buf);
+
+    #ifdef __MACH__
+        if (S_ISDIR(buf.st_mode))
+    #elif defined(__linux__)
+    	if ((buf.st_mode & S_IFMT) == S_IFDIR)
+    #endif
+	{
+		response.setStatusCode("500");
+		response.setReasonPhrase("Internal Server Error");
+		return ;
+	}
+    #ifdef __MACH__
+        else if (S_ISREG(buf.st_mode))
+    #elif defined(__linux__)
+        else if ((buf.st_mode & S_IFMT) == S_IFREG)
+    #endif
+	{
+		response.setStatusCode("200");
+		response.setReasonPhrase("OK");
+	}
+	else
+	{
+		response.setStatusCode("201");
+		response.setReasonPhrase("Created");
+	}
+	std::fstream file(("." + request.getPath()).c_str(), std::fstream::in | std::fstream::out | std::fstream::trunc);
+	file << request.getBody();
+	file.close();
+	//TODO review
+}
+
+// DELETE method
+void Server::methodDelete(Request const &request, Response &response)
+{
+	std::ifstream file;
+	struct stat buf;
+
+    stat(("." + request.getPath()).c_str(), &buf);
+
+    #ifdef __MACH__
+        if (S_ISREG(buf.st_mode))
+    #elif defined(__linux__)
+        if ((buf.st_mode & S_IFMT) == S_IFREG)
+    #endif
+	{
+		unlink(("." + request.getPath()).c_str());
+		response.setStatusCode("200");
+		response.setReasonPhrase("OK");
+	}
+	else
+	{
+		response.setStatusCode("404");
+		response.setReasonPhrase("File Not Found");
+		response.generateErrorPage();
+	}
+	//TODO review
+}
+
+// get file to body
+void Server::getFile(Request const &request, Response &response)
+{
+	std::ifstream file;
+	std::stringstream line;
+
+	file.open(request.getPath());
+	if (file.is_open())
+	{
+		line << file.rdbuf();
+		response.setBody(line.str());
+		response.setStatusCode("200");
+		response.setReasonPhrase("OK");
+	}
+	else if (file.fail())
+	{
+		response.setStatusCode("403");		//TODO check why not 404
+		response.setReasonPhrase("Forbidden");
+		response.generateErrorPage();
 	}
 }
 
+
+void Server::manageDir()
+{
+	// std::map<std::string,Location>::const_iterator it = srv.getLocations().find(request.getPath());
+	// if (it == srv.getLocations().end())
+	// {
+	// 	if ((it = srv.getLocations().find(request.getPath().substr(1, request.getPath().size()))) == srv.getLocations().end())
+	// 	{
+	// 		response_status_code = "404";
+	// 		reason_phrase = "File Not Found";
+	// 		response.generateErrorPage();
+	// 		return ;
+	// 	}
+	// }
+	// if (!it->second.getRoot().empty())
+	// {
+	// 	request.setPath(it->second.getRoot());
+	// 	manageDir();
+	// }
+	// else if (!it->second.getRedirection().first.empty())
+	// {
+	// 	response_status_code = std::to_string(it->second.getRedirection().second);
+	// 	reason_phrase = "Moved Permanently";
+	// 	headers["Location"] = it->second.getRedirection().first;
+	// 	generateAutoIndex();
+	// }
+	// else if (it->second.isAutoindex())
+	// 	generateAutoIndex();
+	// else if (!it->second.getIndex().empty())
+	// 	fileTobody("./" + it->first + it->second.getIndex());
+	// else
+	// {
+	// 	response_status_code = "404";
+	// 	reason_phrase = "File Not Found";
+	// 	response.generateErrorPage();
+	// }
+	// //TODO review
+}

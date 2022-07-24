@@ -10,6 +10,9 @@
 #include <cstring>		//bzero()
 #include <unistd.h>		//close()
 
+#include <sys/types.h>
+#include <sys/stat.h>	//stat
+
 #ifdef __MACH__
 	#include <sys/event.h>	//kqueue kevent
 #elif defined(__linux__)
@@ -56,9 +59,17 @@ public:
 	std::map<std::string,Location> const	&getLocations() const;
 
 	// communication
-	void prepareResponse(ConnectedClient *client);
+	void	prepareResponse(ConnectedClient *client);
+private:
+	void	methodGet(Request const &request, Response &response);
+	void	methodPost(Request const &request, Response &response);
+	void	methodDelete(Request const &request, Response &response);
 
 	// utility
+public:
 	bool	isName(std::string const &name_to_match) const;
+private:
+	void	getFile(Request const &request, Response &response);
+	void	manageDir();
 
 };

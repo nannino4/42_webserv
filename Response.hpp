@@ -47,7 +47,7 @@ class Response
 		void	setResponse(std::string const &new_response);
 		void	setResponsePos(int new_pos);
 
-		// methods
+		// other methods
 		void	generateErrorPage();
 		void	createResponse();
 
