@@ -62,6 +62,10 @@ std::ostream &operator<<(std::ostream &os, Server const &server)
 	return os;
 }
 
+// TODO
+// header date
+// header allow
+// header location
 // prepareResponse
 void Server::prepareResponse(ConnectedClient *client)
 {
@@ -94,6 +98,11 @@ void Server::prepareResponse(ConnectedClient *client)
 	else
 	{
 		// the request is valid
+
+		// add the location root path to the request path
+		request.setPath(request.getPath() + request.getLocation()->getRoot());
+
+		// check if the method is allowd
 		if (!request.getLocation()->isMethodAllowed(request.getMethod()))
 		{
 			// the method requested is not allowed
@@ -117,7 +126,7 @@ void Server::prepareResponse(ConnectedClient *client)
 		}
 		else
 		{
-			// the method requested is allowed
+			// the method request is allowed
 			if (!request.getMethod().compare("GET"))
 			{
 				methodGet(request, response);
@@ -149,53 +158,92 @@ void Server::methodGet(Request const &request, Response &response)
 	// 	response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(response.getBody().size())));
 	// 	return;
 	// }
-	std::ifstream		file;
-	struct stat			buf;
-	std::stringstream	line;
+	std::ifstream								file;
+	struct stat									file_stat;
+	std::stringstream							line;
+	std::map<int,std::string>::const_iterator	it;
 
-	stat(("." + request.getPath()).c_str(), &buf);
-    
-    #ifdef __MACH__
-        if (S_ISDIR(buf.st_mode))
-            manageDir();
-        else if (S_ISREG(buf.st_mode))
-            getFile(("." + request.getPath()));
-    #elif defined(__linux__)
-        if ((buf.st_mode & S_IFMT) == S_IFDIR)
-            manageDir();
-        else if ((buf.st_mode & S_IFMT) == S_IFREG)
-            getFile(request, response);
-    #endif
-	else
+	// check for redirection
+	if (request.getLocation()->isRedirection())
 	{
-		response.setStatusCode("404");
-		response.setReasonPhrase("File Not Found");
-		response.generateErrorPage();
+		response.setStatusCode(std::to_string(request.getLocation()->getRedirection().second));
+		response.setReasonPhrase("Moved Permanently");
+		response.addNewHeader(std::pair<std::string,std::string>("Location", request.getLocation()->getRedirection().first));
+		// generateAutoIndex();	// TODO why?
 	}
-	//TODO review
+	else	// no redirection; continue processing request
+	{
+		// get information about the file identified by path
+		if (stat((request.getPath()).c_str(), &file_stat) == 0)
+		{
+			// check whether path identifies a regular file, or a directory
+		    if (S_ISDIR(file_stat.st_mode))			// path identifies a directory
+			{
+		        manageDir(request, response);
+			}
+		    else if (S_ISREG(file_stat.st_mode))	// path identifies a regular file
+			{
+		        getFile(request.getPath(), response);
+			}
+			else									// path identifies no directory nor file
+			{
+				response.setStatusCode("404");
+				response.setReasonPhrase("File Not Found");
+				// set body accordingly
+				if ((it = error_pages.find(std::atoi(response.getStatusCode().c_str()))) != error_pages.end())
+				{
+					std::ifstream	error_page_file(it->second);
+					std::string		tmp;
+
+					while (error_page_file.good())
+					{
+						getline(error_page_file, tmp);
+						response.setBody(response.getBody() + tmp + "\n");
+					}
+				}
+				else
+				{
+					response.generateErrorPage();
+				}
+			}
+		}
+		else	// path is invalid
+		{
+			response.setStatusCode("404");
+			response.setReasonPhrase("File Not Found");
+			// set body accordingly
+			if ((it = error_pages.find(std::atoi(response.getStatusCode().c_str()))) != error_pages.end())
+			{
+				std::ifstream	error_page_file(it->second);
+				std::string		tmp;
+
+				while (error_page_file.good())
+				{
+					getline(error_page_file, tmp);
+					response.setBody(response.getBody() + tmp + "\n");
+				}
+			}
+			else
+			{
+				response.generateErrorPage();
+			}
+		}
+	}
 }
 
 // POST method
 void Server::methodPost(Request const &request, Response &response)
 {
-	struct stat buf;
-    stat(("." + request.getPath()).c_str(), &buf);
+	struct stat file_stat;
+    stat((request.getPath()).c_str(), &file_stat);
 
-    #ifdef __MACH__
-        if (S_ISDIR(buf.st_mode))
-    #elif defined(__linux__)
-    	if ((buf.st_mode & S_IFMT) == S_IFDIR)
-    #endif
+	if (S_ISDIR(file_stat.st_mode))
 	{
 		response.setStatusCode("500");
 		response.setReasonPhrase("Internal Server Error");
 		return ;
 	}
-    #ifdef __MACH__
-        else if (S_ISREG(buf.st_mode))
-    #elif defined(__linux__)
-        else if ((buf.st_mode & S_IFMT) == S_IFREG)
-    #endif
+	else if (S_ISREG(file_stat.st_mode))
 	{
 		response.setStatusCode("200");
 		response.setReasonPhrase("OK");
@@ -205,7 +253,7 @@ void Server::methodPost(Request const &request, Response &response)
 		response.setStatusCode("201");
 		response.setReasonPhrase("Created");
 	}
-	std::fstream file(("." + request.getPath()).c_str(), std::fstream::in | std::fstream::out | std::fstream::trunc);
+	std::fstream file((request.getPath()).c_str(), std::fstream::in | std::fstream::out | std::fstream::trunc);
 	file << request.getBody();
 	file.close();
 	//TODO review
@@ -214,37 +262,73 @@ void Server::methodPost(Request const &request, Response &response)
 // DELETE method
 void Server::methodDelete(Request const &request, Response &response)
 {
-	std::ifstream file;
-	struct stat buf;
+	std::ifstream								file;
+	struct stat									file_stat;
+	std::map<int,std::string>::const_iterator	it;
 
-    stat(("." + request.getPath()).c_str(), &buf);
-
-    #ifdef __MACH__
-        if (S_ISREG(buf.st_mode))
-    #elif defined(__linux__)
-        if ((buf.st_mode & S_IFMT) == S_IFREG)
-    #endif
+    if (stat((request.getPath()).c_str(), &file_stat) == 0)
 	{
-		unlink(("." + request.getPath()).c_str());
-		response.setStatusCode("200");
-		response.setReasonPhrase("OK");
+		// the path is valid
+		if (S_ISREG(file_stat.st_mode))
+		{
+			// the path identifies a regular file
+			unlink((request.getPath()).c_str());
+			response.setStatusCode("200");
+			response.setReasonPhrase("OK");
+		}
+		else
+		{
+			// the path does not identify a regular file
+			response.setStatusCode("404");
+			response.setReasonPhrase("File Not Found");
+			if ((it = error_pages.find(std::atoi(response.getStatusCode().c_str()))) != error_pages.end())
+			{
+				std::ifstream	error_page_file(it->second);
+				std::string		line;
+
+				while (error_page_file.good())
+				{
+					getline(error_page_file, line);
+					response.setBody(response.getBody() + line + "\n");
+				}
+			}
+			else
+			{
+				response.generateErrorPage();
+			}
+		}
 	}
 	else
 	{
+		// the path is invalid
 		response.setStatusCode("404");
 		response.setReasonPhrase("File Not Found");
-		response.generateErrorPage();
+		if ((it = error_pages.find(std::atoi(response.getStatusCode().c_str()))) != error_pages.end())
+		{
+			std::ifstream	error_page_file(it->second);
+			std::string		line;
+
+			while (error_page_file.good())
+			{
+				getline(error_page_file, line);
+				response.setBody(response.getBody() + line + "\n");
+			}
+		}
+		else
+		{
+			response.generateErrorPage();
+		}
 	}
-	//TODO review
 }
 
 // get file to body
-void Server::getFile(Request const &request, Response &response)
+void Server::getFile(std::string const path, Response &response) 
 {
-	std::ifstream file;
-	std::stringstream line;
+	std::ifstream								file;
+	std::stringstream							line;
+	std::map<int,std::string>::const_iterator	it;
 
-	file.open(request.getPath());
+	file.open(path);
 	if (file.is_open())
 	{
 		line << file.rdbuf();
@@ -254,47 +338,103 @@ void Server::getFile(Request const &request, Response &response)
 	}
 	else if (file.fail())
 	{
-		response.setStatusCode("403");		//TODO check why not 404
+		response.setStatusCode("403");
 		response.setReasonPhrase("Forbidden");
-		response.generateErrorPage();
+		if ((it = error_pages.find(std::atoi(response.getStatusCode().c_str()))) != error_pages.end())
+		{
+			std::ifstream	error_page_file(it->second);
+			std::string		line;
+
+			while (error_page_file.good())
+			{
+				getline(error_page_file, line);
+				response.setBody(response.getBody() + line + "\n");
+			}
+		}
+		else
+		{
+			response.generateErrorPage();
+		}
 	}
 }
 
-
-void Server::manageDir()
+// manage case in which path identifies a directory
+void Server::manageDir(Request const &request, Response &response)
 {
-	// std::map<std::string,Location>::const_iterator it = srv.getLocations().find(request.getPath());
-	// if (it == srv.getLocations().end())
-	// {
-	// 	if ((it = srv.getLocations().find(request.getPath().substr(1, request.getPath().size()))) == srv.getLocations().end())
-	// 	{
-	// 		response_status_code = "404";
-	// 		reason_phrase = "File Not Found";
-	// 		response.generateErrorPage();
-	// 		return ;
-	// 	}
-	// }
-	// if (!it->second.getRoot().empty())
-	// {
-	// 	request.setPath(it->second.getRoot());
-	// 	manageDir();
-	// }
-	// else if (!it->second.getRedirection().first.empty())
-	// {
-	// 	response_status_code = std::to_string(it->second.getRedirection().second);
-	// 	reason_phrase = "Moved Permanently";
-	// 	headers["Location"] = it->second.getRedirection().first;
-	// 	generateAutoIndex();
-	// }
-	// else if (it->second.isAutoindex())
-	// 	generateAutoIndex();
-	// else if (!it->second.getIndex().empty())
-	// 	fileTobody("./" + it->first + it->second.getIndex());
-	// else
-	// {
-	// 	response_status_code = "404";
-	// 	reason_phrase = "File Not Found";
-	// 	response.generateErrorPage();
-	// }
-	// //TODO review
+	std::map<int,std::string>::const_iterator	it;
+	struct stat									file_stat;
+
+	if (!request.getLocation()->getIndex().empty() && \
+			stat(std::string(request.getPath() + request.getLocation()->getIndex()).c_str(), &file_stat) == 0 && \
+			S_ISREG(file_stat.st_mode))
+	{
+		// an index exists and if it is a file
+		getFile(request.getPath() + request.getLocation()->getIndex(), response);
+	}
+	else if (request.getLocation()->isAutoindex())
+	{
+		// no indexes, but autoindex is on
+		generateAutoIndex();
+	}
+	else
+	{
+		// no indexes, no autoindex
+		response.setStatusCode("404");
+		response.setReasonPhrase("File Not Found");
+		if ((it = error_pages.find(std::atoi(response.getStatusCode().c_str()))) != error_pages.end())
+		{
+			std::ifstream	error_page_file(it->second);
+			std::string		line;
+
+			while (error_page_file.good())
+			{
+				getline(error_page_file, line);
+				response.setBody(response.getBody() + line + "\n");
+			}
+		}
+		else
+		{
+			response.generateErrorPage();
+		}
+	}
+}
+
+// generate autoindex
+void Server::generateAutoIndex()
+{
+// 	DIR *dir;
+// 	struct dirent *ent;
+// 	std::stringstream line;
+
+// 	if ((dir = opendir(("./" + request.getPath()).c_str())) != NULL)
+// 	{
+// 		line << "<html><head><title>Index of " << request.getPath() << reason_phrase << "</title>";
+// 		line << "<link rel=\"stylesheet\" href=\"/pages/base.css\"";
+// 		line << "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+// 		line << "</head><body><main>";
+		
+// 		line << "<h1>Index of " << request.getPath() << "</h1>\n";
+// 		line << "<table>";
+// 		/* print all the files and directories within directory */
+// 		while ((ent = readdir(dir)) != NULL)
+// 		{
+// 			if (std::string(ent->d_name) != ".")
+// 			{
+// 				line << "<tr><td><a href=\"" << ent->d_name << "\">";
+// 				line << ent->d_name << "</a></td></tr>";
+// 			}
+// 		}
+// 		line << "</table></main></body></html>";
+// 		body = line.str();
+// 		closedir (dir);
+// 	}
+// 	else
+// 	{
+// 		/* could not open directory */
+// 		perror ("could not open directory");
+// 		response_status_code = "404";
+// 		reason_phrase = "File Not Found";
+// 		response.generateErrorPage();
+// 	}
+// 	//TODO review
 }

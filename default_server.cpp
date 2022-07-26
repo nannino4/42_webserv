@@ -296,7 +296,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	//debug
 	std::cout << "\ngoing to try recv" << std::endl;
 
-	// read from connected_fd into client->request.getRequest()
+	// read from connected_fd into client->request
 	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE - 1, 0);
 	if (read_bytes == -1)
 	{
@@ -311,6 +311,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	//debug
 	std::cout << "\nread_bytes = " << read_bytes << "\ntotal Request = \n\"" << client->request.getRequest() << "\"" << std::endl;
 
+	// parse newly received request lines
 	while (((unsigned long)(found_pos = client->request.getRequest().find("\n", client->request.getRequestPos())) != std::string::npos) \
 			&& !client->request.isComplete())
 	{
@@ -406,7 +407,6 @@ void DefaultServer::receiveRequest(Event *current_event)
 		//check if the request is too long
 		if (client->request.getRequest().size() > REQUEST_SIZE_LIMIT)
 		{
-			//TODO close connection && remove client && free its memory
 			// remove connected_fd from kqueue
 		#ifdef __MACH__
 			struct kevent event;
@@ -459,7 +459,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 
 void DefaultServer::dispatchRequest(ConnectedClient *client)
 {
-	// find the server corresponding to the hostname
+	// find the server corresponding to the host header value
 	Server *requestedServer = this;
 	if (client->request.isValid())
 	{
@@ -469,10 +469,17 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 				requestedServer = &(*it);
 		}
 	}
-	if (requestedServer->getLocations().find(client->request.getPath()) != requestedServer->getLocations().end())
+
+	// find the server location correspongin to the request path
+	if (requestedServer->getLocations().find(client->request.getPath()) != requestedServer->getLocations().end())	//TODO the location is not the entire request path!!!
 	{
 		client->request.setLocation(&requestedServer->getLocations().find(client->request.getPath())->second);
 	}
+	else
+	{
+		client->request.setLocation(&default_location);
+	}
+
 	// let the server prepare the response
 	requestedServer->prepareResponse(client);
 

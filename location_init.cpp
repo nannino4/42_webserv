@@ -124,7 +124,7 @@ void Location::parseReturn(std::stringstream &stream)
 	int			code;
 	std::string	url;
 
-	isRedir = true;
+	is_redirection = true;
 
 	stream >> code;
 	stream >> std::ws;

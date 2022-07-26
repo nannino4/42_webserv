@@ -1,7 +1,18 @@
 #include "location.hpp"
 
+// default constructor
+Location::Location()
+{
+	//TODO
+	// root = current working directory
+	allowed_methods.push_back("GET");
+	autoindex = false;
+	index.clear();
+	is_redirection = false;
+}
+
 // constructor
-Location::Location(std::string &config_file, int &pos) : autoindex(false), index("index.html"), isRedir(false)
+Location::Location(std::string &config_file, int &pos) : autoindex(false), index("index.html"), is_redirection(false)
 {
 	std::stringstream	stream;
 	std::string			directive;
@@ -89,8 +100,46 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), index
 	pos = found_pos + 1;
 }
 
+// copy constructor
+Location::Location(Location const &other) { *this = other; }
+
+// assign operator overload
+Location &Location::operator=(Location const &other)
+{
+	root = other.getRoot();
+	allowed_methods = other.getAllowedMethods();
+	autoindex = other.isAutoindex();
+	index = other.getIndex();
+	is_redirection = other.isRedirection();
+	redirection = other.getRedirection();
+}
+
 // destructor
 Location::~Location() {}
+
+// getters
+std::string const					&Location::getRoot() const { return root; }
+std::vector<std::string> const		&Location::getAllowedMethods() const { return allowed_methods; }
+bool 								Location::isMethodAllowed(std::string method) const
+{
+	for (std::vector<std::string>::const_iterator it = allowed_methods.begin(); it != allowed_methods.end(); ++it)
+	{
+		if (!it->compare(method))
+			return true;
+	}
+	return false;
+}
+bool 								Location::isAutoindex() const { return autoindex; }
+std::string const					&Location::getIndex() const { return index; }
+bool								Location::isRedirection() const { return is_redirection; }
+std::pair<std::string,int> const	&Location::getRedirection() const { return redirection; }
+
+// setters
+void	Location::addAllowedMethod(std::string method)
+{
+	if (!isMethodAllowed(method))
+		allowed_methods.push_back(method);
+}
 
 // operator overload
 std::ostream &operator<<(std::ostream &os, Location const &location)
@@ -108,25 +157,4 @@ std::ostream &operator<<(std::ostream &os, Location const &location)
 	os << "redirection:\n" << location.redirection.second << " " << location.redirection.first << std::endl;
 	os << "\nLocation introduction is over" << std::endl;
 	return os;
-}
-
-// getters
-std::string const					&Location::getRoot() const { return root; }
-bool 								Location::isAutoindex() const { return autoindex; }
-std::pair<std::string,int> const	&Location::getRedirection() const { return redirection; }
-bool 								Location::isMethodAllowed(std::string method) const
-{
-	for (std::vector<std::string>::const_iterator it = allowed_methods.begin(); it != allowed_methods.end(); ++it)
-	{
-		if (!it->compare(method))
-			return true;
-	}
-	return false;
-}
-
-// setters
-void	Location::addAllowedMethod(std::string method)
-{
-	if (!isMethodAllowed(method))
-		allowed_methods.push_back(method);
 }

@@ -28,54 +28,6 @@ Response &Response::operator=(const Response &other)
 	return *this;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-// void Server::generateAutoIndex()
-// {
-// 	DIR *dir;
-// 	struct dirent *ent;
-// 	std::stringstream line;
-
-// 	if ((dir = opendir(("./" + request.getPath()).c_str())) != NULL)
-// 	{
-// 		line << "<html><head><title>Index of " << request.getPath() << reason_phrase << "</title>";
-// 		line << "<link rel=\"stylesheet\" href=\"/pages/base.css\"";
-// 		line << "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
-// 		line << "</head><body><main>";
-		
-// 		line << "<h1>Index of " << request.getPath() << "</h1>\n";
-// 		line << "<table>";
-// 		/* print all the files and directories within directory */
-// 		while ((ent = readdir(dir)) != NULL)
-// 		{
-// 			if (std::string(ent->d_name) != ".")
-// 			{
-// 				line << "<tr><td><a href=\"" << ent->d_name << "\">";
-// 				line << ent->d_name << "</a></td></tr>";
-// 			}
-// 		}
-// 		line << "</table></main></body></html>";
-// 		body = line.str();
-// 		closedir (dir);
-// 	}
-// 	else
-// 	{
-// 		/* could not open directory */
-// 		perror ("could not open directory");
-// 		response_status_code = "404";
-// 		reason_phrase = "File Not Found";
-// 		response.generateErrorPage();
-// 	}
-// 	//TODO review
-// }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 Response::~Response() {}
 
 // getters

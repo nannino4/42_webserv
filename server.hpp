@@ -36,6 +36,7 @@ protected:
 	std::map<int,std::string>			error_pages;
 	size_t								client_body_size;
 	std::map<std::string,Location>		locations;
+	Location							default_location;
 
 public:
 	// default constructor
@@ -69,7 +70,8 @@ private:
 public:
 	bool	isName(std::string const &name_to_match) const;
 private:
-	void	getFile(Request const &request, Response &response);
-	void	manageDir();
+	void	getFile(std::string const path, Response &response);
+	void	manageDir(Request const &request, Response &response);
+	void	generateAutoIndex();
 
 };
