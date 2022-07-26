@@ -112,6 +112,7 @@ Location &Location::operator=(Location const &other)
 	index = other.getIndex();
 	is_redirection = other.isRedirection();
 	redirection = other.getRedirection();
+	return *this;
 }
 
 // destructor
@@ -153,7 +154,7 @@ std::ostream &operator<<(std::ostream &os, Location const &location)
 	}
 	os << "autoindex:\n" << std::boolalpha << location.autoindex << std::endl;
 	os << "index:\n" << location.index << std::endl;
-	os << "isRedir:\n" << std::boolalpha << location.isRedir << std::endl;
+	os << "isRedir:\n" << std::boolalpha << location.isRedirection() << std::endl;
 	os << "redirection:\n" << location.redirection.second << " " << location.redirection.first << std::endl;
 	os << "\nLocation introduction is over" << std::endl;
 	return os;
