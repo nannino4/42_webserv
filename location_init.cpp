@@ -47,7 +47,7 @@ void Location::parseAllowedMethods(std::stringstream &stream)
 			std::cerr << "\nERROR\nLocation::parseAllowedMethods(): \"" << newMethod << "\" is an invalid method" << std::endl;
 		}
 
-		allowed_methods.push_back(newMethod);
+		addAllowedMethod(newMethod);
 	}
 	
 	if (!stream.eof())

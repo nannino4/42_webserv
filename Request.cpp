@@ -8,6 +8,7 @@ Request::Request() : \
 	request_pos(0), \
 	method(), \
 	path(), \
+	query(), \
 	version(), \
 	headers(), \
 	body(), \
@@ -27,6 +28,7 @@ Request &Request::operator=(const Request &other)
 	request_pos = other.getRequestPos();
 	method = other.getMethod();
 	path = other.getPath();
+	query = other.getQuery();
 	version = other.getVersion();
 	headers = other.getHeaders();
 	body = other.getBody();
@@ -46,6 +48,7 @@ const int								&Request::getRequestPos() const { return request_pos; }
 const std::string						&Request::getVersion() const { return version; }
 const std::string						&Request::getMethod() const { return method; }
 const std::string						&Request::getPath() const { return path; }
+const std::string						&Request::getQuery() const { return query; }
 const std::string						&Request::getBody() const { return body; }
 const std::map<std::string,std::string>	&Request::getHeaders() const { return headers; }
 const std::string						&Request::getHostname() const { return (headers.find("Host"))->second; }
@@ -59,6 +62,7 @@ void	Request::setRequest(std::string const new_request) { request = new_request;
 void	Request::setRequestPos(int const new_request_pos) { request_pos = new_request_pos; }
 void	Request::setMethod(std::string const new_method) { method = new_method; }
 void	Request::setPath(std::string const new_path) { path = new_path; }
+void	Request::setQuery(std::string const new_query) { query = new_query; }
 void	Request::setVersion(std::string const new_version) { version = new_version; }
 void	Request::addHeader(std::pair<std::string,std::string> const new_header) { headers.insert(new_header); }
 void	Request::setBody(std::string const new_body) { body = new_body; }

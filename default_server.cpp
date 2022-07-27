@@ -9,7 +9,6 @@ DefaultServer::DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, s
 	server_addr.sin_addr.s_addr = DEF_ADDR;
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(DEF_PORT);
-	error_pages[404] = std::string(DEF_404);	//TODO aggiungi altre pagine di errore
 
 	// specific initialization
 
@@ -326,6 +325,18 @@ void DefaultServer::receiveRequest(Event *current_event)
 			std::string version;
 
 			stream >> method >> path >> version >> std::ws;
+
+			// check if path contains '/'
+			if (path.find('/') == std::string::npos)
+			{
+				path.insert(path.begin(), '/');
+			}
+			// check for query
+			if (path.find('?') != std::string::npos)
+			{
+				client->request.setQuery(path.substr(path.find('?') + 1));
+				path.erase(path.find('?'));
+			}
 
 			client->request.setMethod(method);
 			client->request.setPath(path);

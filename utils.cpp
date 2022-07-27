@@ -11,3 +11,11 @@ int	getTimeDifference(struct timespec time_since_last_check)
 
 	return (now - then);
 }
+
+std::string	my_getcwd()
+{
+	char *tmp = get_current_dir_name();
+	std::string string(tmp);
+	delete tmp;
+	return std::string(tmp);
+}

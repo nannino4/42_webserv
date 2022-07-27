@@ -1,61 +1,71 @@
-#include "Cgi.hpp"
+#include "cgi.hpp"
+#include "request.hpp"
+#include "utils.hpp"
 
-Cgi::Cgi(){
-	// PATH_TRANSLATED: path assoluta dei file nel server ex: /var/www/html/
-	// PATH_INFO = la path richiesta in url ex: www.mysite.it/dir/index.php -> PATH_INFO= /dir/index.php
-	// con la fusione dei due si ottiene la path assoluta del file
-	// QUERY_STRING: contiene info se :
-	//// submit di un form con GET 
-	//// link diretto include info dopo '?'
-	//// é URL encoded
-
-
+using namespace std;
+Cgi::Cgi(const Request &request){
+    this->_env["REDIRECT_STATUS"] = "200";
+    this->cgi_header = request.getHeaders();
+    this->_env["SERVER_SOFTWARE"] = "Webserv/1.0";
+    this->_env["REQUEST_METHOD"] = request.getMethod();
+    this->_env["SERVER_PROTOCOL"] = request.getVersion();
+    this->_env["PATH_INFO"] = request.getPath();
+    this->_env["PATH_TRANSLATED"] = my_getcwd() + "/" + request.getPath();
+    this->_env["HTTP_ACCEPT_LANGUAGE"] = this->cgi_header["Accept-Language"];
+    this->_env["HTTP_HOST"] = this->cgi_header["Host"];
+    this->_env["HTTP_ACCEPT_ENCODING"] = this->cgi_header["Accept-Encoding"];
+    this->_env["GATEWAY_INTERFACE"] = "CGI/1.1";
+    this->_env["QUERY_STRING"] = request.getQuery();
 }
 
-Cgi::~Cgi(){
-}
+Cgi::~Cgi(){}
 
 std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
-	int fd_pipe[2];
 	int fd_safe[2];
 	pid_t pid;
+    std::string tmp;
+    char **env = map_to_char();
 
-	char **tmp = new char*[3];
-	char buffer[200];
-	std::string test = "-f";
-	//size_t size;
+    FILE	*fIn = tmpfile();
+    FILE	*fOut = tmpfile();
+    long	fdIn = fileno(fIn);
+    long	fdOut = fileno(fOut);
 
-	// tmp = NULL;
-	pid = 0;
-	tmp[1] = new char[file_name.size() + 1];
-	tmp[1] = strcpy(tmp[1], (char *)file_name.c_str());
-	tmp[0] = new char[3];
-	tmp[0] = strcpy(tmp[0], (char *)test.c_str());
-	tmp[2] = new char[1];
-	tmp[2] = 0;
+    lseek(fdIn, 0, SEEK_SET);
 	fd_safe[0] = dup(STDIN_FILENO);
 	fd_safe[1] = dup(STDOUT_FILENO);
-	if (pipe(fd_pipe) == -1)
-		std::cout << "Error: Pipe" << std::endl;
 	if ((pid = fork()) == -1)
 		std::cout << "Error: fork" << std::endl;
 	if (!pid){
-		dup2(fd_pipe[1], STDOUT_FILENO);
-		execve("/usr/bin/php", tmp, NULL); // chiamare php passare filename e passare variabili decodificate
+        char * const * nll = nullptr;
+        dup2(fdIn, STDIN_FILENO);
+		dup2(fdOut, STDOUT_FILENO);
+		execve((char*)file_name.c_str(), nll , env); // chiamare php passare filename e passare variabili decodificate
+        cout << "NO EXECVE on "<< file_name << endl; //TODO handle error
 		exit(0);
 	}
 	else{
-		waitpid(pid, NULL, 0);
-		close(fd_pipe[1]);
-		while(read(fd_pipe[0], buffer, 200) > 0)
-			std::cout << buffer << std::endl;
+		waitpid(-1, NULL, 0);
+        lseek(fdOut, 0, SEEK_SET);
+        int ret = 1;
+        // cout << "ret: " << ret << endl;
+        char buffer[65536];
+		while(ret > 0) {
+            memset(buffer, 0, 65536);
+            ret = read(fdOut, buffer, 65536 - 1);
+            tmp += buffer;
+        }
 		dup2(STDOUT_FILENO, fd_safe[1]);
 		dup2(STDIN_FILENO, fd_safe[0]);
-		close(fd_pipe[0]);
+        fclose(fIn);
+        fclose(fOut);
+        close(fdIn);
+        close(fdOut);
+		close(fd_safe[0]);
+        close(fd_safe[1]);
 	}
-	return("ciao");
-	// php restituisce su stdout````
-	// restituire tramite stdout al server
+    new_body =  tmp;//.substr(tmp.find_first_of('>') + 1, tmp.size());
+	return(new_body);
 }
 
 void Cgi::get_env(void){
@@ -63,6 +73,19 @@ void Cgi::get_env(void){
 }
 
 
-/* char **Cgi::map_to_char(std::map<std::string, std::string> _env){
-	//indovina
-} */
+void Cgi::setCgiHeader(std::map<std::string, std::string> resp_header){
+    this->cgi_header = resp_header;
+}
+
+char **Cgi::map_to_char(){
+    char	**env = new char*[this->_env.size() + 1];
+    int	j = 0;
+    for (std::map<std::string, std::string>::const_iterator i = this->_env.begin(); i != this->_env.end(); i++) {
+        std::string	element = i->first + "=" + i->second;
+        env[j] = new char[element.size() + 1];
+        env[j] = strcpy(env[j], (const char*)element.c_str());
+        j++;
+    }
+    env[j] = nullptr;
+    return env;
+}

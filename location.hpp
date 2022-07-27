@@ -41,13 +41,14 @@ public:
 	bool								isRedirection() const;
 	std::pair<std::string,int> const	&getRedirection() const;
 
+	// setters
+	void	setRoot(std::string const &new_root);
+	void	addAllowedMethod(std::string method);
+
 	// output operator overload
 	friend std::ostream &operator<<(std::ostream &os, Location const &location);
 
 private:
-	// setters
-	void	addAllowedMethod(std::string method);
-
 	// initialization
 	void parseRoot(std::stringstream &stream);
 	void parseAllowedMethods(std::stringstream &stream);

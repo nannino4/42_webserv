@@ -23,8 +23,9 @@
 #include "connected_client.hpp"
 #include "request.hpp"
 #include "response.hpp"
+#include "utils.hpp"
 
-#define DEF_404 "./error_pages/404.html"
+#define DEFAULT_ROOT "/www"
 
 class Server
 {

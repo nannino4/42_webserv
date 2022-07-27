@@ -3,9 +3,6 @@
 // default constructor
 Location::Location()
 {
-	//TODO
-	// root = current working directory
-	allowed_methods.push_back("GET");
 	autoindex = false;
 	index.clear();
 	is_redirection = false;
@@ -136,6 +133,7 @@ bool								Location::isRedirection() const { return is_redirection; }
 std::pair<std::string,int> const	&Location::getRedirection() const { return redirection; }
 
 // setters
+void	Location::setRoot(std::string const &new_root) { root = new_root; }
 void	Location::addAllowedMethod(std::string method)
 {
 	if (!isMethodAllowed(method))

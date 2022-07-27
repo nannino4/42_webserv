@@ -1,6 +1,7 @@
 NAME		= 	webserv
 
 SRCS		= 	main.cpp \
+				cgi.cpp \
 				cluster_init.cpp \
 				cluster.cpp \
 				connected_client.cpp \

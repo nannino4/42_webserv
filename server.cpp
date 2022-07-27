@@ -1,7 +1,11 @@
 #include "server.hpp"
 
 // default constructor
-Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd), client_body_size(-1) {}
+Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd), client_body_size(-1), default_location()
+{
+	default_location.setRoot(my_getcwd() + DEFAULT_ROOT);
+	default_location.addAllowedMethod("GET");
+}
 
 // copy constructor
 Server::Server(Server const &other) : kqueue_epoll_fd(other.getKqueueEpollFd()) { *this = other; }
@@ -63,15 +67,21 @@ std::ostream &operator<<(std::ostream &os, Server const &server)
 }
 
 // TODO
-// header date
-// header allow
-// header location
+// header content-type
+// header content-lenght
 // prepareResponse
+// conditional operations (if-modified, etc...)
 void Server::prepareResponse(ConnectedClient *client)
 {
 	Request										&request = client->request;
 	Response									&response = client->response;
 	std::map<int,std::string>::const_iterator	it;
+
+	// add "Date" header
+	//TODO
+
+	// add "Connection" header
+	response.addNewHeader(std::pair<std::string,std::string>("Connection", "Close"));
 
 	if (!request.isValid())
 	{
@@ -109,6 +119,19 @@ void Server::prepareResponse(ConnectedClient *client)
 			// the method requested is not allowed
 			response.setStatusCode("405");
 			response.setReasonPhrase("Method Not Allowed");
+
+			// add "Allow" header
+			std::string allow = "";
+			for (std::vector<std::string>::const_iterator it = request.getLocation()->getAllowedMethods().begin(); it != request.getLocation()->getAllowedMethods().end(); ++it)
+			{
+				if (it != request.getLocation()->getAllowedMethods().begin())
+				{
+					allow += ", ";
+				}
+				allow += *it;
+			}
+			response.addNewHeader(std::pair<std::string,std::string>("Allow", allow));
+
 			if ((it = error_pages.find(std::atoi(response.getStatusCode().c_str()))) != error_pages.end())
 			{
 				std::ifstream	error_page_file(it->second);
@@ -367,8 +390,10 @@ void Server::manageDir(Request const &request, Response &response)
 			S_ISREG(file_stat.st_mode))
 	{
 		// an index exists and it is a file
-		//TODO maybe add a '/' between path and index
-		getFile(request.getPath() + request.getLocation()->getIndex(), response);
+		if (request.getPath().at(request.getPath().size() - 1) != '/')
+			getFile(request.getPath() + "/" + request.getLocation()->getIndex(), response);
+		else
+			getFile(request.getPath() + request.getLocation()->getIndex(), response);
 	}
 	else if (request.getLocation()->isAutoindex())
 	{

@@ -1,11 +1,13 @@
 
-#include <ctime>
 #include <iostream>
 #include <unistd.h>
-#include <sys/stat.h>
+#include "utils.hpp"
+#include <string>
 
 int main()
 {
-	struct stat	buf;
-	std::cout << stat("./testone.cpp", &buf) << std::endl;
+	char *tmp = get_current_dir_name();
+	std::string string(tmp);
+	delete tmp;
+	std::cout << string << std::endl;
 }
