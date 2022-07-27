@@ -21,9 +21,9 @@
 
 #include "location.hpp"
 #include "connected_client.hpp"
-#include "cgi.hpp"
-#include "request.hpp"
-#include "response.hpp"
+#include "Cgi.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
 #include "utils.hpp"
 
 #define DEFAULT_ROOT "/www"

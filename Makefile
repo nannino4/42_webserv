@@ -1,7 +1,7 @@
 NAME		= 	webserv
 
 SRCS		= 	main.cpp \
-				cgi.cpp \
+				Cgi.cpp \
 				cluster_init.cpp \
 				cluster.cpp \
 				connected_client.cpp \
@@ -9,8 +9,8 @@ SRCS		= 	main.cpp \
 				default_server.cpp \
 				location_init.cpp \
 				location.cpp \
-				request.cpp \
-				response.cpp \
+				Request.cpp \
+				Response.cpp \
 				server.cpp \
 				utils.cpp
 
