@@ -1,7 +1,7 @@
 #include "server.hpp"
 
 // default constructor
-Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd) {}
+Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd), client_body_size(-1) {}
 
 // copy constructor
 Server::Server(Server const &other) : kqueue_epoll_fd(other.getKqueueEpollFd()) { *this = other; }
@@ -78,6 +78,7 @@ void Server::prepareResponse(ConnectedClient *client)
 		// the request in not valid
 		response.setStatusCode("400");
 		response.setReasonPhrase("BAD REQUEST");
+		//TODO the code and response phrase will be set in the default_server
 		// set body accordingly
 		if ((it = error_pages.find(std::atoi(response.getStatusCode().c_str()))) != error_pages.end())
 		{
@@ -100,7 +101,7 @@ void Server::prepareResponse(ConnectedClient *client)
 		// the request is valid
 
 		// add the location root path to the request path
-		request.setPath(request.getPath() + request.getLocation()->getRoot());
+		request.setPath(request.getLocation()->getRoot() + request.getPath());
 
 		// check if the method is allowd
 		if (!request.getLocation()->isMethodAllowed(request.getMethod()))
@@ -124,9 +125,17 @@ void Server::prepareResponse(ConnectedClient *client)
 				response.generateErrorPage();
 			}
 		}
+		else if (request.getLocation()->isRedirection())
+		{
+			// there is a redirection
+			response.setStatusCode(std::to_string(request.getLocation()->getRedirection().second));
+			response.setReasonPhrase("Moved Permanently");
+			response.addNewHeader(std::pair<std::string,std::string>("Location", request.getLocation()->getRedirection().first));
+			// generateAutoIndex();	// TODO why?
+		}
 		else
 		{
-			// the method request is allowed
+			// the method requested is allowed
 			if (!request.getMethod().compare("GET"))
 			{
 				methodGet(request, response);
@@ -163,51 +172,19 @@ void Server::methodGet(Request const &request, Response &response)
 	std::stringstream							line;
 	std::map<int,std::string>::const_iterator	it;
 
-	// check for redirection
-	if (request.getLocation()->isRedirection())
+	// get information about the file identified by path
+	if (stat((request.getPath()).c_str(), &file_stat) == 0)
 	{
-		response.setStatusCode(std::to_string(request.getLocation()->getRedirection().second));
-		response.setReasonPhrase("Moved Permanently");
-		response.addNewHeader(std::pair<std::string,std::string>("Location", request.getLocation()->getRedirection().first));
-		// generateAutoIndex();	// TODO why?
-	}
-	else	// no redirection; continue processing request
-	{
-		// get information about the file identified by path
-		if (stat((request.getPath()).c_str(), &file_stat) == 0)
+		// check whether path identifies a regular file, or a directory
+	    if (S_ISDIR(file_stat.st_mode))			// path identifies a directory
 		{
-			// check whether path identifies a regular file, or a directory
-		    if (S_ISDIR(file_stat.st_mode))			// path identifies a directory
-			{
-		        manageDir(request, response);
-			}
-		    else if (S_ISREG(file_stat.st_mode))	// path identifies a regular file
-			{
-		        getFile(request.getPath(), response);
-			}
-			else									// path identifies no directory nor file
-			{
-				response.setStatusCode("404");
-				response.setReasonPhrase("File Not Found");
-				// set body accordingly
-				if ((it = error_pages.find(std::atoi(response.getStatusCode().c_str()))) != error_pages.end())
-				{
-					std::ifstream	error_page_file(it->second);
-					std::string		tmp;
-
-					while (error_page_file.good())
-					{
-						getline(error_page_file, tmp);
-						response.setBody(response.getBody() + tmp + "\n");
-					}
-				}
-				else
-				{
-					response.generateErrorPage();
-				}
-			}
+	        manageDir(request, response);
 		}
-		else	// path is invalid
+	    else if (S_ISREG(file_stat.st_mode))	// path identifies a regular file
+		{
+	        getFile(request.getPath(), response);
+		}
+		else									// path identifies no directory nor file
 		{
 			response.setStatusCode("404");
 			response.setReasonPhrase("File Not Found");
@@ -229,6 +206,27 @@ void Server::methodGet(Request const &request, Response &response)
 			}
 		}
 	}
+	else	// path is invalid
+		{
+			response.setStatusCode("404");
+			response.setReasonPhrase("File Not Found");
+			// set body accordingly
+			if ((it = error_pages.find(std::atoi(response.getStatusCode().c_str()))) != error_pages.end())
+			{
+				std::ifstream	error_page_file(it->second);
+				std::string		tmp;
+
+				while (error_page_file.good())
+				{
+					getline(error_page_file, tmp);
+					response.setBody(response.getBody() + tmp + "\n");
+				}
+			}
+			else
+			{
+				response.generateErrorPage();
+			}
+		}
 }
 
 // POST method
@@ -368,12 +366,14 @@ void Server::manageDir(Request const &request, Response &response)
 			stat(std::string(request.getPath() + request.getLocation()->getIndex()).c_str(), &file_stat) == 0 && \
 			S_ISREG(file_stat.st_mode))
 	{
-		// an index exists and if it is a file
+		// an index exists and it is a file
+		//TODO maybe add a '/' between path and index
 		getFile(request.getPath() + request.getLocation()->getIndex(), response);
 	}
 	else if (request.getLocation()->isAutoindex())
 	{
 		// no indexes, but autoindex is on
+		//TODO add code and reason phrase (?)
 		generateAutoIndex();
 	}
 	else

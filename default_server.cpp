@@ -332,23 +332,37 @@ void DefaultServer::receiveRequest(Event *current_event)
 			client->request.setVersion(version);
 
 			// check that stream didn't fail reading && stream reached EOF && version is correct (HTTP/1.1)
-			if (stream.fail() || !stream.eof() || client->request.getVersion().compare("HTTP/1.1"))
+			if (stream.fail() || !stream.eof())
 			{
 				// the request will stop being handled
 				client->request.setIsComplete(true);
 				client->request.setIsValid(false);
 			}
+			else if (client->request.getVersion().compare("HTTP/1.1"))
+			{
+				// the request will stop being handled
+				client->request.setIsComplete(true);
+				client->request.setIsValid(false);
+				//TODO set code and reason phrase accordingly
+			}
 		}
 		else if (client->request.areHeadersComplete())	// body line || last line
 		{
-			if (!stream.str().compare("\r\n") || !stream.str().compare("\n"))
+			std::map<std::string,std::string>::const_iterator it;
+			int content_lenght;
+
+			// check that header "Content-Lenght" exists
+			if ((it = client->request.getHeaders().find("Content-Lenght")) == client->request.getHeaders().end())
 			{
 				client->request.setIsComplete(true);
+				client->request.setIsValid(false);
+				//TODO set code and reason phrase accordingly
 			}
 			else
 			{
 				std::string body;
 
+				content_lenght = std::atoi(it->second.c_str());
 				stream >> body >> std::ws;
 				client->request.setBody(client->request.getBody() + body);
 
@@ -358,6 +372,19 @@ void DefaultServer::receiveRequest(Event *current_event)
 					// the request will stop being handled
 					client->request.setIsComplete(true);
 					client->request.setIsValid(false);
+					//TODO set code and reason phrase accordingly
+				}
+				else if ((client_body_size > 0) && (client->request.getBody().size() > client_body_size))
+				{
+					// body is too large
+					// the request will stop being handled
+					client->request.setIsComplete(true);
+					client->request.setIsValid(false);
+					//TODO set code and reason phrase accordingly
+				}
+				else if (client->request.getBody().size() >= content_lenght)
+				{
+					client->request.setIsComplete(true);
 				}
 			}
 		}
@@ -377,6 +404,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 				{
 					client->request.setIsComplete(true);
 					client->request.setIsValid(false);
+					//TODO set code and reason phrase accordingly
 				}
 			}
 			else if (stream.str().find(":") != std::string::npos)
@@ -396,6 +424,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 				{
 					// the request will stop being handled
 					client->request.setIsComplete(true);
+					client->request.setIsValid(false);
 				}
 			}
 			else
@@ -597,7 +626,7 @@ void DefaultServer::closeTimedOutConnections()
 				clients.erase(current_client->connected_fd);
 				delete current_client;
 			}
-			else if (current_client->request.getRequest().empty())						// client didn't send any request and the connection timed out
+			else if (current_client->request.getRequest().empty())		// client didn't send any request and the connection timed out
 			{
 				// remove connected_fd from kqueue
 			#ifdef __MACH__
@@ -640,6 +669,7 @@ void DefaultServer::closeTimedOutConnections()
 				//debug
 				std::cout << "\nThe event with ident = " << current_client->connected_fd << " and filter EVFILT_READ has been removed from kqueue\n" << std::endl;
 
+				current_client->request.setIsValid(false);
 				dispatchRequest(current_client);
 			}
 		}

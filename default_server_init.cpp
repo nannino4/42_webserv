@@ -35,15 +35,15 @@ void DefaultServer::parseDirectives(std::stringstream &stream)
 	}
 	else if (!directive.compare("server_name"))
 	{
-		parseName(stream);			//TODO
+		parseName(stream);
 	}
 	else if (!directive.compare("limit_body_size"))
 	{
-		parseBodySize(stream);		//TODO
+		parseBodySize(stream);
 	}
 	else if (!directive.compare("error_page"))
 	{
-		parseErrorPage(stream);		//TODO
+		parseErrorPage(stream);
 	}
 	else
 	{
