@@ -1,5 +1,4 @@
 #include "cgi.hpp"
-#include "request.hpp"
 #include "utils.hpp"
 
 using namespace std;
