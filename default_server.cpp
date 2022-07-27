@@ -287,6 +287,9 @@ void DefaultServer::receiveRequest(Event *current_event)
 	std::stringstream	stream;
 
 	//debug
+	std::string			tmp;
+
+	//debug
 	std::cout << "-----------------------------------------------------------" << std::endl;
 	std::cout << "\nDefaultServer.receiveRequest():" << std::endl;
 
@@ -315,7 +318,8 @@ void DefaultServer::receiveRequest(Event *current_event)
 			&& !client->request.isComplete())
 	{
 		stream.clear();
-		stream.str(client->request.getRequest().substr(client->request.getRequestPos(), (found_pos - client->request.getRequestPos())));
+		stream.str(client->request.getRequest().substr(client->request.getRequestPos(), (found_pos + 1 - client->request.getRequestPos())));
+		tmp = stream.str();
 		client->request.setRequestPos(found_pos + 1);
 
 		if (client->request.getMethod().empty())		// first line
@@ -349,7 +353,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 				client->request.setIsComplete(true);
 				client->request.setIsValid(false);
 				client->response.setStatusCode("400");
-				client->response.setReasonPhrase("failed reading");
+				client->response.setReasonPhrase("failed reading 1");
 			}
 			else if (client->request.getVersion().compare("HTTP/1.1"))
 			{
@@ -357,11 +361,11 @@ void DefaultServer::receiveRequest(Event *current_event)
 				client->request.setIsComplete(true);
 				client->request.setIsValid(false);
 				client->response.setStatusCode("400");
-				client->response.setReasonPhrase("wrong http version");
+				client->response.setReasonPhrase("wrong http version");	//TODO aggiusta code e reason phrase
 				//TODO set code and reason phrase accordingly
 			}
 		}
-		else if (client->request.areHeadersComplete())	// body line || last line
+		else if (client->request.areHeadersComplete())	// body line
 		{
 			std::map<std::string,std::string>::const_iterator	it;
 			long unsigned int									content_lenght;
@@ -372,7 +376,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 				client->request.setIsComplete(true);
 				client->request.setIsValid(false);
 				client->response.setStatusCode("400");
-				client->response.setReasonPhrase("no \"content-lenght\" header");
+				client->response.setReasonPhrase("Missing \"Content-Lenght\" Header");
 				//TODO set code and reason phrase accordingly
 			}
 			else
@@ -390,7 +394,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 					client->request.setIsComplete(true);
 					client->request.setIsValid(false);
 					client->response.setStatusCode("400");
-					client->response.setReasonPhrase("failed reading");
+					client->response.setReasonPhrase("failed reading 2");
 					//TODO set code and reason phrase accordingly
 				}
 				else if ((client_body_size > 0) && (client->request.getBody().size() > client_body_size))
@@ -426,7 +430,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 					client->request.setIsComplete(true);
 					client->request.setIsValid(false);
 					client->response.setStatusCode("400");
-					client->response.setReasonPhrase("no \"host\" header");
+					client->response.setReasonPhrase("Missing \"Host\" Header");
 					//TODO set code and reason phrase accordingly
 				}
 			}
@@ -438,19 +442,19 @@ void DefaultServer::receiveRequest(Event *current_event)
 
 				stream >> std::ws;
 				std::getline(stream, key, ':');
-				stream >> value >> std::ws;
+				stream >> value;
 
 				client->request.addHeader(std::pair<std::string,std::string>(key, value));
 
-				// check that stream didn't fail reading && stream reached EOF
-				if (stream.fail() || !stream.eof())
-				{
-					// the request will stop being handled
-					client->request.setIsComplete(true);
-					client->request.setIsValid(false);
-					client->response.setStatusCode("400");
-					client->response.setReasonPhrase("failed reading");
-				}
+				// // check that stream didn't fail reading && stream reached EOF
+				// if (stream.fail() || !stream.eof())
+				// {
+				// 	// the request will stop being handled
+				// 	client->request.setIsComplete(true);
+				// 	client->request.setIsValid(false);
+				// 	client->response.setStatusCode("400");
+				// 	client->response.setReasonPhrase("failed reading 3");
+				// }
 			}
 			else
 			{
