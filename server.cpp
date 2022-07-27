@@ -1,7 +1,7 @@
 #include "server.hpp"
 
 // default constructor
-Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd), client_body_size(-1), default_location()
+Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd), client_body_size(0), default_location()
 {
 	default_location.setRoot(my_getcwd() + DEFAULT_ROOT);
 	default_location.addAllowedMethod("GET");
@@ -86,8 +86,8 @@ void Server::prepareResponse(ConnectedClient *client)
 	if (!request.isValid())
 	{
 		// the request in not valid
-		response.setStatusCode("400");
-		response.setReasonPhrase("BAD REQUEST");
+		// response.setStatusCode("400");
+		// response.setReasonPhrase("BAD REQUEST");
 		//TODO the code and response phrase will be set in the default_server
 		// set body accordingly
 		if ((it = error_pages.find(std::atoi(response.getStatusCode().c_str()))) != error_pages.end())
@@ -179,17 +179,6 @@ void Server::prepareResponse(ConnectedClient *client)
 // GET method
 void Server::methodGet(Request const &request, Response &response)
 {
-	// size_t pos = request.getPath().find(".php");
-	// if(pos < request.getPath().size())
-	// {
-	// 	// std::cout << "executing cgi file: " << pos << "\n";
-	// 	Cgi cgi(request);
-	// 	response.setBody(response.getBody() + cgi.run_cgi("/usr/local/bin/php-cgi"));
-	// 	response.setStatusCode("200");
-	// 	response.setReasonPhrase("OK");
-	// 	response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(response.getBody().size())));
-	// 	return;
-	// }
 	std::ifstream								file;
 	struct stat									file_stat;
 	std::stringstream							line;

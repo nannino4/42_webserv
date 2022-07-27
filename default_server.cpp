@@ -348,25 +348,31 @@ void DefaultServer::receiveRequest(Event *current_event)
 				// the request will stop being handled
 				client->request.setIsComplete(true);
 				client->request.setIsValid(false);
+				client->response.setStatusCode("400");
+				client->response.setReasonPhrase("failed reading");
 			}
 			else if (client->request.getVersion().compare("HTTP/1.1"))
 			{
 				// the request will stop being handled
 				client->request.setIsComplete(true);
 				client->request.setIsValid(false);
+				client->response.setStatusCode("400");
+				client->response.setReasonPhrase("wrong http version");
 				//TODO set code and reason phrase accordingly
 			}
 		}
 		else if (client->request.areHeadersComplete())	// body line || last line
 		{
-			std::map<std::string,std::string>::const_iterator it;
-			int content_lenght;
+			std::map<std::string,std::string>::const_iterator	it;
+			long unsigned int									content_lenght;
 
 			// check that header "Content-Lenght" exists
 			if ((it = client->request.getHeaders().find("Content-Lenght")) == client->request.getHeaders().end())
 			{
 				client->request.setIsComplete(true);
 				client->request.setIsValid(false);
+				client->response.setStatusCode("400");
+				client->response.setReasonPhrase("no \"content-lenght\" header");
 				//TODO set code and reason phrase accordingly
 			}
 			else
@@ -383,6 +389,8 @@ void DefaultServer::receiveRequest(Event *current_event)
 					// the request will stop being handled
 					client->request.setIsComplete(true);
 					client->request.setIsValid(false);
+					client->response.setStatusCode("400");
+					client->response.setReasonPhrase("failed reading");
 					//TODO set code and reason phrase accordingly
 				}
 				else if ((client_body_size > 0) && (client->request.getBody().size() > client_body_size))
@@ -391,6 +399,8 @@ void DefaultServer::receiveRequest(Event *current_event)
 					// the request will stop being handled
 					client->request.setIsComplete(true);
 					client->request.setIsValid(false);
+					client->response.setStatusCode("400");
+					client->response.setReasonPhrase("body size is too large");
 					//TODO set code and reason phrase accordingly
 				}
 				else if (client->request.getBody().size() >= content_lenght)
@@ -415,6 +425,8 @@ void DefaultServer::receiveRequest(Event *current_event)
 				{
 					client->request.setIsComplete(true);
 					client->request.setIsValid(false);
+					client->response.setStatusCode("400");
+					client->response.setReasonPhrase("no \"host\" header");
 					//TODO set code and reason phrase accordingly
 				}
 			}
@@ -436,6 +448,8 @@ void DefaultServer::receiveRequest(Event *current_event)
 					// the request will stop being handled
 					client->request.setIsComplete(true);
 					client->request.setIsValid(false);
+					client->response.setStatusCode("400");
+					client->response.setReasonPhrase("failed reading");
 				}
 			}
 			else

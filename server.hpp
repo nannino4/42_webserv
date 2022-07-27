@@ -21,6 +21,7 @@
 
 #include "location.hpp"
 #include "connected_client.hpp"
+#include "cgi.hpp"
 #include "request.hpp"
 #include "response.hpp"
 #include "utils.hpp"
