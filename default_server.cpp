@@ -442,6 +442,8 @@ void DefaultServer::receiveRequest(Event *current_event)
 
 				stream >> std::ws;
 				std::getline(stream, key, ':');
+
+				// TODO fix this
 				stream >> value;
 
 				client->request.addHeader(std::pair<std::string,std::string>(key, value));
