@@ -641,10 +641,12 @@ void DefaultServer::sendResponse(Event *current_event)
 void DefaultServer::closeTimedOutConnections()
 {
 	ConnectedClient	*current_client;
+	std::map<int,ConnectedClient&>::iterator it = clients.begin();
 
-	for (std::map<int,ConnectedClient&>::iterator it = clients.begin(); it != clients.end(); ++it)
+	while (it != clients.end())
 	{
 		current_client = &it->second;
+		++it;
 
 		// check if the connection is timed out
 		if (getTimeDifference(current_client->time_since_last_action) > TIMEOUT)
@@ -666,7 +668,8 @@ void DefaultServer::closeTimedOutConnections()
 					exit(EXIT_FAILURE);
 				}
 				// erase client from the map of clients and delete it from memory
-				--it;
+				//debug
+				std::cout << "removing conneted_fd " << current_client->connected_fd << " because it TIMED OUT reading the response" << std::endl;
 				clients.erase(current_client->connected_fd);
 				delete current_client;
 			}
@@ -687,13 +690,17 @@ void DefaultServer::closeTimedOutConnections()
 					exit(EXIT_FAILURE);
 				}
 				// erase client from the map of clients and delete it from memory
-				--it;
+				//debug
+				std::cout << "removing conneted_fd " << current_client->connected_fd << " because it TIMED OUT" << std::endl;
+				current_client->~ConnectedClient();
 				clients.erase(current_client->connected_fd);
 				delete current_client;
 			}
 			else														// client timed out sending the request
 			{
 				// the request is considered complete, even though invalid
+
+				//TODO add status code and reason phrase to the response
 				
 				// remove connected_fd to kqueue from READ monitoring
 			#ifdef __MACH__
@@ -711,12 +718,12 @@ void DefaultServer::closeTimedOutConnections()
 				}
 
 				//debug
-				std::cout << "\nThe event with ident = " << current_client->connected_fd << " and filter EVFILT_READ has been removed from kqueue\n" << std::endl;
+				std::cout << "\nThe event with ident = " << current_client->connected_fd << " and filter EVFILT_READ has been removed from kqueue because it TIMED OUT\n" << std::endl;
 
 				current_client->request.setIsValid(false);
 				dispatchRequest(current_client);
 			}
 		}
-	}
+	} // while (it != clients.end())
 	
 }

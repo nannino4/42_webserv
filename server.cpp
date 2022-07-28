@@ -69,8 +69,8 @@ std::ostream &operator<<(std::ostream &os, Server const &server)
 // TODO
 // header content-type
 // header content-lenght
-// prepareResponse
 // conditional operations (if-modified, etc...)
+// prepareResponse
 void Server::prepareResponse(ConnectedClient *client)
 {
 	Request										&request = client->request;
@@ -103,7 +103,7 @@ void Server::prepareResponse(ConnectedClient *client)
 		}
 		else
 		{
-			response.generateErrorPage();
+			response.generateErrorPage();	//TODO fai il check delle error pages qui dentro e rendila una funzione del server
 		}
 	}
 	else
@@ -167,7 +167,7 @@ void Server::prepareResponse(ConnectedClient *client)
 			{
 				methodPost(request, response);
 			}
-			if (!request.getMethod().compare("DELETE"))
+			else if (!request.getMethod().compare("DELETE"))
 			{
 				methodDelete(request, response);
 			}
@@ -194,7 +194,7 @@ void Server::methodGet(Request const &request, Response &response)
 		}
 	    else if (S_ISREG(file_stat.st_mode))	// path identifies a regular file
 		{
-	        getFile(request.getPath(), response);
+	        getFile(request.getPath(), response);	//TODO cambia nome in fileToBody
 		}
 		else									// path identifies no directory nor file
 		{

@@ -35,7 +35,8 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), index
 		pos = found_pos + 1;
 	
 		stream >> directive;
-		stream >> std::ws;
+		if (!stream.eof())
+			stream >> std::ws;
 
 		// check that stream didn't fail reading
 		if (stream.fail())

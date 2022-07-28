@@ -161,19 +161,10 @@ void Cluster::run()
 	while (1)
 	{
 	#ifdef __MACH__
-		num_ready_fds = kevent(kqueue_epoll_fd, nullptr, 0, triggered_events, N_EVENTS, nullptr);
+		num_ready_fds = kevent(kqueue_epoll_fd, nullptr, 0, triggered_events, N_EVENTS, nullptr);	//TODO change timeout to be 0 instead of infinite
 	#elif defined(__linux__)
 		num_ready_fds = epoll_wait(kqueue_epoll_fd, triggered_events, N_EVENTS, 0);
 	#endif
-
-		//debug
-		sleep(1);
-
-		//debug
-		std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
-		std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
-		std::cout << "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
-		std::cout << "\nCluster.run():\n\nkevent()/epoll_wait() returned " << num_ready_fds << " events\n" << std::endl;
 
 		if (num_ready_fds == -1)
 		{
@@ -199,7 +190,8 @@ void Cluster::run()
 			DefaultServer *default_server = (DefaultServer *)(current_event->default_server_ptr);
 
 			//debug
-			std::cout << "\nloop with index =\t" << i << std::endl << std::endl;
+			std::cout << "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+			std::cout << "\nevent " << i + 1 << "/" << num_ready_fds << std::endl << std::endl;
 			std::cout << "current_event:\n";
 			std::cout << "\tfd =\t\t" << current_event->fd << std::endl;
 			std::cout << "\tevents =\t" << current_event->events << std::endl;
@@ -231,9 +223,6 @@ void Cluster::run()
 					default_server->receiveRequest(current_event);
 				}
 			}
-
-			//debug
-			std::cout << "\n\n'for loop' with index = " << i << " is over. Maximum index = " << num_ready_fds - 1 << std::endl << std::endl;
 
 		} //for loop on num_ready_fds
 

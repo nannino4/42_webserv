@@ -27,7 +27,7 @@
 #include "utils.hpp"
 
 // TODO eliminare
-#define DEFAULT_ROOT "/www"
+#define DEFAULT_ROOT "./www"
 
 class Server
 {
