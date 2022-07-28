@@ -100,7 +100,8 @@ Cluster::Cluster(std::string config_file_name)
 		}
 	}
 	stream.str(whole_file.substr(pos));
-	stream >> std::ws;
+	if (!stream.eof())
+		stream >> std::ws;
 	if (!stream.eof())
 	{
 		//TODO handle error

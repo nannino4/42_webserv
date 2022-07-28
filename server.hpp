@@ -75,6 +75,7 @@ public:
 private:
 	void	getFile(std::string const path, Response &response);
 	void	manageDir(Request const &request, Response &response);
+	void	errorPageToBody(Response &response);
 	void	generateAutoIndex();
 
 };

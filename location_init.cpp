@@ -3,7 +3,9 @@
 void Location::parseRoot(std::stringstream &stream)
 {
 	stream >> root;
-	stream >> std::ws;
+
+	if (!stream.eof())
+		stream >> std::ws;
 
 	// check that stream didn't fail reading
 	if (stream.fail())
@@ -30,7 +32,6 @@ void Location::parseAllowedMethods(std::stringstream &stream)
 	while (stream.good())
 	{
 		stream >> newMethod;
-		stream >> std::ws;
 
 		// check that stream didn't fail reading
 		if (stream.fail())
@@ -48,12 +49,7 @@ void Location::parseAllowedMethods(std::stringstream &stream)
 		}
 
 		addAllowedMethod(newMethod);
-	}
-	
-	if (!stream.eof())
-	{
-		//TODO handle error
-		std::cerr << "\nERROR\nLocation::parseAllowedMethods(): failed reading from stream" << std::endl;
+		stream >> std::ws;
 	}
 }
 
@@ -62,7 +58,8 @@ void Location::parseAutoindex(std::stringstream &stream)
 	std::string flag;
 
 	stream >> flag;
-	stream >> std::ws;
+	if (!stream.eof())
+		stream >> std::ws;
 
 	// check that stream didn't fail reading
 	if (stream.fail())
@@ -100,7 +97,8 @@ void Location::parseAutoindex(std::stringstream &stream)
 void Location::parseIndex(std::stringstream &stream)
 {
 	stream >> index;
-	stream >> std::ws;
+	if (!stream.eof())
+		stream >> std::ws;
 
 	// check that stream didn't fail reading
 	if (stream.fail())
@@ -127,7 +125,6 @@ void Location::parseReturn(std::stringstream &stream)
 	is_redirection = true;
 
 	stream >> code;
-	stream >> std::ws;
 
 	// check that stream didn't fail reading
 	if (stream.fail())
@@ -146,7 +143,8 @@ void Location::parseReturn(std::stringstream &stream)
 	}
 
 	stream >> url;
-	stream >> std::ws;
+	if (!stream.eof())
+		stream >> std::ws;
 
 	// check that stream didn't fail reading
 	if (stream.fail())

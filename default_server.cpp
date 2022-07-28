@@ -40,6 +40,9 @@ DefaultServer::DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, s
 			std::string	path;
 
 			stream >> directive >> path;
+			if (!stream.eof())
+				stream >> std::ws;
+
 
 			// check that stream didn't fail reading
 			if (stream.fail())
@@ -72,6 +75,12 @@ DefaultServer::DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, s
 				std::cerr << "\nERROR\nDefaultServer::DefaultServer(): too many parameters parsing \"[location] [path] {\"" << std::endl;
 				exit(EXIT_FAILURE);
 			}
+
+			// fix the path format regarding the '/' char (/valid/path)
+			if (path.at(0) != '/')
+				path.insert(path.begin(), '/');
+			if (path.back() == '/')
+				path.erase(path.end() - 1);
 
 			// check that insert() actually inserted a new element
 			if (!(locations.insert(std::pair<std::string,Location>(path, Location(config_file, pos)))).second)
@@ -328,7 +337,9 @@ void DefaultServer::receiveRequest(Event *current_event)
 			std::string path;
 			std::string version;
 
-			stream >> method >> path >> version >> std::ws;
+			stream >> method >> path >> version;
+			if (!stream.eof())
+				stream >> std::ws;
 
 			// check if path contains '/'
 			if (path.find('/') == std::string::npos)
@@ -367,11 +378,11 @@ void DefaultServer::receiveRequest(Event *current_event)
 		}
 		else if (client->request.areHeadersComplete())	// body line
 		{
-			std::map<std::string,std::string>::const_iterator	it;
+			std::map<std::string,std::string>::const_iterator	it = client->request.getHeaders().find("Content-Lenght");
 			long unsigned int									content_lenght;
 
 			// check that header "Content-Lenght" exists
-			if ((it = client->request.getHeaders().find("Content-Lenght")) == client->request.getHeaders().end())
+			if (it == client->request.getHeaders().end())
 			{
 				client->request.setIsComplete(true);
 				client->request.setIsValid(false);
@@ -381,25 +392,12 @@ void DefaultServer::receiveRequest(Event *current_event)
 			}
 			else
 			{
-				std::string body;
-
 				content_lenght = std::atoi(it->second.c_str());
-				stream >> body >> std::ws;
-				client->request.setBody(client->request.getBody() + body);
+				client->request.setBody(client->request.getBody() + stream.str());
 
-				// check that stream didn't fail reading && stream reached EOF
-				if (stream.fail() || !stream.eof())
+				// check if body is too large
+				if ((client_body_size > 0) && (client->request.getBody().size() > client_body_size))
 				{
-					// the request will stop being handled
-					client->request.setIsComplete(true);
-					client->request.setIsValid(false);
-					client->response.setStatusCode("400");
-					client->response.setReasonPhrase("failed reading 2");
-					//TODO set code and reason phrase accordingly
-				}
-				else if ((client_body_size > 0) && (client->request.getBody().size() > client_body_size))
-				{
-					// body is too large
 					// the request will stop being handled
 					client->request.setIsComplete(true);
 					client->request.setIsValid(false);
@@ -437,14 +435,25 @@ void DefaultServer::receiveRequest(Event *current_event)
 			else if (stream.str().find(":") != std::string::npos)
 			{
 				// parse header
-				std::string key;
-				std::string value;
+				std::string			key;
+				std::string			value;
+				std::string			tmp_string;
+				std::stringstream	tmp_ss;
 
-				stream >> std::ws;
 				std::getline(stream, key, ':');
+				tmp_ss.str(key);
+				tmp_ss >> key;
+				tmp_ss.clear();
 
-				// TODO fix this
-				stream >> value;
+				std::getline(stream, value);
+				tmp_ss.str(value);
+				tmp_ss >> value;
+				tmp_ss >> std::ws;
+				while (tmp_ss.good())
+				{
+					tmp_ss >> tmp_string >> std::ws;
+					value += tmp_string;
+				}
 
 				client->request.addHeader(std::pair<std::string,std::string>(key, value));
 
