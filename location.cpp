@@ -9,7 +9,7 @@ Location::Location()
 }
 
 // constructor
-Location::Location(std::string &config_file, int &pos) : autoindex(false), index("index.html"), is_redirection(false)
+Location::Location(std::string &config_file, int &pos) : autoindex(false), index("index.html"), is_redirection(false), is_cgi(false)
 {
 	std::stringstream	stream;
 	std::string			directive;
@@ -78,6 +78,14 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), index
 		else if (!directive.compare("return"))
 		{
 			parseReturn(stream);
+		}
+		else if (!directive.compare("phpcgi_pass"))
+		{
+			parsePhpCgi(stream);
+		}
+		else if (!directive.compare("phpcgi_param"))
+		{
+			parsePhpCgiParam(stream);
 		}
 		else
 		{

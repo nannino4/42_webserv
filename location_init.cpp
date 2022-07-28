@@ -165,3 +165,13 @@ void Location::parseReturn(std::stringstream &stream)
 	redirection.first = url;
 	redirection.second = code;
 }
+
+void Location::parsePhpCgi(std::stringstream &stream)
+{
+	//TODO
+}
+
+void Location::parsePhpCgiParam(std::stringstream &stream)
+{
+	//TODO
+}

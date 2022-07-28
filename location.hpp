@@ -11,14 +11,18 @@ class Location
 {
 private:
 	// attributes
-	std::string					root;
-	std::vector<std::string>	allowed_methods;
+	std::string							root;
+	std::vector<std::string>			allowed_methods;
 	//directory listing
-	bool						autoindex;
-	std::string					index;
+	bool								autoindex;
+	std::string							index;
 	//redirection
-	bool						is_redirection;
-	std::pair<std::string,int>	redirection;
+	bool								is_redirection;
+	std::pair<std::string,int>			redirection;
+	//cgi
+	bool								is_cgi;
+	std::string							cgi_script;
+	std::map<std::string,std::string>	cgi_params;
 
 public:
 	// default constructor
@@ -55,5 +59,7 @@ private:
 	void parseAutoindex(std::stringstream &stream);
 	void parseIndex(std::stringstream &stream);
 	void parseReturn(std::stringstream &stream);
+	void parsePhpCgi(std::stringstream &stream);
+	void parsePhpCgiParam(std::stringstream &stream);
 
 };
