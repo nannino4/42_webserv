@@ -10,7 +10,7 @@ phpinfo();
 ?> -->
 
 <?php
-ob_start();
+//ob_start();
 phpinfo();
-$info = ob_end_clean();
+//$info = ob_end_clean();
 ?>

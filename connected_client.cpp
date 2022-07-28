@@ -9,7 +9,11 @@ ConnectedClient::ConnectedClient(int const connected_fd, struct sockaddr_in clie
 	request(), \
 	response()
 	{
-		clock_gettime(CLOCK_BOOTTIME, &time_since_last_action);
+		#ifdef __MACH__
+			clock_gettime(_CLOCK_REALTIME, &time_since_last_action);
+		#elif defined(__linux__)
+			clock_gettime(CLOCK_BOOTTIME, &time_since_last_action);
+		#endif
 	}
 
 // copy constructor

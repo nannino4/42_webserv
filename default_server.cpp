@@ -488,7 +488,11 @@ void DefaultServer::receiveRequest(Event *current_event)
 	}
 
 	// update client timeout
-	clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
+	#ifdef __MACH__
+		clock_gettime(_CLOCK_REALTIME, &client->time_since_last_action);
+	#elif defined(__linux__)
+		clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
+	#endif
 
 	if (client->request.isComplete())
 	{
@@ -564,7 +568,12 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 	}
 
 	// update client timeout
-	clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
+
+	#ifdef __MACH__
+		clock_gettime(_CLOCK_REALTIME, &client->time_since_last_action);
+	#elif defined(__linux__)
+		clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
+	#endif
 
 	//debug
 	std::cout << "\nThe event with ident = " << client->connected_fd << " and filter EVFILT_WRITE has been added to kqueue\n" << std::endl;
@@ -596,7 +605,11 @@ void DefaultServer::sendResponse(Event *current_event)
 	std::cout << "\nsent_bytes = " << sent_bytes << "\ntotal message sent = \n\"" << client->response.getResponse().substr(0, client->response.getResponsePos()) << "\"" << std::endl;
 
 	// update client timeout
-	clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
+	#ifdef __MACH__
+		clock_gettime(_CLOCK_REALTIME, &client->time_since_last_action);
+	#elif defined(__linux__)
+		clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
+	#endif
 
 	// check if whole response has been sent
 	if ((size_t)client->response.getResponsePos() == client->response.getResponse().size() || current_event->is_error || current_event->is_hang_up)
@@ -686,7 +699,7 @@ void DefaultServer::closeTimedOutConnections()
 			#ifdef __MACH__
 				struct kevent event;
 				bzero(&event, sizeof(event));
-				EV_SET(&event, connected_fd, EVFILT_READ, EV_DELETE, 0, 0, &current_client->triggered_event);
+				EV_SET(&event, current_client->connected_fd, EVFILT_READ, EV_DELETE, 0, 0, &current_client->triggered_event);
 				if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
 			#elif defined(__linux__)
 				if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, current_client->connected_fd, nullptr) == -1)

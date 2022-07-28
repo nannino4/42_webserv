@@ -9,8 +9,8 @@
 #include <ctime>		//struct timespec
 
 #include "event.hpp"
-#include "request.hpp"
-#include "response.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
 
 struct ConnectedClient
 {

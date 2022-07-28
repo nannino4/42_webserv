@@ -143,7 +143,12 @@ int Cluster::getKqueueEpollFd() const
 void Cluster::run()
 {
 	struct timespec time_of_last_timeout_check;
-	clock_gettime(CLOCK_BOOTTIME, &time_of_last_timeout_check);
+
+	#ifdef __MACH__
+		clock_gettime(_CLOCK_REALTIME, &time_of_last_timeout_check);
+	#elif defined(__linux__)
+		clock_gettime(CLOCK_BOOTTIME, &time_of_last_timeout_check);
+	#endif
 
 	// make servers listen and add them to kqueue
 	for (std::map<Cluster::address,DefaultServer&>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
