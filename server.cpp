@@ -81,6 +81,7 @@ void Server::errorPageToBody(Response &response)
 			getline(error_page_file, line);
 			response.setBody(response.getBody() + line + "\n");
 		}
+		response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(it->second)));
 	}
 	else
 	{
@@ -110,7 +111,7 @@ void Server::prepareResponse(ConnectedClient *client)
 	Response									&response = client->response;
 
 	// add "Date" header
-	//TODO
+	response.addNewHeader(std::pair<std::string,std::string>("Date", date()));
 
 	// add "Connection" header
 	response.addNewHeader(std::pair<std::string,std::string>("Connection", "Close"));
@@ -212,6 +213,12 @@ void Server::methodGet(Request const &request, Response &response)
 // POST method
 void Server::methodPost(Request const &request, Response &response)
 {
+	std::cout << request << response;
+}
+
+// PUT method
+/* void Server::methodPost(Request const &request, Response &response)
+{
 	struct stat file_stat;
     stat((request.getPath()).c_str(), &file_stat);
 
@@ -235,7 +242,7 @@ void Server::methodPost(Request const &request, Response &response)
 	file << request.getBody();
 	file.close();
 	//TODO review
-}
+}*/
 
 // DELETE method
 void Server::methodDelete(Request const &request, Response &response)
@@ -283,6 +290,7 @@ void Server::getFile(std::string const path, Response &response)
 		response.setBody(line.str());
 		response.setStatusCode("200");
 		response.setReasonPhrase("OK");
+		response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(path)));
 	}
 	else if (file.fail())
 	{
@@ -353,7 +361,7 @@ void Server::generateAutoIndex()
 // 	}
 // 	else
 // 	{
-// 		/* could not open directory */
+// 		// could not open directory
 // 		perror ("could not open directory");
 // 		response_status_code = "404";
 // 		response.getReasonPhrase() = "File Not Found";

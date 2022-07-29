@@ -169,9 +169,11 @@ void Location::parseReturn(std::stringstream &stream)
 void Location::parsePhpCgi(std::stringstream &stream)
 {
 	//TODO
+	std::cout << stream.str();
 }
 
 void Location::parsePhpCgiParam(std::stringstream &stream)
 {
 	//TODO
+	std::cout << stream.str();
 }
