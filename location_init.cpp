@@ -166,14 +166,31 @@ void Location::parseReturn(std::stringstream &stream)
 	redirection.second = code;
 }
 
-void Location::parsePhpCgi(std::stringstream &stream)
+void Location::parseCgi(std::stringstream &stream)
 {
-	//TODO
-	std::cout << stream.str();
-}
+	std::string	extension;
+	std::string	script_path;
 
-void Location::parsePhpCgiParam(std::stringstream &stream)
-{
-	//TODO
-	std::cout << stream.str();
+	stream >> extension >> script_path;
+
+	if (!stream.eof())
+		stream >> std::ws;
+
+	// check that stream didn't fail reading
+	if (stream.fail())
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nLocation::parseCGI(): stream reading failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// check that stream reached EOF
+	if (!stream.eof())
+	{
+		//TODO handle error
+		std::cerr << "\nERROR\nLocation::parseCGI(): too many parameters, expected two" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	cgi.insert(std::pair<std::string,std::string>(extension, script_path));
 }

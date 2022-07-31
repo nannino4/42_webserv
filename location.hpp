@@ -20,9 +20,7 @@ private:
 	bool								is_redirection;
 	std::pair<std::string,int>			redirection;
 	//cgi
-	bool								is_cgi;
-	std::string							cgi_script;
-	std::map<std::string,std::string>	cgi_params;
+	std::map<std::string,std::string>	cgi;	//map<extension, script_path>
 
 public:
 	// default constructor
@@ -37,13 +35,14 @@ public:
 	~Location();
 
 	// getters
-	std::string const					&getRoot() const;
-	std::vector<std::string> const		&getAllowedMethods() const;
-	bool								isMethodAllowed(std::string method) const;
-	bool								isAutoindex() const;
-	std::string const					&getIndex() const;
-	bool								isRedirection() const;
-	std::pair<std::string,int> const	&getRedirection() const;
+	std::string const						&getRoot() const;
+	std::vector<std::string> const			&getAllowedMethods() const;
+	bool									isMethodAllowed(std::string method) const;
+	bool									isAutoindex() const;
+	std::string const						&getIndex() const;
+	bool									isRedirection() const;
+	std::pair<std::string,int> const		&getRedirection() const;
+	std::map<std::string,std::string> const	&getCgi() const;
 
 	// setters
 	void	setRoot(std::string const &new_root);
@@ -59,7 +58,6 @@ private:
 	void parseAutoindex(std::stringstream &stream);
 	void parseIndex(std::stringstream &stream);
 	void parseReturn(std::stringstream &stream);
-	void parsePhpCgi(std::stringstream &stream);
-	void parsePhpCgiParam(std::stringstream &stream);
+	void parseCgi(std::stringstream &stream);
 
 };

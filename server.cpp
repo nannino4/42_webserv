@@ -193,7 +193,7 @@ void Server::methodGet(Request const &request, Response &response)
 		}
 	    else if (S_ISREG(file_stat.st_mode))	// path identifies a regular file
 		{
-	        getFile(request.getPath(), response);	//TODO cambia nome in fileToBody
+	        fileToBody(request.getPath(), response);
 		}
 		else									// path identifies no directory nor file
 		{
@@ -278,7 +278,7 @@ void Server::methodDelete(Request const &request, Response &response)
 }
 
 // get file to body
-void Server::getFile(std::string const path, Response &response) 
+void Server::fileToBody(std::string const path, Response &response) 
 {
 	std::ifstream		file;
 	std::stringstream	line;
@@ -311,15 +311,14 @@ void Server::manageDir(Request const &request, Response &response)
 	{
 		// an index exists and it is a file
 		if (request.getPath().at(request.getPath().size() - 1) != '/')
-			getFile(request.getPath() + "/" + request.getLocation()->getIndex(), response);
+			fileToBody(request.getPath() + "/" + request.getLocation()->getIndex(), response);
 		else
-			getFile(request.getPath() + request.getLocation()->getIndex(), response);
+			fileToBody(request.getPath() + request.getLocation()->getIndex(), response);
 	}
 	else if (request.getLocation()->isAutoindex())
 	{
 		// no indexes, but autoindex is on
-		//TODO add code and reason phrase (?)
-		generateAutoIndex();
+		generateAutoIndex(request, response);
 	}
 	else
 	{
@@ -331,41 +330,42 @@ void Server::manageDir(Request const &request, Response &response)
 }
 
 // generate autoindex
-void Server::generateAutoIndex()
+void Server::generateAutoIndex(Request const &request, Response &response)
 {
-// 	DIR *dir;
-// 	struct dirent *ent;
-// 	std::stringstream line;
+	DIR 				*dir;
+	struct dirent		*ent;
+	std::stringstream	line;
 
-// 	if ((dir = opendir(("./" + request.getPath()).c_str())) != NULL)
-// 	{
-// 		line << "<html><head><title>Index of " << request.getPath() << response.getReasonPhrase() << "</title>";
-// 		line << "<link rel=\"stylesheet\" href=\"/pages/base.css\"";
-// 		line << "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
-// 		line << "</head><body><main>";
+	if ((dir = opendir(("./" + request.getPath()).c_str())) != nullptr)
+	{
+		response.setStatusCode("200");
+		response.setReasonPhrase("OK");
+
+		line << "<html><head><title>Index of " << request.getPath() << response.getReasonPhrase() << "</title>";
+		line << "<link rel=\"stylesheet\" href=\"/pages/base.css\"";
+		line << "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+		line << "</head><body><main>";
 		
-// 		line << "<h1>Index of " << request.getPath() << "</h1>\n";
-// 		line << "<table>";
-// 		/* print all the files and directories within directory */
-// 		while ((ent = readdir(dir)) != NULL)
-// 		{
-// 			if (std::string(ent->d_name) != ".")
-// 			{
-// 				line << "<tr><td><a href=\"" << ent->d_name << "\">";
-// 				line << ent->d_name << "</a></td></tr>";
-// 			}
-// 		}
-// 		line << "</table></main></body></html>";
-// 		body = line.str();
-// 		closedir (dir);
-// 	}
-// 	else
-// 	{
-// 		// could not open directory
-// 		perror ("could not open directory");
-// 		response_status_code = "404";
-// 		response.getReasonPhrase() = "File Not Found";
-// 		errorPageToBody(response);
-// 	}
-// 	//TODO review
+		line << "<h1>Index of " << request.getPath() << "</h1>\n";
+		line << "<table>";
+		/* print all the files and directories within directory */
+		while ((ent = readdir(dir)) != nullptr)
+		{
+			if (std::string(ent->d_name) != ".")
+			{
+				line << "<tr><td><a href=\"" << ent->d_name << "\">";
+				line << ent->d_name << "</a></td></tr>";
+			}
+		}
+		line << "</table></main></body></html>";
+		response.setBody(line.str());
+		closedir(dir);
+	}
+	else
+	{
+		// could not open directory
+		response.setStatusCode("403");
+		response.setReasonPhrase("Forbidden");
+		errorPageToBody(response);
+	}
 }

@@ -11,6 +11,7 @@
 #include <unistd.h>		//close()
 
 #include <sys/types.h>
+#include <sys/dir.h>
 #include <sys/stat.h>	//stat
 
 #ifdef __MACH__
@@ -73,9 +74,9 @@ private:
 public:
 	bool	isName(std::string const &name_to_match) const;
 private:
-	void	getFile(std::string const path, Response &response);
+	void	fileToBody(std::string const path, Response &response);
 	void	manageDir(Request const &request, Response &response);
 	void	errorPageToBody(Response &response);
-	void	generateAutoIndex();
+	void	generateAutoIndex(Request const &request, Response &response);
 
 };

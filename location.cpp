@@ -4,12 +4,11 @@
 Location::Location()
 {
 	autoindex = false;
-	index.clear();
 	is_redirection = false;
 }
 
 // constructor
-Location::Location(std::string &config_file, int &pos) : autoindex(false), index("index.html"), is_redirection(false), is_cgi(false)
+Location::Location(std::string &config_file, int &pos) : autoindex(false), index("index.html"), is_redirection(false)
 {
 	std::stringstream	stream;
 	std::string			directive;
@@ -67,7 +66,7 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), index
 		{
 			parseAllowedMethods(stream);
 		}
-		else if (!directive.compare("directory_listing"))
+		else if (!directive.compare("autoindex"))
 		{
 			parseAutoindex(stream);
 		}
@@ -79,13 +78,9 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), index
 		{
 			parseReturn(stream);
 		}
-		else if (!directive.compare("phpcgi_pass"))
+		else if (!directive.compare("cgi"))
 		{
-			parsePhpCgi(stream);
-		}
-		else if (!directive.compare("phpcgi_param"))
-		{
-			parsePhpCgiParam(stream);
+			parseCgi(stream);
 		}
 		else
 		{
@@ -118,6 +113,7 @@ Location &Location::operator=(Location const &other)
 	index = other.getIndex();
 	is_redirection = other.isRedirection();
 	redirection = other.getRedirection();
+	cgi = other.getCgi();
 	return *this;
 }
 
@@ -125,9 +121,9 @@ Location &Location::operator=(Location const &other)
 Location::~Location() {}
 
 // getters
-std::string const					&Location::getRoot() const { return root; }
-std::vector<std::string> const		&Location::getAllowedMethods() const { return allowed_methods; }
-bool 								Location::isMethodAllowed(std::string method) const
+std::string const						&Location::getRoot() const { return root; }
+std::vector<std::string> const			&Location::getAllowedMethods() const { return allowed_methods; }
+bool 									Location::isMethodAllowed(std::string method) const
 {
 	for (std::vector<std::string>::const_iterator it = allowed_methods.begin(); it != allowed_methods.end(); ++it)
 	{
@@ -136,10 +132,11 @@ bool 								Location::isMethodAllowed(std::string method) const
 	}
 	return false;
 }
-bool 								Location::isAutoindex() const { return autoindex; }
-std::string const					&Location::getIndex() const { return index; }
-bool								Location::isRedirection() const { return is_redirection; }
-std::pair<std::string,int> const	&Location::getRedirection() const { return redirection; }
+bool 									Location::isAutoindex() const { return autoindex; }
+std::string const						&Location::getIndex() const { return index; }
+bool									Location::isRedirection() const { return is_redirection; }
+std::pair<std::string,int> const		&Location::getRedirection() const { return redirection; }
+std::map<std::string,std::string> const	&Location::getCgi() const { return cgi; }
 
 // setters
 void	Location::setRoot(std::string const &new_root) { root = new_root; }
@@ -152,17 +149,24 @@ void	Location::addAllowedMethod(std::string method)
 // operator overload
 std::ostream &operator<<(std::ostream &os, Location const &location)
 {
+	os << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
 	os << "\nLocation introducing itself:\n";
-	os << "root:\n" << location.root << std::endl;
-	os << "allowed_methods:\n";
+	os << "root:\t\t" << location.root << std::endl;
+	os << "allowed_methods:\t";
 	for (std::vector<std::string>::const_iterator it = location.allowed_methods.begin(); it != location.allowed_methods.end(); ++it)
 	{
-		os << *it << std::endl;
+		os << " " << *it;
 	}
-	os << "autoindex:\n" << std::boolalpha << location.autoindex << std::endl;
-	os << "index:\n" << location.index << std::endl;
-	os << "isRedir:\n" << std::boolalpha << location.isRedirection() << std::endl;
-	os << "redirection:\n" << location.redirection.second << " " << location.redirection.first << std::endl;
+	os << "\nautoindex:\t" << std::boolalpha << location.autoindex << std::endl;
+	os << "index:\t\t" << location.index << std::endl;
+	os << "isRedir:\t" << std::boolalpha << location.isRedirection() << std::endl;
+	os << "redirection:\t" << location.redirection.second << " " << location.redirection.first << std::endl;
+	os << "cgi:\t\t" << location.cgi.size() << std::endl;
+	for (std::map<std::string,std::string>::const_iterator it = location.cgi.begin(); it != location.cgi.end(); ++it)
+	{
+		os << it->first << ": " << it->second << std::endl;
+	}
 	os << "\nLocation introduction is over" << std::endl;
+	os << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
 	return os;
 }

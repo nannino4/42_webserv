@@ -136,6 +136,11 @@ std::ostream &operator<<(std::ostream &os, DefaultServer const &def_serv)
 	os << "\n\tDefaultServer introducing itself:\n";
 	os << "\tserver_addr:\t\t" << inet_ntoa(def_serv.server_addr.sin_addr) << ":" << ntohs(def_serv.server_addr.sin_port) << std::endl;
 	os << "\tlistening_fd:\t\t" << def_serv.listening_fd << std::endl;
+	os << "\tlocations:\t" << def_serv.locations.size() << std::endl;
+	for (std::map<std::string,Location>::const_iterator it = def_serv.locations.begin(); it != def_serv.locations.end(); ++it)
+	{
+		os << it->second << std::endl;
+	}
 	os << "\tvirtual_servers:\t" << def_serv.virtual_servers.size() << std::endl;
 	for (std::vector<Server>::const_iterator it = def_serv.virtual_servers.begin(); it != def_serv.virtual_servers.end(); ++it)
 	{
