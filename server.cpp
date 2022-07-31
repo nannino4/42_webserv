@@ -112,7 +112,6 @@ void Server::prepareResponse(ConnectedClient *client)
 
 	// add "Date" header
 	response.addNewHeader(std::pair<std::string,std::string>("Date", date()));
-
 	// add "Connection" header
 	response.addNewHeader(std::pair<std::string,std::string>("Connection", "Close"));
 

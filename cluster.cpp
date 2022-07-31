@@ -185,6 +185,8 @@ void Cluster::run()
 		#elif defined(__linux__)
 			Event *current_event = (Event *)(triggered_events[i].data.ptr);
 			current_event->is_hang_up = (triggered_events[i].events & EPOLLHUP);
+			if (!current_event->is_hang_up)
+				current_event->is_hang_up = (triggered_events[i].events & EPOLLRDHUP);
 			current_event->is_error = (triggered_events[i].events & EPOLLERR);
 		#endif
 
@@ -197,13 +199,17 @@ void Cluster::run()
 			std::cout << "\tfd =\t\t" << current_event->fd << std::endl;
 			std::cout << "\tevents =\t" << current_event->events << std::endl;
 			std::cout << "\tis_hang_up =\t" << std::boolalpha << current_event->is_hang_up << std::endl;
-			std::cout << "\tdefault_server:" << *(DefaultServer *)current_event->default_server_ptr << std::endl << std::endl;
+			std::cout << "\tis_error =\t" << std::boolalpha << current_event->is_error << std::endl;
+			std::cout << "\tserver fd:\t" << ((DefaultServer *)current_event->default_server_ptr)->getListeningFd() << std::endl << std::endl;
 
 			//TODO manage the case in which (current_event->is_error == true)
-			// if fd == connected_fd : close fd and erase client
-			// if fd == listening_fd : boh, maybe just ignore it (?)
-
-			if (current_event->events == WRITE)
+			if (current_event->is_error || current_event->is_hang_up)
+			{
+				//debug
+				std::cout << "connected fd = " << current_event->fd << " has been removed because the connection was hung up" << std::endl;
+				((DefaultServer*)current_event->default_server_ptr)->disconnectFromClient((ConnectedClient*)current_event->owner);
+			}
+			else if (current_event->events == WRITE)
 			{
 				//TODO handle case in which (current_event->is_hang_up == true)
 				// close fd and erase client

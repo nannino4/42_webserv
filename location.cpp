@@ -1,14 +1,10 @@
 #include "location.hpp"
 
 // default constructor
-Location::Location()
-{
-	autoindex = false;
-	is_redirection = false;
-}
+Location::Location() : autoindex(false), is_redirection(false) {}
 
 // constructor
-Location::Location(std::string &config_file, int &pos) : autoindex(false), index("index.html"), is_redirection(false)
+Location::Location(std::string &config_file, int &pos) : autoindex(false), is_redirection(false)
 {
 	std::stringstream	stream;
 	std::string			directive;

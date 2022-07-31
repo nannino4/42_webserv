@@ -78,6 +78,7 @@ public:
 	// communication
 	void startListening();
 	void connectToClient();
+	void disconnectFromClient(ConnectedClient *client);
 	void receiveRequest(Event *current_event);
 	void dispatchRequest(ConnectedClient *client);
 	// void prepareResponse(ConnectedClient &client);		// inherited from Server

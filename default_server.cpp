@@ -279,7 +279,7 @@ void DefaultServer::connectToClient()
 #elif defined(__linux__)
 	struct epoll_event event;
 	bzero(&event, sizeof(event));
-	event.events = EPOLLIN;
+	event.events = EPOLLIN | EPOLLRDHUP;
 	event.data.ptr = &new_client->triggered_event;
 	if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, connected_fd, &event) == -1)
 #endif
@@ -292,6 +292,12 @@ void DefaultServer::connectToClient()
 	//debug
 	std::cout << "\nThe event with ident = " << connected_fd << " and filter EVFILT_READ has been added to kqueue" << \
 			"\nThere are currently " << clients.size() << " clients connected to this address:port\n" << std::endl;
+}
+
+void DefaultServer::disconnectFromClient(ConnectedClient *client)
+{
+	if (clients.erase(client->connected_fd))
+		delete client;
 }
 
 void DefaultServer::receiveRequest(Event *current_event)
