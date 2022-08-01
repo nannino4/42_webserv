@@ -3,7 +3,7 @@
 // default constructor
 Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd), client_body_size(0), default_location()
 {
-	default_location.setRoot(my_getcwd() + DEFAULT_ROOT);
+	default_location.setRoot(DEFAULT_ROOT);
 	default_location.addAllowedMethod("GET");
 }
 
@@ -185,7 +185,7 @@ void Server::prepareResponse(ConnectedClient *client)
 }
 
 // GET method
-void Server::methodGet(Request const &request, Response &response)
+void Server::methodGet(Request &request, Response &response)
 {
 	std::ifstream		file;
 	struct stat			file_stat;
@@ -219,13 +219,13 @@ void Server::methodGet(Request const &request, Response &response)
 }
 
 // POST method
-void Server::methodPost(Request const &request, Response &response)
+void Server::methodPost(Request &request, Response &response)
 {
 	std::cout << request << response;
 }
 
 // PUT method
-/* void Server::methodPost(Request const &request, Response &response)
+/* void Server::methodPost(Request &request, Response &response)
 {
 	struct stat file_stat;
     stat((request.getPath()).c_str(), &file_stat);
@@ -253,7 +253,7 @@ void Server::methodPost(Request const &request, Response &response)
 }*/
 
 // DELETE method
-void Server::methodDelete(Request const &request, Response &response)
+void Server::methodDelete(Request &request, Response &response)
 {
 	std::ifstream	file;
 	struct stat		file_stat;
@@ -286,19 +286,40 @@ void Server::methodDelete(Request const &request, Response &response)
 }
 
 // get file to body
-void Server::fileToBody(std::string const path, Response &response) 
+void Server::fileToBody(Request &request, Response &response) 
 {
 	std::ifstream		file;
 	std::stringstream	line;
+	std::string			cgi_script = request.getLocation()->getCgi().end();
+	std::string			file_extension;
+	size_t				pos;
 
-	file.open(path);
+	file.open(request.getPath());
 	if (file.is_open())
 	{
-		line << file.rdbuf();
-		response.setBody(line.str());
+		// check for extension
+		pos = request.getPath().find_last_of('.');
+		if (pos != std::string::npos)
+		{
+			file_extension = request.getPath().substr(pos);
+			cgi_script = request.getLocation()->getCgi().find(file_extension)->second;
+		}
+		// check for cgi
+		if (cgi_script != request.getLocation()->getCgi().end())
+		{
+			// file extension matches cgi
+			convertGCI();
+			response.addNewHeader(std::pair<std::string,std::string>("Content-Lenght", std::to_string(response.getBody().size())));
+		}
+		else
+		{
+			// no cgi match
+			line << file.rdbuf();
+			response.setBody(line.str());
+			response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(request.getPath())));
+		}
 		response.setStatusCode("200");
 		response.setReasonPhrase("OK");
-		response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(path)));
 	}
 	else if (file.fail())
 	{
@@ -308,8 +329,47 @@ void Server::fileToBody(std::string const path, Response &response)
 	}
 }
 
+// cgi
+void Server::convertCGI(Request &request, Response &response)
+{
+    std::string tmp;
+	size_t		pos;
+	Cgi			cgi(request);
+
+	body = cgi.run_cgi("/usr/local/bin/php-cgi");
+	pos = body.find("\r\n\r\n");
+	if (pos != std::string::npos)
+	{
+		pos += 4;
+		tmp = body.substr(0, pos);
+		body.erase(0, pos);		
+		takeHeaders(tmp, response);
+	}
+}
+
+// take headers from CGI return
+void Response::takeHeaders(std::string tmp, Response &response)
+{
+	std::stringstream file(tmp);
+	std::string line;
+
+	while (getline(file, line))
+	{
+		std::stringstream	sline(line);
+		std::string			key;
+
+		while (getline(sline, key, ':'))
+		{
+			std::string value;
+			sline >> std::ws;
+			if (getline(sline, value, '\r'))
+				response.addNewHeader(std::pair<std::string, std::string>(key, value));
+		}
+	}
+}
+
 // manage case in which path identifies a directory
-void Server::manageDir(Request const &request, Response &response)
+void Server::manageDir(Request &request, Response &response)
 {
 	struct stat	file_stat;
 
@@ -338,7 +398,7 @@ void Server::manageDir(Request const &request, Response &response)
 }
 
 // generate autoindex
-void Server::generateAutoIndex(Request const &request, Response &response)
+void Server::generateAutoIndex(Request &request, Response &response)
 {
 	DIR 				*dir;
 	struct dirent		*ent;

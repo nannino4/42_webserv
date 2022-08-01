@@ -28,7 +28,7 @@
 #include "utils.hpp"
 
 // TODO da eliminare
-#define DEFAULT_ROOT "/www"
+#define DEFAULT_ROOT "./www"
 
 class Server
 {
@@ -74,7 +74,8 @@ private:
 public:
 	bool	isName(std::string const &name_to_match) const;
 private:
-	void	fileToBody(std::string const path, Response &response);
+	void	convertCGI(Request &request, Response &response);
+	void	fileToBody(Request &request, Response &response);
 	void	manageDir(Request const &request, Response &response);
 	void	errorPageToBody(Response &response);
 	void	generateAutoIndex(Request const &request, Response &response);
