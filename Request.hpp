@@ -16,6 +16,8 @@ class Request
 		int									request_pos;
 		std::string							method;
 		std::string							path;
+		std::string							directory_path;
+		std::string							file_path;
 		std::string							query;
 		std::string							version;
 		std::map<std::string, std::string>	headers;
@@ -41,6 +43,8 @@ class Request
 		const int								&getRequestPos() const;
 		const std::string						&getMethod() const;
 		const std::string						&getPath() const;
+		const std::string						&getDirectoryPath() const;
+		const std::string						&getFilePath() const;
 		const std::string						&getQuery() const;
 		const std::string						&getVersion() const;
 		const std::map<std::string,std::string>	&getHeaders() const;
@@ -56,6 +60,8 @@ class Request
 		void	setRequestPos(int const new_request_pos);
 		void	setMethod(std::string const new_method);
 		void	setPath(std::string const new_path);
+		void	setDirectoryPath(std::string const new_path);
+		void	setFilePath(std::string const new_path);
 		void	setQuery(std::string const new_query);
 		void	setVersion(std::string const new_version);
 		void	addHeader(std::pair<std::string,std::string> const new_header);

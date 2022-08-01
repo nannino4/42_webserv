@@ -347,6 +347,8 @@ void DefaultServer::receiveRequest(Event *current_event)
 			std::string method;
 			std::string path;
 			std::string version;
+			size_t		pos_first_slash;
+			size_t		pos_last_slash;
 
 			stream >> method >> path >> version;
 			if (!stream.eof())
@@ -363,10 +365,22 @@ void DefaultServer::receiveRequest(Event *current_event)
 				client->request.setQuery(path.substr(path.find('?') + 1));
 				path.erase(path.find('?'));
 			}
+			// if last character is '/', erase it
+			if (path.back() == '/')
+			{
+				path.erase(path.end() - 1);
+			}
 
 			client->request.setMethod(method);
 			client->request.setPath(path);
+			client->request.setDirectoryPath(path);
 			client->request.setVersion(version);
+
+			if ((pos_first_slash = path.find('/')) != (pos_last_slash = path.find_last_of('/')) && pos_last_slash < path.size())
+			{
+				client->request.setDirectoryPath(path.substr(0, pos_last_slash));
+				client->request.setFilePath(path.substr(pos_last_slash));
+			}
 
 			// check that stream didn't fail reading && stream reached EOF && version is correct (HTTP/1.1)
 			if (stream.fail() || !stream.eof())
@@ -555,9 +569,9 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 	}
 
 	// find the server location correspongin to the request path
-	if (requestedServer->getLocations().find(client->request.getPath()) != requestedServer->getLocations().end())	//TODO the location is not the entire request path!!!
+	if (requestedServer->getLocations().find(client->request.getDirectoryPath()) != requestedServer->getLocations().end())
 	{
-		client->request.setLocation(&requestedServer->getLocations().find(client->request.getPath())->second);
+		client->request.setLocation(&requestedServer->getLocations().find(client->request.getDirectoryPath())->second);
 	}
 	else
 	{

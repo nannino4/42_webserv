@@ -1,13 +1,14 @@
 
 #include <iostream>
 #include <unistd.h>
-#include "utils.hpp"
 #include <string>
 
 int main()
 {
-	char *tmp = get_current_dir_name();
-	std::string string(tmp);
-	delete tmp;
-	std::cout << string << std::endl;
+	std::string path("/ciao/boh");
+	std::string	directory_path = path.substr(0, path.find_last_of('/'));
+	std::string	file_path = path.substr(path.find_last_of('/'));
+
+	std::cout << "directory path =\t" << directory_path << std::endl;
+	std::cout << "file path =\t\t" << file_path << std::endl;
 }
