@@ -110,6 +110,15 @@ void Server::prepareResponse(ConnectedClient *client)
 	Request										&request = client->request;
 	Response									&response = client->response;
 
+	//debug
+	std::cout << "---------------------------------------" << std::endl;
+	std::cout << "Server::prepareResponse()" << std::endl;
+	std::cout << "printing the request..." << std::endl;
+	std::cout << client->request << std::endl;
+	std::cout << "printing the request location..." << std::endl;
+	std::cout << *client->request.getLocation() << std::endl;
+	std::cout << "---------------------------------------" << std::endl;
+
 	// add "Date" header
 	response.addNewHeader(std::pair<std::string,std::string>("Date", date()));
 	// add "Connection" header
