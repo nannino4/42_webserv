@@ -365,17 +365,13 @@ void DefaultServer::receiveRequest(Event *current_event)
 				client->request.setQuery(path.substr(path.find('?') + 1));
 				path.erase(path.find('?'));
 			}
-			// if last character is '/', erase it
-			if (path.back() == '/')
-			{
-				path.erase(path.end() - 1);
-			}
 
 			client->request.setMethod(method);
 			client->request.setPath(path);
 			client->request.setDirectoryPath(path);
 			client->request.setVersion(version);
 
+			// split path into: directive_path + file_path
 			if ((pos_first_slash = path.find('/')) != (pos_last_slash = path.find_last_of('/')) && pos_last_slash < path.size())
 			{
 				client->request.setDirectoryPath(path.substr(0, pos_last_slash));
