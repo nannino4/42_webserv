@@ -201,7 +201,7 @@ void Server::methodGet(Request &request, Response &response)
 		}
 	    else if (S_ISREG(file_stat.st_mode))	// path identifies a regular file
 		{
-	        fileToBody(request.getPath(), response);
+	        fileToBody(request, response);
 		}
 		else									// path identifies no directory nor file
 		{
@@ -290,7 +290,7 @@ void Server::fileToBody(Request &request, Response &response)
 {
 	std::ifstream		file;
 	std::stringstream	line;
-	std::string			cgi_script = request.getLocation()->getCgi().end();
+	std::string			cgi_script;
 	std::string			file_extension;
 	size_t				pos;
 
@@ -302,13 +302,14 @@ void Server::fileToBody(Request &request, Response &response)
 		if (pos != std::string::npos)
 		{
 			file_extension = request.getPath().substr(pos);
-			cgi_script = request.getLocation()->getCgi().find(file_extension)->second;
+			if (request.getLocation()->getCgi().find(file_extension) != request.getLocation()->getCgi().end())
+				cgi_script = request.getLocation()->getCgi().find(file_extension)->second;
 		}
 		// check for cgi
-		if (cgi_script != request.getLocation()->getCgi().end())
+		if (!cgi_script.empty())
 		{
 			// file extension matches cgi
-			convertGCI();
+			convertCGI(request, response);
 			response.addNewHeader(std::pair<std::string,std::string>("Content-Lenght", std::to_string(response.getBody().size())));
 		}
 		else
@@ -333,6 +334,7 @@ void Server::fileToBody(Request &request, Response &response)
 void Server::convertCGI(Request &request, Response &response)
 {
     std::string tmp;
+    std::string body;
 	size_t		pos;
 	Cgi			cgi(request);
 
@@ -345,10 +347,11 @@ void Server::convertCGI(Request &request, Response &response)
 		body.erase(0, pos);		
 		takeHeaders(tmp, response);
 	}
+	response.setBody(body);
 }
 
 // take headers from CGI return
-void Response::takeHeaders(std::string tmp, Response &response)
+void Server::takeHeaders(std::string tmp, Response &response)
 {
 	std::stringstream file(tmp);
 	std::string line;
@@ -378,10 +381,8 @@ void Server::manageDir(Request &request, Response &response)
 			S_ISREG(file_stat.st_mode))
 	{
 		// an index exists and it is a file
-		if (request.getPath().at(request.getPath().size() - 1) != '/')
-			fileToBody(request.getPath() + "/" + request.getLocation()->getIndex(), response);
-		else
-			fileToBody(request.getPath() + request.getLocation()->getIndex(), response);
+		request.setPath(request.getPath() + request.getLocation()->getIndex());
+		fileToBody(request, response);
 	}
 	else if (request.getLocation()->isAutoindex())
 	{
