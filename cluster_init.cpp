@@ -16,7 +16,6 @@ std::string	Cluster::fileToString(std::ifstream &config_file)
 	}
 	if (!config_file.eof())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nCluster::fileToString(): reading config_file: config_file.fail() = true" << std::endl;
 		exit(EXIT_FAILURE);
 	}

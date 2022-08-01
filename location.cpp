@@ -13,7 +13,6 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), is_re
 	// check if file doesn't contain any character among ";}" - '}' is required to close the "server" block
 	if ((unsigned long)(found_pos = config_file.find_first_of(";}", pos, 2)) == std::string::npos)
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::Location(): expected '}'" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -36,7 +35,6 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), is_re
 		// check that stream didn't fail reading
 		if (stream.fail())
 		{
-			//TODO handle error
 			std::cerr << "\nERROR\nLocation::Location(): stream reading failed" << std::endl;
 			exit(EXIT_FAILURE);
 		}
@@ -44,7 +42,6 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), is_re
 		// check that directory exists
 		if (directive.empty())
 		{
-			//TODO handle error
 			std::cerr << "\nERROR\nLocation::Location(): expected directive before ';'" << std::endl;
 			exit(EXIT_FAILURE);
 		}
@@ -80,14 +77,12 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), is_re
 		}
 		else
 		{
-			//TODO handle error
 			std::cerr << "\nERROR\nLocation::Location(): \"" << directive << "\" is an invalid directive" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 
 		if ((unsigned long)(found_pos = config_file.find_first_of(";}", pos, 3)) == std::string::npos)
 		{
-			//TODO handle error
 			std::cerr << "\nERROR\nLocation::Location(): expected '}'" << std::endl;
 			exit(EXIT_FAILURE);
 		}

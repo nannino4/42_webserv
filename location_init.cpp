@@ -10,7 +10,6 @@ void Location::parseRoot(std::stringstream &stream)
 	// check that stream didn't fail reading
 	if (stream.fail())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::parseRoot(): stream reading failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -18,7 +17,6 @@ void Location::parseRoot(std::stringstream &stream)
 	// check that stream reached EOF
 	if (!stream.eof())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::parseRoot(): too many parameters" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -36,7 +34,6 @@ void Location::parseAllowedMethods(std::stringstream &stream)
 		// check that stream didn't fail reading
 		if (stream.fail())
 		{
-			//TODO handle error
 			std::cerr << "\nERROR\nLocation::parseAllowedMethods(): stream reading failed" << std::endl;
 			exit(EXIT_FAILURE);
 		}
@@ -44,7 +41,6 @@ void Location::parseAllowedMethods(std::stringstream &stream)
 		// check that newMethod is valid
 		if (newMethod.compare("GET") && newMethod.compare("POST") && newMethod.compare("DELETE"))
 		{
-			//TODO handle error
 			std::cerr << "\nERROR\nLocation::parseAllowedMethods(): \"" << newMethod << "\" is an invalid method" << std::endl;
 		}
 
@@ -64,7 +60,6 @@ void Location::parseAutoindex(std::stringstream &stream)
 	// check that stream didn't fail reading
 	if (stream.fail())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::parseAutoindex(): stream reading failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -72,7 +67,6 @@ void Location::parseAutoindex(std::stringstream &stream)
 	// check that stream reached EOF
 	if (!stream.eof())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::parseAutoindex(): too many parameters" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -88,7 +82,6 @@ void Location::parseAutoindex(std::stringstream &stream)
 	}
 	else
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::parseAutoindex(): \"" << flag << "\" is an invalid flag. Expected \"on\" or \"off\"" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -103,7 +96,6 @@ void Location::parseIndex(std::stringstream &stream)
 	// check that stream didn't fail reading
 	if (stream.fail())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::parseIndex(): stream reading failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -111,7 +103,6 @@ void Location::parseIndex(std::stringstream &stream)
 	// check that stream reached EOF
 	if (!stream.eof())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::parseIndex(): too many parameters" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -129,7 +120,6 @@ void Location::parseReturn(std::stringstream &stream)
 	// check that stream didn't fail reading
 	if (stream.fail())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::parseReturn(): stream reading failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -137,7 +127,6 @@ void Location::parseReturn(std::stringstream &stream)
 	// check that stream hasn't reached EOF
 	if (stream.eof())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::parseReturn(): only one paramenter, expected two" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -149,7 +138,6 @@ void Location::parseReturn(std::stringstream &stream)
 	// check that stream didn't fail reading
 	if (stream.fail())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::parseReturn(): stream reading failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -157,7 +145,6 @@ void Location::parseReturn(std::stringstream &stream)
 	// check that stream reached EOF
 	if (!stream.eof())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::parseReturn(): too many parameters, expected two" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -179,7 +166,6 @@ void Location::parseCgi(std::stringstream &stream)
 	// check that stream didn't fail reading
 	if (stream.fail())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::parseCGI(): stream reading failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -187,7 +173,6 @@ void Location::parseCgi(std::stringstream &stream)
 	// check that stream reached EOF
 	if (!stream.eof())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nLocation::parseCGI(): too many parameters, expected two" << std::endl;
 		exit(EXIT_FAILURE);
 	}

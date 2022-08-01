@@ -27,7 +27,6 @@
 #include "Response.hpp"
 #include "utils.hpp"
 
-// TODO da eliminare
 #define DEFAULT_ROOT "./www"
 
 class Server

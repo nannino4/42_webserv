@@ -107,17 +107,8 @@ void Server::errorPageToBody(Response &response)
 // prepareResponse
 void Server::prepareResponse(ConnectedClient *client)
 {
-	Request										&request = client->request;
-	Response									&response = client->response;
-
-	//debug
-	std::cout << "---------------------------------------" << std::endl;
-	std::cout << "Server::prepareResponse()" << std::endl;
-	std::cout << "printing the request..." << std::endl;
-	std::cout << client->request << std::endl;
-	std::cout << "printing the request location..." << std::endl;
-	std::cout << *client->request.getLocation() << std::endl;
-	std::cout << "---------------------------------------" << std::endl;
+	Request		&request = client->request;
+	Response	&response = client->response;
 
 	// add "Date" header
 	response.addNewHeader(std::pair<std::string,std::string>("Date", date()));
@@ -126,7 +117,6 @@ void Server::prepareResponse(ConnectedClient *client)
 
 	if (!request.isValid())
 	{
-		//TODO the code and response phrase will be set in the default_server
 		errorPageToBody(response);
 	}
 	else
@@ -249,7 +239,6 @@ void Server::methodPost(Request &request, Response &response)
 	std::fstream file((request.getPath()).c_str(), std::fstream::in | std::fstream::out | std::fstream::trunc);
 	file << request.getBody();
 	file.close();
-	//TODO review
 }*/
 
 // DELETE method

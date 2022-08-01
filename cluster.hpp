@@ -45,9 +45,6 @@ public:
 	// constructor
 	Cluster(std::string config_file_name);
 
-	// // constructor per DEBUG
-	// Cluster();
-
 	// destructor
 	~Cluster();
 

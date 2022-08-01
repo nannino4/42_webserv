@@ -11,7 +11,6 @@ Cluster::Cluster(std::string config_file_name)
 #endif
 	if (kqueue_epoll_fd == -1)
 	{
-		//TODO handle error
 		perror("\nERROR\ncluster.run(): kqueue()/epoll_create1()");
 		exit(EXIT_FAILURE);
 	}
@@ -26,10 +25,8 @@ Cluster::Cluster(std::string config_file_name)
 	// check that config_file_name exists and is valid, otherwise use DEF_CONF instead
 	if (!config_file.is_open() && !config_file_name.compare(DEF_CONF))
 	{
-		//TODO handle error
-		perror("\nERROR\nCluster: trying to open the default configuration file");
+		perror("\nERROR\nCluster: failed opening the default configuration file");
 		exit(EXIT_FAILURE);
-		// throw();
 	}
 	if (!config_file.is_open() && config_file_name.compare(DEF_CONF))
 	{
@@ -37,10 +34,8 @@ Cluster::Cluster(std::string config_file_name)
 		config_file.open(DEF_CONF);
 		if (!config_file.is_open())
 		{
-			//TODO handle error
-			perror("\nERROR\nCluster: trying to open the default configuration file");
+			perror("\nERROR\nCluster: failed opening the default configuration file");
 			exit(EXIT_FAILURE);
-			// throw();
 		}
 	}
 
@@ -59,14 +54,12 @@ Cluster::Cluster(std::string config_file_name)
 		// check that stream didn't fail reading
 		if (stream.fail())
 		{
-			//TODO handle error
 			std::cerr << "\nERROR\nCluster::Cluster(): stream reading failed" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 
 		if (directive.compare("server"))
 		{
-			//TODO handle error
 			std::cerr << "\nERROR\nCluster::Cluster(): parsing config_file: \"" << directive << "\" is an invalid directive at the current scope" << std::endl;
 			exit(EXIT_FAILURE);
 		}
@@ -76,7 +69,6 @@ Cluster::Cluster(std::string config_file_name)
 			stream >> directive;
 			if (!directive.empty())
 			{
-				//TODO handle error
 				std::cerr << "\nERROR\nCluster::Cluster(): parsing config_file: found invalid text between the directive \"server\" and '{'" << std::endl;
 				exit(EXIT_FAILURE);
 			}
@@ -104,7 +96,6 @@ Cluster::Cluster(std::string config_file_name)
 		stream >> std::ws;
 	if (!stream.eof())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nCluster::Cluster(): found invalid text after the last '}'" << std::endl;
 	}
 	std::cout << "Cluster initialization has been completed.\n" << *this << std::endl;		//debug
@@ -144,12 +135,14 @@ int Cluster::getKqueueEpollFd() const
 void Cluster::run()
 {
 	struct timespec time_of_last_timeout_check;
+	struct timespec null_timespec;
 
 	#ifdef __MACH__
 		clock_gettime(_CLOCK_REALTIME, &time_of_last_timeout_check);
 	#elif defined(__linux__)
 		clock_gettime(CLOCK_BOOTTIME, &time_of_last_timeout_check);
 	#endif
+	bzero(&null_timespec, sizeof(null_timespec));
 
 	// make servers listen and add them to kqueue
 	for (std::map<Cluster::address,DefaultServer&>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
@@ -162,14 +155,13 @@ void Cluster::run()
 	while (1)
 	{
 	#ifdef __MACH__
-		num_ready_fds = kevent(kqueue_epoll_fd, nullptr, 0, triggered_events, N_EVENTS, nullptr);	//TODO change timeout to be 0 instead of infinite
+		num_ready_fds = kevent(kqueue_epoll_fd, nullptr, 0, triggered_events, N_EVENTS, &null_timespec);
 	#elif defined(__linux__)
 		num_ready_fds = epoll_wait(kqueue_epoll_fd, triggered_events, N_EVENTS, 0);
 	#endif
 
 		if (num_ready_fds == -1)
 		{
-			//TODO handle error
 			perror("\nERROR\ncluster.run(): kevent()/epoll_wait()");
 			exit(EXIT_FAILURE);
 		}
@@ -202,18 +194,16 @@ void Cluster::run()
 			std::cout << "\tis_error =\t" << std::boolalpha << current_event->is_error << std::endl;
 			std::cout << "\tserver fd:\t" << ((DefaultServer *)current_event->default_server_ptr)->getListeningFd() << std::endl << std::endl;
 
-			//TODO manage the case in which (current_event->is_error == true)
+			//manage the case in which (current_event->is_error == true)
 			if (current_event->is_error || current_event->is_hang_up)
 			{
 				//debug
 				std::cout << "connected fd = " << current_event->fd << " has been removed because the connection was hung up" << std::endl;
+
 				((DefaultServer*)current_event->default_server_ptr)->disconnectFromClient((ConnectedClient*)current_event->owner);
 			}
 			else if (current_event->events == WRITE)
 			{
-				//TODO handle case in which (current_event->is_hang_up == true)
-				// close fd and erase client
-
 				// response can be sent to connected_fd
 				default_server->sendResponse(current_event);
 			}
@@ -230,6 +220,7 @@ void Cluster::run()
 					default_server->receiveRequest(current_event);
 				}
 			}
+			std::cout << "\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 
 		} //for loop on num_ready_fds
 

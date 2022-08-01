@@ -56,7 +56,6 @@ void Response::createResponse()
 	response += version + " " + status_code + " " + reason_phrase + "\r\n";
 
 	// add headers
-	//TODO header["Date"]
 	if (!body.empty())
 	{
 		headers["Content-Length"] = std::to_string(body.size());

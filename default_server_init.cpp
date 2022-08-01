@@ -11,14 +11,12 @@ void DefaultServer::parseDirectives(std::stringstream &stream)
 	// check that stream didn't fail reading
 	if (stream.fail())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::parseDirectives(): stream reading failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
 	if (directive.empty())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::parseServerDirectives(): expected directive before ';'" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -47,7 +45,6 @@ void DefaultServer::parseDirectives(std::stringstream &stream)
 	}
 	else
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::parseServerDirectives(): \"" << directive << "\" is an invalid directive" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -66,7 +63,6 @@ void DefaultServer::parseListen(std::stringstream &stream)
 	// check that stream didn't fail reading
 	if (stream.fail())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::parseListen(): stream reading failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -75,7 +71,6 @@ void DefaultServer::parseListen(std::stringstream &stream)
 	// check that stream reached EOF
 	if (!stream.eof())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::parseListen(): too many parameters" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -103,7 +98,6 @@ void DefaultServer::parseListen(std::stringstream &stream)
 		server_addr.sin_addr.s_addr = inet_addr(address.c_str());
 		if (server_addr.sin_addr.s_addr == INADDR_NONE)
 		{
-			//TODO handle error
 			std::cerr << "\nERROR\nDefaultServer::parseListen(): inet_addr() returned an invalid ip address" << std::endl;
 			exit(EXIT_FAILURE);
 		}
@@ -112,14 +106,12 @@ void DefaultServer::parseListen(std::stringstream &stream)
 	{
 		if (port.find_first_not_of("0123456789", 0, 10) != std::string::npos)
 		{
-			//TODO handle error
 			std::cerr << "\nERROR\nDefaultServer::parseListen(): \"" << port << "\" is an invalid port" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 		int port_n = atoi(port.c_str());
 		if (port_n < 1 || port_n > 65535)
 		{
-			//TODO handle error
 			std::cerr << "\nERROR\nDefaultServer::parseListen(): \"" << port_n << "\" is an invalid port" << std::endl;
 			exit(EXIT_FAILURE);
 		}
@@ -141,7 +133,6 @@ void DefaultServer::parseName(std::stringstream &stream)
 	
 	if (!stream.eof())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::parseName(): failed reading from stream" << std::endl;
 	}
 }
@@ -154,7 +145,6 @@ void DefaultServer::parseBodySize(std::stringstream &stream)
 	// check that stream didn't fail reading
 	if (stream.fail())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::parseBodySize(): stream reading failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -163,7 +153,6 @@ void DefaultServer::parseBodySize(std::stringstream &stream)
 	// check that stream reached EOF
 	if (!stream.eof())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::parseBodySize(): too many parameters" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -180,7 +169,6 @@ void DefaultServer::parseErrorPage(std::stringstream &stream)
 	// check that stream didn't fail reading
 	if (stream.fail())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): stream reading failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -189,7 +177,6 @@ void DefaultServer::parseErrorPage(std::stringstream &stream)
 	// check that stream reached EOF
 	if (stream.eof())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): too few parameters, expected two" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -199,7 +186,6 @@ void DefaultServer::parseErrorPage(std::stringstream &stream)
 	// check that stream didn't fail reading
 	if (stream.fail())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): stream reading failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -208,7 +194,6 @@ void DefaultServer::parseErrorPage(std::stringstream &stream)
 	// check that stream reached EOF
 	if (!stream.eof())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): too many parameters, expected two" << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -217,7 +202,6 @@ void DefaultServer::parseErrorPage(std::stringstream &stream)
 	std::ifstream file(path);
 	if (!file.good())
 	{
-		//TODO handle error
 		std::cerr << "\nERROR\nDefaultServer::parseErrorPage(): failed opening path=\"" << path << "\"" << std::endl;
 		exit(EXIT_FAILURE);
 	}
