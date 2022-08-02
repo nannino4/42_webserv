@@ -1,14 +1,19 @@
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <unistd.h>
 #include <string>
 
 int main()
 {
-	std::string path("/ciao/boh");
-	std::string	directory_path = path.substr(0, path.find_last_of('/'));
-	std::string	file_path = path.substr(path.find_last_of('/'));
+	std::ifstream file("./test.txt");
+	std::stringstream sstream;
 
-	std::cout << "directory path =\t" << directory_path << std::endl;
-	std::cout << "file path =\t\t" << file_path << std::endl;
+	sstream << file.rdbuf();
+
+	std::cout << "sstream.str():" << std::endl;
+	std::cout << "\"" << sstream.str() << "\"" << std::endl;
+	std::cout << "\nsstream.str().size():" << sstream.str().size() << std::endl;
+
 }

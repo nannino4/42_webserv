@@ -107,6 +107,10 @@ void Server::errorPageToBody(Response &response)
 // prepareResponse
 void Server::prepareResponse(ConnectedClient *client)
 {
+	//debug
+	std::cout << "\n-------------------------------" << std::endl;
+	std::cout << "Server::prepareResponse()\n\n" << std::endl;
+
 	Request		&request = client->request;
 	Response	&response = client->response;
 
@@ -211,7 +215,13 @@ void Server::methodGet(Request &request, Response &response)
 // POST method
 void Server::methodPost(Request &request, Response &response)
 {
-	std::cout << "sono nel post" << request << response;
+	response.setStatusCode("404");
+	response.setReasonPhrase("File Not Found");
+	errorPageToBody(response);
+
+	//debug
+	std::cout << "-------------------------------" << std::endl;
+	std::cout << "sono nel post\n\n" << request << std::endl << response << std::endl;
 }
 
 // PUT method
