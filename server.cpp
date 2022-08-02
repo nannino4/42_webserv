@@ -82,6 +82,7 @@ void Server::errorPageToBody(Response &response)
 			response.setBody(response.getBody() + line + "\n");
 		}
 		response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(it->second)));
+		response.addNewHeader(std::pair<std::string,std::string>("content-type", content_type(it->second)));
 	}
 	else
 	{
@@ -97,12 +98,11 @@ void Server::errorPageToBody(Response &response)
 				+ "<br /><br /><br /><br /></center></main></body></html>\n" \
 				+ "\r\n\r\n";
 		response.setBody(string);
+		response.addNewHeader(std::pair<std::string,std::string>("content-type", "text/html"));
 	}
 }
 
 // TODO
-// header content-type
-// header content-lenght
 // conditional operations (if-modified, etc...)
 // prepareResponse
 void Server::prepareResponse(ConnectedClient *client)
@@ -279,7 +279,6 @@ void Server::fileToBody(Request &request, Response &response)
 {
 	std::ifstream		file;
 	std::stringstream	line;
-	std::string			cgi_script;
 	std::string			file_extension;
 	size_t				pos;
 
@@ -292,13 +291,16 @@ void Server::fileToBody(Request &request, Response &response)
 		{
 			file_extension = request.getPath().substr(pos);
 			if (request.getLocation()->getCgi().find(file_extension) != request.getLocation()->getCgi().end())
-				cgi_script = request.getLocation()->getCgi().find(file_extension)->second;
+			{
+				request.setCgiPath(request.getLocation()->getCgi().find(file_extension)->second);
+			}
 		}
 		// check for cgi
-		if (!cgi_script.empty())
+		if (!request.getCgiPath().empty())
 		{
 			// file extension matches cgi
 			convertCGI(request, response);
+			response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(request.getPath())));
 			response.addNewHeader(std::pair<std::string,std::string>("Content-Lenght", std::to_string(response.getBody().size())));
 		}
 		else
@@ -307,6 +309,8 @@ void Server::fileToBody(Request &request, Response &response)
 			line << file.rdbuf();
 			response.setBody(line.str());
 			response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(request.getPath())));
+			response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(request.getPath())));
+			response.addNewHeader(std::pair<std::string,std::string>("content-type", content_type(request.getPath())));
 		}
 		response.setStatusCode("200");
 		response.setReasonPhrase("OK");
@@ -327,7 +331,7 @@ void Server::convertCGI(Request &request, Response &response)
 	size_t		pos;
 	Cgi			cgi(request);
 
-	body = cgi.run_cgi("/usr/local/bin/php-cgi");
+	body = cgi.run_cgi(request.getCgiPath());
 	pos = body.find("\r\n\r\n");
 	if (pos != std::string::npos)
 	{
@@ -417,6 +421,7 @@ void Server::generateAutoIndex(Request &request, Response &response)
 		}
 		line << "</table></main></body></html>";
 		response.setBody(line.str());
+		response.addNewHeader(std::pair<std::string,std::string>("content-type", "text/html"));
 		closedir(dir);
 	}
 	else

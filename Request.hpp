@@ -20,6 +20,7 @@ class Request
 		std::string							file_path;
 		std::string							query;
 		std::string							version;
+		std::string							cgi_path;
 		std::map<std::string, std::string>	headers;
 		std::string							body;
 		bool								is_valid;
@@ -47,6 +48,7 @@ class Request
 		const std::string						&getFilePath() const;
 		const std::string						&getQuery() const;
 		const std::string						&getVersion() const;
+		const std::string						&getCgiPath() const;
 		const std::map<std::string,std::string>	&getHeaders() const;
 		const std::string						&getBody() const;
 		const std::string						&getHostname() const;
@@ -64,6 +66,7 @@ class Request
 		void	setFilePath(std::string const new_path);
 		void	setQuery(std::string const new_query);
 		void	setVersion(std::string const new_version);
+		void	setCgiPath(std::string const new_version);
 		void	addHeader(std::pair<std::string,std::string> const new_header);
 		void	setBody(std::string const new_body);
 		void	setIsValid(bool const new_is_valid);

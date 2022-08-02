@@ -10,6 +10,7 @@ Request::Request() : \
 	path(), \
 	query(), \
 	version(), \
+	cgi_path(), \
 	headers(), \
 	body(), \
 	is_valid(true), \
@@ -30,6 +31,7 @@ Request &Request::operator=(const Request &other)
 	path = other.getPath();
 	query = other.getQuery();
 	version = other.getVersion();
+	cgi_path = other.getCgiPath();
 	headers = other.getHeaders();
 	body = other.getBody();
 	is_valid = other.isValid();
@@ -46,6 +48,7 @@ Request::~Request() {}
 const std::string						&Request::getRequest() const { return request; }
 const int								&Request::getRequestPos() const { return request_pos; }
 const std::string						&Request::getVersion() const { return version; }
+const std::string						&Request::getCgiPath() const { return cgi_path; }
 const std::string						&Request::getMethod() const { return method; }
 const std::string						&Request::getPath() const { return path; }
 const std::string						&Request::getDirectoryPath() const { return directory_path; }
@@ -68,6 +71,7 @@ void	Request::setDirectoryPath(std::string const new_path) { directory_path = ne
 void	Request::setFilePath(std::string const new_path) { file_path = new_path; }
 void	Request::setQuery(std::string const new_query) { query = new_query; }
 void	Request::setVersion(std::string const new_version) { version = new_version; }
+void	Request::setCgiPath(std::string const new_cgi_path) { cgi_path = new_cgi_path; }
 void	Request::addHeader(std::pair<std::string,std::string> const new_header) { headers.insert(new_header); }
 void	Request::setBody(std::string const new_body) { body = new_body; }
 void	Request::setIsValid(bool const new_is_valid) { is_valid = new_is_valid; }
