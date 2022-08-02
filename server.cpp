@@ -103,8 +103,6 @@ void Server::errorPageToBody(Response &response)
 }
 
 // TODO
-// header content-type
-// header content-lenght
 // conditional operations (if-modified, etc...)
 // prepareResponse
 void Server::prepareResponse(ConnectedClient *client)
@@ -281,7 +279,6 @@ void Server::fileToBody(Request &request, Response &response)
 {
 	std::ifstream		file;
 	std::stringstream	line;
-	std::string			cgi_script;
 	std::string			file_extension;
 	size_t				pos;
 
@@ -294,10 +291,12 @@ void Server::fileToBody(Request &request, Response &response)
 		{
 			file_extension = request.getPath().substr(pos);
 			if (request.getLocation()->getCgi().find(file_extension) != request.getLocation()->getCgi().end())
-				cgi_script = request.getLocation()->getCgi().find(file_extension)->second;
+			{
+				request.setCgiPath(request.getLocation()->getCgi().find(file_extension)->second);
+			}
 		}
 		// check for cgi
-		if (!cgi_script.empty())
+		if (!request.getCgiPath().empty())
 		{
 			// file extension matches cgi
 			convertCGI(request, response);
@@ -332,7 +331,7 @@ void Server::convertCGI(Request &request, Response &response)
 	size_t		pos;
 	Cgi			cgi(request);
 
-	body = cgi.run_cgi("/usr/local/bin/php-cgi");
+	body = cgi.run_cgi(request.getCgiPath());
 	pos = body.find("\r\n\r\n");
 	if (pos != std::string::npos)
 	{
