@@ -309,170 +309,214 @@ void DefaultServer::receiveRequest(Event *current_event)
 	client->request.setRequest(client->request.getRequest() + buf);
 	bzero(buf, BUFFER_SIZE);
 
+	//debug
+	std::cout << "read bytes = " << read_bytes << std::endl;
+	std::cout << "request received by now:\n" << client->request.getRequest() << std::endl;
+
 	// parse newly received request lines
-	while (((unsigned long)(found_pos = client->request.getRequest().find("\n", client->request.getRequestPos())) != std::string::npos) \
-			&& !client->request.isComplete())
+	if (client->request.areHeadersComplete())
 	{
-		stream.clear();
-		stream.str(client->request.getRequest().substr(client->request.getRequestPos(), (found_pos + 1 - client->request.getRequestPos())));
-		client->request.setRequestPos(found_pos + 1);
+		// received body
+		std::map<std::string,std::string>::const_iterator	it = client->request.getHeaders().find("Content-Length");
+		long unsigned int									content_length;
 
-		if (client->request.getMethod().empty())		// first line
+		// check that header "Content-Lenght" exists
+		if (it == client->request.getHeaders().end())
 		{
-			std::string method;
-			std::string path;
-			std::string version;
-			size_t		pos_first_slash;
-			size_t		pos_last_slash;
+			client->request.setIsComplete(true);
+			client->request.setIsValid(false);
+			client->response.setStatusCode("411");
+			client->response.setReasonPhrase("Length Required");
+		}
+		else
+		{
+			content_length = std::atoi(it->second.c_str());
+			client->request.setBody(client->request.getBody() + client->request.getRequest().substr(client->request.getRequestPos(), read_bytes));
 
-			stream >> method >> path >> version;
-			if (!stream.eof())
-				stream >> std::ws;
-
-			// check if path contains '/'
-			if (path.find('/') == std::string::npos)
-			{
-				path.insert(path.begin(), '/');
-			}
-			// check for query
-			if (path.find('?') != std::string::npos)
-			{
-				client->request.setQuery(path.substr(path.find('?') + 1));
-				path.erase(path.find('?'));
-			}
-
-			client->request.setMethod(method);
-			client->request.setPath(path);
-			client->request.setDirectoryPath(path);
-			client->request.setVersion(version);
-
-			// split path into: directive_path + file_path
-			if ((pos_first_slash = path.find('/')) != (pos_last_slash = path.find_last_of('/')) && pos_last_slash < path.size())
-			{
-				client->request.setDirectoryPath(path.substr(0, pos_last_slash));
-				client->request.setFilePath(path.substr(pos_last_slash));
-			}
-
-			// check that stream didn't fail reading && stream reached EOF && version is correct (HTTP/1.1)
-			if (stream.fail() || !stream.eof())
+			// check if body is too large
+			if ((client_body_size > 0) && (client->request.getBody().size() > client_body_size))
 			{
 				// the request will stop being handled
 				client->request.setIsComplete(true);
 				client->request.setIsValid(false);
-				client->response.setStatusCode("400");
-				client->response.setReasonPhrase("failed reading 1");
+				client->response.setStatusCode("413");
+				client->response.setReasonPhrase("Content Too Large");
 			}
-			else if (client->request.getVersion().compare("HTTP/1.1"))
+			else if (client->request.getBody().size() >= content_length)
 			{
-				// the request will stop being handled
 				client->request.setIsComplete(true);
-				client->request.setIsValid(false);
-				client->response.setStatusCode("505");
-				client->response.setReasonPhrase("HTTP Version Not Supported");
 			}
 		}
-		else if (client->request.areHeadersComplete())	// body line
+	}
+	else
+	{
+		while (((unsigned long)(found_pos = client->request.getRequest().find("\n", client->request.getRequestPos())) != std::string::npos) \
+				&& !client->request.isComplete())
 		{
-			std::map<std::string,std::string>::const_iterator	it = client->request.getHeaders().find("Content-Length");
-			long unsigned int									content_lenght;
+			stream.clear();
+			stream.str(client->request.getRequest().substr(client->request.getRequestPos(), (found_pos + 1 - client->request.getRequestPos())));
+			client->request.setRequestPos(found_pos + 1);
 
-			// check that header "Content-Lenght" exists
-			if (it == client->request.getHeaders().end())
+			if (client->request.getMethod().empty())		// first line
 			{
-				client->request.setIsComplete(true);
-				client->request.setIsValid(false);
-				client->response.setStatusCode("411");
-				client->response.setReasonPhrase("Length Required");
-			}
-			else
-			{
-				content_lenght = std::atoi(it->second.c_str());
-				client->request.setBody(client->request.getBody() + stream.str());
+				std::string method;
+				std::string path;
+				std::string version;
+				size_t		pos_first_slash;
+				size_t		pos_last_slash;
 
-				// check if body is too large
-				if ((client_body_size > 0) && (client->request.getBody().size() > client_body_size))
+				stream >> method >> path >> version;
+				if (!stream.eof())
+					stream >> std::ws;
+
+				// check if path contains '/'
+				if (path.find('/') == std::string::npos)
+				{
+					path.insert(path.begin(), '/');
+				}
+				// check for query
+				if (path.find('?') != std::string::npos)
+				{
+					client->request.setQuery(path.substr(path.find('?') + 1));
+					path.erase(path.find('?'));
+				}
+
+				client->request.setMethod(method);
+				client->request.setPath(path);
+				client->request.setDirectoryPath(path);
+				client->request.setVersion(version);
+
+				// split path into: directive_path + file_path
+				if ((pos_first_slash = path.find('/')) != (pos_last_slash = path.find_last_of('/')) && pos_last_slash < path.size())
+				{
+					client->request.setDirectoryPath(path.substr(0, pos_last_slash));
+					client->request.setFilePath(path.substr(pos_last_slash));
+				}
+
+				// check that stream didn't fail reading && stream reached EOF && version is correct (HTTP/1.1)
+				if (stream.fail() || !stream.eof())
 				{
 					// the request will stop being handled
 					client->request.setIsComplete(true);
 					client->request.setIsValid(false);
-					client->response.setStatusCode("413");
-					client->response.setReasonPhrase("Content Too Large");
+					client->response.setStatusCode("400");
+					client->response.setReasonPhrase("failed reading 1");
 				}
-				else if (client->request.getBody().size() >= content_lenght)
+				else if (client->request.getVersion().compare("HTTP/1.1"))
 				{
+					// the request will stop being handled
 					client->request.setIsComplete(true);
+					client->request.setIsValid(false);
+					client->response.setStatusCode("505");
+					client->response.setReasonPhrase("HTTP Version Not Supported");
 				}
 			}
-		}
-		else											// header line || empty line
-		{
-			if (!stream.str().compare("\r\n") || !stream.str().compare("\n"))
+			else if (client->request.areHeadersComplete())
 			{
-				// headers are complete
-				client->request.setAreHeadersComplete(true);
-				// if the method is GET the request is complete
-				if (!client->request.getMethod().compare("GET"))
-				{
-					client->request.setIsComplete(true);
-				}
-				// if the header "Host" is missing the request is invalid
-				if (client->request.getHeaders().find("Host") == client->request.getHeaders().end())
+				// received body
+				std::map<std::string,std::string>::const_iterator	it = client->request.getHeaders().find("Content-Length");
+				long unsigned int									content_length;
+
+				// check that header "Content-Lenght" exists
+				if (it == client->request.getHeaders().end())
 				{
 					client->request.setIsComplete(true);
 					client->request.setIsValid(false);
-					client->response.setStatusCode("400");
-					client->response.setReasonPhrase("Bad Request");
+					client->response.setStatusCode("411");
+					client->response.setReasonPhrase("Length Required");
 				}
-			}
-			else if (stream.str().find(":") != std::string::npos)
-			{
-				// parse header
-				std::string			key;
-				std::string			value;
-				std::string			tmp_string;
-				std::stringstream	tmp_ss;
-
-				std::getline(stream, key, ':');
-				tmp_ss.str(key);
-				tmp_ss >> key;
-				tmp_ss.clear();
-
-				std::getline(stream, value);
-				tmp_ss.str(value);
-				tmp_ss >> value;
-				tmp_ss >> std::ws;
-				while (tmp_ss.good())
+				else
 				{
-					tmp_ss >> tmp_string >> std::ws;
-					value += tmp_string;
+					content_length = std::atoi(it->second.c_str());
+					client->request.setBody(client->request.getBody() + stream.str());
+
+					// check if body is too large
+					if ((client_body_size > 0) && (client->request.getBody().size() > client_body_size))
+					{
+						// the request will stop being handled
+						client->request.setIsComplete(true);
+						client->request.setIsValid(false);
+						client->response.setStatusCode("413");
+						client->response.setReasonPhrase("Content Too Large");
+					}
+					else if (client->request.getBody().size() >= content_length)
+					{
+						client->request.setIsComplete(true);
+					}
 				}
-
-				client->request.addHeader(std::pair<std::string,std::string>(key, value));
 			}
-			else
+			else											// header line || empty line
 			{
-				// header is invalid and is ignored
-			}
-		}
+				if (!stream.str().compare("\r\n") || !stream.str().compare("\n"))
+				{
+					// headers are complete
+					client->request.setAreHeadersComplete(true);
+					// if the method is GET the request is complete
+					if (!client->request.getMethod().compare("GET"))
+					{
+						client->request.setIsComplete(true);
+					}
+					// if the header "Host" is missing the request is invalid
+					if (client->request.getHeaders().find("Host") == client->request.getHeaders().end())
+					{
+						client->request.setIsComplete(true);
+						client->request.setIsValid(false);
+						client->response.setStatusCode("400");
+						client->response.setReasonPhrase("Bad Request");
+					}
+				}
+				else if (stream.str().find(":") != std::string::npos)
+				{
+					// parse header
+					std::string			key;
+					std::string			value;
+					std::string			tmp_string;
+					std::stringstream	tmp_ss;
 
-		//check if the request is too long
-		if (client->request.getRequest().size() > REQUEST_SIZE_LIMIT)
-		{
-			// remove connected_fd from kqueue
-		#ifdef __MACH__
-			struct kevent event;
-			bzero(&event, sizeof(event));
-			EV_SET(&event, client->connected_fd, EVFILT_READ, EV_DELETE, 0, 0, &client->triggered_event);
-			if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-		#elif defined(__linux__)
-			if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, client->connected_fd, nullptr) == -1)
-		#endif
-			{
-				perror("\nERROR\nDefaultServer.receiveRequest(): kevent()/epoll_ctl()");
+					std::getline(stream, key, ':');
+					tmp_ss.str(key);
+					tmp_ss >> key;
+					tmp_ss.clear();
+
+					std::getline(stream, value);
+					tmp_ss.str(value);
+					tmp_ss >> value;
+					tmp_ss >> std::ws;
+					while (tmp_ss.good())
+					{
+						tmp_ss >> tmp_string >> std::ws;
+						value += tmp_string;
+					}
+
+					client->request.addHeader(std::pair<std::string,std::string>(key, value));
+				}
+				else
+				{
+					// header is invalid and is ignored
+				}
 			}
-			// erase client from the map of clients and delete it from memory
-			clients.erase(client->connected_fd);
-			delete client;
+
+			//TODO only do with GET
+			// //check if the request is too long
+			// if (client->request.getRequest().size() > REQUEST_SIZE_LIMIT)
+			// {
+			// 	// remove connected_fd from kqueue
+			// #ifdef __MACH__
+			// 	struct kevent event;
+			// 	bzero(&event, sizeof(event));
+			// 	EV_SET(&event, client->connected_fd, EVFILT_READ, EV_DELETE, 0, 0, &client->triggered_event);
+			// 	if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+			// #elif defined(__linux__)
+			// 	if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, client->connected_fd, nullptr) == -1)
+			// #endif
+			// 	{
+			// 		perror("\nERROR\nDefaultServer.receiveRequest(): kevent()/epoll_ctl()");
+			// 	}
+			// 	// erase client from the map of clients and delete it from memory
+			// 	clients.erase(client->connected_fd);
+			// 	delete client;
+			//	return ;
+			// }
 		}
 	}
 
@@ -482,6 +526,16 @@ void DefaultServer::receiveRequest(Event *current_event)
 	#elif defined(__linux__)
 		clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
 	#endif
+
+	// debug
+	// std::cout << "\nrequest = \n" << client->request.getRequest() << std::endl << std::endl;
+	// std::cout << "\nrequest.size = " << client->request.getRequest().size() << std::endl << std::endl;
+	// std::cout << "\nrequest.body. = " << client->request.getBody() << std::endl << std::endl;
+	// std::cout << "\nrequest.body.size = \n" << client->request.getBody().size() << std::endl << std::endl;
+
+	//TODO aggiusta
+	if ((read_bytes < BUFFER_SIZE - 1) && !client->request.getMethod().compare("POST"))
+		client->request.setIsComplete(true);
 
 	if (client->request.isComplete())
 	{
@@ -582,6 +636,9 @@ void DefaultServer::sendResponse(Event *current_event)
 
 	client->response.setResponsePos(client->response.getResponsePos() + sent_bytes);
 
+	//debug
+	std::cout << "response sent by now:\n" << client->response.getResponse().substr(0, client->response.getResponsePos()) << std::endl;
+
 	// update client timeout
 	#ifdef __MACH__
 		clock_gettime(_CLOCK_REALTIME, &client->time_since_last_action);
@@ -594,7 +651,7 @@ void DefaultServer::sendResponse(Event *current_event)
 	{
 
 		//DEBUG
-		std::cout << "The whole response has been sent" << std::endl;
+		std::cout << "The whole response has been sent" << std::endl << client->response << std::endl;
 
 		// remove connected_fd from kqueue
 	#ifdef __MACH__
