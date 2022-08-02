@@ -486,7 +486,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	if (client->request.isComplete())
 	{
 		//DEBUG
-		std::cout << "\nThe whole request has been received" << std::endl;
+		std::cout << "\nThe whole request has been received" << std::endl << client->request << std::endl;
 
 		// remove connected_fd to kqueue from READ monitoring
 	#ifdef __MACH__
