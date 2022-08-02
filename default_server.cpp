@@ -373,7 +373,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 		}
 		else if (client->request.areHeadersComplete())	// body line
 		{
-			std::map<std::string,std::string>::const_iterator	it = client->request.getHeaders().find("Content-Lenght");
+			std::map<std::string,std::string>::const_iterator	it = client->request.getHeaders().find("Content-Length");
 			long unsigned int									content_lenght;
 
 			// check that header "Content-Lenght" exists
