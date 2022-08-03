@@ -10,7 +10,7 @@
       $target_file = $target_dir . "/" . basename($_FILES["fileToUpload"]["name"]);
       $uploadOk = 1;
       $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
-      echo $imageFileType
+      echo $imageFileType;
       // Check if image file is a actual image or fake image
       if(isset($_POST["submit"])) {
         $check = getimagesize($_FILES["fileToUpload"]["tmp_name"]);
@@ -34,12 +34,12 @@
         $uploadOk = 0;
       }
 
-    //   // Allow certain file formats
-    //   if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
-    //   && $imageFileType != "gif" ) {
-    //     echo "Sorry, only JPG, JPEG, PNG & GIF files are allowed.\n";
-    //     $uploadOk = 0;
-    //   }
+      // Allow certain file formats
+      if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
+      && $imageFileType != "gif" ) {
+        echo "Sorry, only JPG, JPEG, PNG & GIF files are allowed.\n";
+        $uploadOk = 0;
+      }
 
       // Check if $uploadOk is set to 0 by an error
       if ($uploadOk == 1) {

@@ -215,9 +215,25 @@ void Server::methodGet(Request &request, Response &response)
 // POST method
 void Server::methodPost(Request &request, Response &response)
 {
-	response.setStatusCode("404");
-	response.setReasonPhrase("File Not Found");
-	errorPageToBody(response);
+	std::string tmp;
+    std::string body;
+	size_t		pos;
+	Cgi			cgi(request);
+
+	body = cgi.run_cgi("/Users/ametta/.brew/bin/php-cgi");
+	pos = body.find("\r\n\r\n");
+	if (pos != std::string::npos)
+	{
+		pos += 4;
+		tmp = body.substr(0, pos);
+		body.erase(0, pos);		
+		takeHeaders(tmp, response);
+	}
+	response.setBody(body);
+
+	// response.setStatusCode("404");
+	// response.setReasonPhrase("File Not Found");
+	// errorPageToBody(response);
 
 	//debug
 	std::cout << "-------------------------------" << std::endl;
