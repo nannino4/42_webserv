@@ -507,7 +507,8 @@ void DefaultServer::receiveRequest(Event *current_event)
 	// std::cout << "\nrequest = \n" << client->request.getRequest() << std::endl << std::endl;
 	// std::cout << "\nrequest.size = " << client->request.getRequest().size() << std::endl << std::endl;
 	// std::cout << "\nrequest.body. = " << client->request.getBody() << std::endl << std::endl;
-	std::cout << "\nrequest.body.size = \n" << client->request.getBody().size() << std::endl << std::endl;
+	std::cout << "\nrequest.body.size = \n" << client->request.getBody().size() << std::endl;
+	std::cout << "Content-Length = \n" << client->request.getHeaders().find("Content-Length")->second << std::endl;
 
 	// //TODO aggiusta
 	// if ((read_bytes < BUFFER_SIZE - 1) && !client->request.getMethod().compare("POST"))

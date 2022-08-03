@@ -18,6 +18,9 @@ private:
 	std::string new_body;
     std::map<std::string, std::string> cgi_header;
     std::string post_body_data;
+
+	//__debug__//
+	long long test_size;
 public:
 	Cgi(const Request &request);
 	~Cgi();

@@ -81,8 +81,8 @@ void Server::errorPageToBody(Response &response)
 			getline(error_page_file, line);
 			response.setBody(response.getBody() + line + "\n");
 		}
-		response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(it->second)));
-		response.addNewHeader(std::pair<std::string,std::string>("content-type", content_type(it->second)));
+		response.addNewHeader(std::pair<std::string,std::string>("Last-Modified", last_modified(it->second)));
+		response.addNewHeader(std::pair<std::string,std::string>("Content-Type", content_type(it->second)));
 	}
 	else
 	{
@@ -98,7 +98,7 @@ void Server::errorPageToBody(Response &response)
 				+ "<br /><br /><br /><br /></center></main></body></html>\n" \
 				+ "\r\n\r\n";
 		response.setBody(string);
-		response.addNewHeader(std::pair<std::string,std::string>("content-type", "text/html"));
+		response.addNewHeader(std::pair<std::string,std::string>("Content-Type", "text/html"));
 	}
 }
 
@@ -236,10 +236,10 @@ void Server::methodPost(Request &request, Response &response)
 		if (!request.getCgiPath().empty())
 		{
 			// file extension matches cgi
-			std::cout << request << std::endl; // debug
+			//std::cout << request << std::endl; // debug
 			convertCGI(request, response);
-			response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(request.getPath())));
-			response.addNewHeader(std::pair<std::string,std::string>("Content-Lenght", std::to_string(response.getBody().size())));
+			response.addNewHeader(std::pair<std::string,std::string>("Last-Modified", last_modified(request.getPath())));
+			response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(response.getBody().size())));
 			response.setStatusCode("200");	// the values ha to be set by the cgi 
 			response.setReasonPhrase("OK");
 		}
@@ -338,17 +338,16 @@ void Server::fileToBody(Request &request, Response &response)
 		{
 			// file extension matches cgi
 			convertCGI(request, response);
-			response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(request.getPath())));
-			response.addNewHeader(std::pair<std::string,std::string>("Content-Lenght", std::to_string(response.getBody().size())));
+			response.addNewHeader(std::pair<std::string,std::string>("Last-Modified", last_modified(request.getPath())));
+			response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(response.getBody().size())));
 		}
 		else
 		{
 			// no cgi match
 			line << file.rdbuf();
 			response.setBody(line.str());
-			response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(request.getPath())));
-			response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(request.getPath())));
-			response.addNewHeader(std::pair<std::string,std::string>("content-type", content_type(request.getPath())));
+			response.addNewHeader(std::pair<std::string,std::string>("Last-Modified", last_modified(request.getPath())));
+			response.addNewHeader(std::pair<std::string,std::string>("Content-Type", content_type(request.getPath())));
 		}
 		response.setStatusCode("200");
 		response.setReasonPhrase("OK");
@@ -362,7 +361,7 @@ void Server::fileToBody(Request &request, Response &response)
 }
 
 // cgi
-void Server::convertCGI(Request &request, Response &response)
+void Server::n	(Request &request, Response &response)
 {
     std::string tmp;
     std::string body;
@@ -459,7 +458,7 @@ void Server::generateAutoIndex(Request &request, Response &response)
 		}
 		line << "</table></main></body></html>";
 		response.setBody(line.str());
-		response.addNewHeader(std::pair<std::string,std::string>("content-type", "text/html"));
+		response.addNewHeader(std::pair<std::string,std::string>("Content-Type", "text/html"));
 		closedir(dir);
 	}
 	else

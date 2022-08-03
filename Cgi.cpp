@@ -21,6 +21,8 @@ Cgi::Cgi(const Request &request){
     }
     this->_env["SCRIPT_FILENAME"] = this->_env["PATH_INFO"];
     this->post_body_data = request.getBody();
+    //debug
+    this->test_size = this->post_body_data.size();
 }
 
 Cgi::~Cgi(){}
@@ -41,6 +43,8 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
     lseek(fdIn, 0, SEEK_SET);
 	fd_safe[0] = dup(STDIN_FILENO);
 	fd_safe[1] = dup(STDOUT_FILENO);
+    //__debug__//
+    std::cout << "test " << this->test_size << " " << this->_env["CONTENT_LENGTH"] << std::endl;
 	if ((pid = fork()) == -1)
 		std::cout << "500 internal server error" << std::endl;
 	if (!pid){
