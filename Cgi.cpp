@@ -1,10 +1,10 @@
 #include "Cgi.hpp"
 #include "utils.hpp"
 
-using namespace std;
+
 Cgi::Cgi(const Request &request){
-    this->_env["REDIRECT_STATUS"] = "200";
-    this->cgi_header = request.getHeaders();
+    this->_env["REDIRECT_STATUS"] = "";
+    //this->cgi_header = request.getHeaders();
     this->_env["SERVER_SOFTWARE"] = "Webserv/1.0";
     this->_env["REQUEST_METHOD"] = request.getMethod();
     this->_env["SERVER_PROTOCOL"] = request.getVersion();
@@ -15,16 +15,24 @@ Cgi::Cgi(const Request &request){
     this->_env["HTTP_ACCEPT_ENCODING"] = this->cgi_header["Accept-Encoding"];
     this->_env["GATEWAY_INTERFACE"] = "CGI/1.1";
     this->_env["QUERY_STRING"] = request.getQuery();
+    if(this->_env["REQUEST_METHOD"] == "POST") {
+        this->_env["CONTENT_LENGTH"] = request.getHeaders().find("Content-Length")->second;
+        this->_env["CONTENT_TYPE"] = request.getHeaders().find("Content-Type")->second;
+    }
+    this->_env["SCRIPT_FILENAME"] = this->_env["PATH_INFO"];
+    this->post_body_data = request.getBody();
 }
 
 Cgi::~Cgi(){}
 
 std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 	int fd_safe[2];
+    int tocgi[2];
 	pid_t pid;
     std::string tmp;
     char **env = map_to_char();
 
+    pipe(tocgi);
     FILE	*fIn = tmpfile();
     FILE	*fOut = tmpfile();
     long	fdIn = fileno(fIn);
@@ -34,26 +42,30 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 	fd_safe[0] = dup(STDIN_FILENO);
 	fd_safe[1] = dup(STDOUT_FILENO);
 	if ((pid = fork()) == -1)
-		std::cout << "Error: fork" << std::endl;
+		std::cout << "500 internal server error" << std::endl;
 	if (!pid){
+        dup2(tocgi[0], STDIN_FILENO);
         char * const * nll = nullptr;
-        dup2(fdIn, STDIN_FILENO);
+        //dup2(fdIn, STDIN_FILENO);
 		dup2(fdOut, STDOUT_FILENO);
+        if(this->_env["REQUEST_METHOD"] == "POST" )
+            write(tocgi[1], this->post_body_data.c_str(), this->post_body_data.size());
 		execve((char*)file_name.c_str(), nll , env); // chiamare php passare filename e passare variabili decodificate
-        cout << "NO EXECVE on "<< file_name << endl; //TODO handle error
+        std::cout << "500 internal server error" << std::endl; //TODO handle error
 		exit(0);
 	}
 	else{
 		waitpid(-1, NULL, 0);
         lseek(fdOut, 0, SEEK_SET);
         int ret = 1;
-        // cout << "ret: " << ret << endl;
         char buffer[65536];
 		while(ret > 0) {
             memset(buffer, 0, 65536);
             ret = read(fdOut, buffer, 65536 - 1);
             tmp += buffer;
         }
+        std::cout << "ritorno cgi" << std::endl;
+        std::cout << tmp << std::endl;
 		dup2(STDOUT_FILENO, fd_safe[1]);
 		dup2(STDIN_FILENO, fd_safe[0]);
         fclose(fIn);

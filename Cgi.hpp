@@ -17,6 +17,7 @@ private:
 	std::map<std::string, std::string> _env; // execve accetta mappa?/// pescare conf && request
 	std::string new_body;
     std::map<std::string, std::string> cgi_header;
+    std::string post_body_data;
 public:
 	Cgi(const Request &request);
 	~Cgi();
