@@ -215,29 +215,41 @@ void Server::methodGet(Request &request, Response &response)
 // POST method
 void Server::methodPost(Request &request, Response &response)
 {
-	std::string tmp;
-    std::string body;
-	size_t		pos;
-	Cgi			cgi(request);
+	std::ifstream		file;
+	std::string			file_extension;
+	size_t				pos;
 
-	body = cgi.run_cgi("/Users/ametta/.brew/bin/php-cgi");
-	pos = body.find("\r\n\r\n");
-	if (pos != std::string::npos)
+	file.open(request.getPath());
+	if (file.is_open())
 	{
-		pos += 4;
-		tmp = body.substr(0, pos);
-		body.erase(0, pos);		
-		takeHeaders(tmp, response);
+		// check for extension
+		pos = request.getPath().find_last_of('.');
+		if (pos != std::string::npos)
+		{
+			file_extension = request.getPath().substr(pos);
+			if (request.getLocation()->getCgi().find(file_extension) != request.getLocation()->getCgi().end())
+			{
+				request.setCgiPath(request.getLocation()->getCgi().find(file_extension)->second);
+			}
+		}
+		// check for cgi
+		if (!request.getCgiPath().empty())
+		{
+			// file extension matches cgi
+			std::cout << request << std::endl; // debug
+			convertCGI(request, response);
+			response.addNewHeader(std::pair<std::string,std::string>("last-modified", last_modified(request.getPath())));
+			response.addNewHeader(std::pair<std::string,std::string>("Content-Lenght", std::to_string(response.getBody().size())));
+			response.setStatusCode("200");	// the values ha to be set by the cgi 
+			response.setReasonPhrase("OK");
+		}
 	}
-	response.setBody(body);
-
-	// response.setStatusCode("404");
-	// response.setReasonPhrase("File Not Found");
-	// errorPageToBody(response);
-
-	//debug
-	std::cout << "-------------------------------" << std::endl;
-	std::cout << "sono nel post\n\n" << request << std::endl << response << std::endl;
+	else if (file.fail())
+	{
+		response.setStatusCode("403");
+		response.setReasonPhrase("Forbidden");
+		errorPageToBody(response);
+	}
 }
 
 // PUT method
