@@ -291,6 +291,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	int 				connected_fd = current_event->fd;
 	int 				found_pos;
 	std::stringstream	stream;
+	std::string			tmp;
 
 	//debug
 	std::cout << "-----------------------------------------------------------" << std::endl;
@@ -299,19 +300,31 @@ void DefaultServer::receiveRequest(Event *current_event)
 	ConnectedClient *client = (ConnectedClient *)current_event->owner;
 
 	// read from connected_fd into client->request
-	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE - 1, 0);
+	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE, 0);
 	if (read_bytes == -1)
 	{
 		perror("ERROR\nDefaultServer.receiveRequest(): recv");
 		disconnectFromClient(client);
 		return ;
 	}
-	client->request.setRequest(client->request.getRequest() + buf);
+
+	// update request
+	tmp = client->request.getRequest();
+	for (int i = 0; i < read_bytes; ++i)
+	{
+		tmp.push_back(buf[i]);
+	}
+
+	//debug
+	std::cout << "previous request size = " << client->request.getRequest().size() << std::endl;
+	std::cout << "read bytes = " << read_bytes << std::endl;
+	std::cout << "expected request size = " << client->request.getRequest().size() + read_bytes << std::endl;
+
+	client->request.setRequest(tmp);
 	bzero(buf, BUFFER_SIZE);
 
 	//debug
-	std::cout << "read bytes = " << read_bytes << std::endl;
-	std::cout << "request received by now:\n" << client->request.getRequest() << std::endl;
+	std::cout << "current request size = " << client->request.getRequest().size() << std::endl << std::endl;
 
 	// parse newly received request lines
 	while (((unsigned long)(found_pos = client->request.getRequest().find("\n", client->request.getRequestPos())) != std::string::npos) \
