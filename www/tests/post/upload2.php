@@ -2,7 +2,8 @@
 
 // Get reference to uploaded image
 $image_file = $_FILES["image"];
-
+var_dump($_FILES["image"]);
+//var_dump($_POST);
 // Image not defined, let's exit
 if (!isset($image_file)) {
     die('No file uploaded.');
