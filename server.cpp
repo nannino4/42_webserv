@@ -361,7 +361,7 @@ void Server::fileToBody(Request &request, Response &response)
 }
 
 // cgi
-void Server::n	(Request &request, Response &response)
+void Server::convertCGI(Request &request, Response &response)
 {
     std::string tmp;
     std::string body;

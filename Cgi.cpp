@@ -33,6 +33,7 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 	pid_t pid;
     std::string tmp;
     char **env = map_to_char();
+	size_t	written_bytes;	//bytes
 
     pipe(tocgi);
     FILE	*fIn = tmpfile();
@@ -43,8 +44,6 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
     lseek(fdIn, 0, SEEK_SET);
 	fd_safe[0] = dup(STDIN_FILENO);
 	fd_safe[1] = dup(STDOUT_FILENO);
-    //__debug__//
-    std::cout << "test " << this->test_size << " " << this->_env["CONTENT_LENGTH"] << std::endl;
 	if ((pid = fork()) == -1)
 		std::cout << "500 internal server error" << std::endl;
 	if (!pid){
@@ -52,13 +51,18 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
         char * const * nll = nullptr;
         //dup2(fdIn, STDIN_FILENO);
 		dup2(fdOut, STDOUT_FILENO);
-        if(this->_env["REQUEST_METHOD"] == "POST" )
-            write(tocgi[1], this->post_body_data.c_str(), this->post_body_data.size());
+
 		execve((char*)file_name.c_str(), nll , env); // chiamare php passare filename e passare variabili decodificate
         std::cout << "500 internal server error" << std::endl; //TODO handle error
 		exit(0);
 	}
 	else{
+        if(this->_env["REQUEST_METHOD"] == "POST" )
+            written_bytes = write(tocgi[1], this->post_body_data.c_str(), this->post_body_data.size());
+
+		//debug
+		std::cout << "written_bytes into cgi =\t" << written_bytes << std::endl;
+		std::cout << "expected value =\t\t" << post_body_data.size() << std::endl;
 		waitpid(-1, NULL, 0);
         lseek(fdOut, 0, SEEK_SET);
         int ret = 1;
