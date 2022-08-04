@@ -71,11 +71,11 @@ DefaultServer::DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, s
 				exit(EXIT_FAILURE);
 			}
 
-			// fix the path format regarding the '/' char (/valid/path)
+			// fix the path format regarding the '/' char (/valid/path/)
 			if (path.at(0) != '/')
 				path.insert(path.begin(), '/');
-			if (path != "/" && path.back() == '/')
-				path.erase(path.end() - 1);
+			if (path.back() != '/')
+				path.insert(path.end() - 1, '/');
 
 			// check that insert() actually inserted a new element
 			if (!(locations.insert(std::pair<std::string,Location>(path, Location(config_file, pos)))).second)
@@ -301,11 +301,14 @@ void DefaultServer::receiveRequest(Event *current_event)
 	std::stringstream	stream;
 	std::string			tmp;
 
-	//debug
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nDefaultServer.receiveRequest():" << std::endl;
-
 	ConnectedClient *client = (ConnectedClient *)current_event->owner;
+
+	//debug
+	if (client->request.getRequest().empty())
+	{
+		std::cout << "-----------------------------------------------------------" << std::endl;
+		std::cout << "\nDefaultServer.receiveRequest():" << std::endl;
+	}
 
 	// read from connected_fd into client->request
 	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE, 0);
@@ -347,18 +350,11 @@ void DefaultServer::receiveRequest(Event *current_event)
 			std::string method;
 			std::string path;
 			std::string version;
-			size_t		pos_first_slash;
-			size_t		pos_last_slash;
 
 			stream >> method >> path >> version;
 			if (!stream.eof())
 				stream >> std::ws;
 
-			// check if path contains '/'
-			if (path.find('/') == std::string::npos)
-			{
-				path.insert(path.begin(), '/');
-			}
 			// check for query
 			if (path.find('?') != std::string::npos)
 			{
@@ -366,17 +362,17 @@ void DefaultServer::receiveRequest(Event *current_event)
 				path.erase(path.find('?'));
 			}
 
+			// fix the path format /valid/path/format
+			if (path.at(0) != '/')
+			{
+				path.insert(path.begin(), '/');
+			}
+			if (path.back() == '/')
+				path.erase(path.end() - 1);
+
 			client->request.setMethod(method);
 			client->request.setPath(path);
-			client->request.setDirectoryPath(path);
 			client->request.setVersion(version);
-
-			// split path into: directive_path + file_path
-			if ((pos_first_slash = path.find('/')) != (pos_last_slash = path.find_last_of('/')) && pos_last_slash < path.size())
-			{
-				client->request.setDirectoryPath(path.substr(0, pos_last_slash));
-				client->request.setFilePath(path.substr(pos_last_slash));
-			}
 
 			// check that stream didn't fail reading && stream reached EOF && version is correct (HTTP/1.1)
 			if (stream.fail() || !stream.eof())
@@ -512,8 +508,11 @@ void DefaultServer::receiveRequest(Event *current_event)
 
 	// debug
 	// std::cout << "\nrequest.body.size =\t" << client->request.getBody().size() << std::endl;
-	// if (client->request.getHeaders().find("Content-Length") != client->request.getHeaders().end())
-	// 	std::cout << "Content-Length =\t" << client->request.getHeaders().find("Content-Length")->second << std::endl;
+	if (client->request.getHeaders().find("Content-Length") != client->request.getHeaders().end())
+	{
+		system("clear");
+		std::cout << "receiving request\t" << (float)(client->request.getBody().size()) / std::stof(client->request.getHeaders().find("Content-Length")->second) * 100 << "%" << std::endl;
+	}
 
 	if (client->request.isComplete())
 	{
@@ -557,13 +556,16 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 	}
 
 	// find the server location correspongin to the request path
-	if (requestedServer->getLocations().find(client->request.getDirectoryPath()) != requestedServer->getLocations().end())
+	client->request.setLocation(&default_location);
+	std::string	path = client->request.getPath() + "/";
+	while ((path.find_last_of('/') != 0) && (path.find_last_of('/') != std::string::npos) && (client->request.getLocation() == &default_location))
 	{
-		client->request.setLocation(&requestedServer->getLocations().find(client->request.getDirectoryPath())->second);
-	}
-	else
-	{
-		client->request.setLocation(&default_location);
+		if (requestedServer->getLocations().find(path) != requestedServer->getLocations().end())
+		{
+			client->request.setLocation(&requestedServer->getLocations().find(path)->second);
+		}
+		path.erase(path.end() - 1);
+		path = path.substr(0, path.find_last_of('/'));
 	}
 
 	// let the server prepare the response

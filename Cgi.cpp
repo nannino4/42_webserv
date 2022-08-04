@@ -49,6 +49,7 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
         char * const * nll = nullptr;
         //dup2(fdIn, STDIN_FILENO);
 		dup2(fdOut, STDOUT_FILENO);
+		// dup2(fdOut, STDERR_FILENO);	//debug
 
 		execve((char*)file_name.c_str(), nll , env); // chiamare php passare filename e passare variabili decodificate
         std::cout << "500 internal server error" << std::endl; //TODO handle error

@@ -106,6 +106,12 @@ void Location::parseIndex(std::stringstream &stream)
 		std::cerr << "\nERROR\nLocation::parseIndex(): too many parameters" << std::endl;
 		exit(EXIT_FAILURE);
 	}
+
+	//check format: "index.html"
+	if (index.at(0) != '/')
+	{
+		index.insert(index.begin(), '/');
+	}
 }
 
 void Location::parseReturn(std::stringstream &stream)

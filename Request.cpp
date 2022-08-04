@@ -51,8 +51,6 @@ const std::string						&Request::getVersion() const { return version; }
 const std::string						&Request::getCgiPath() const { return cgi_path; }
 const std::string						&Request::getMethod() const { return method; }
 const std::string						&Request::getPath() const { return path; }
-const std::string						&Request::getDirectoryPath() const { return directory_path; }
-const std::string						&Request::getFilePath() const { return file_path; }
 const std::string						&Request::getQuery() const { return query; }
 const std::string						&Request::getBody() const { return body; }
 const std::map<std::string,std::string>	&Request::getHeaders() const { return headers; }
@@ -67,8 +65,6 @@ void	Request::setRequest(std::string const new_request) { request = new_request;
 void	Request::setRequestPos(int const new_request_pos) { request_pos = new_request_pos; }
 void	Request::setMethod(std::string const new_method) { method = new_method; }
 void	Request::setPath(std::string const new_path) { path = new_path; }
-void	Request::setDirectoryPath(std::string const new_path) { directory_path = new_path; }
-void	Request::setFilePath(std::string const new_path) { file_path = new_path; }
 void	Request::setQuery(std::string const new_query) { query = new_query; }
 void	Request::setVersion(std::string const new_version) { version = new_version; }
 void	Request::setCgiPath(std::string const new_cgi_path) { cgi_path = new_cgi_path; }
