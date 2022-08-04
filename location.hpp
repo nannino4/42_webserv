@@ -19,6 +19,7 @@ private:
 	//redirection
 	bool								is_redirection;
 	std::pair<std::string,int>			redirection;
+	std::string							upload;
 	//cgi
 	std::map<std::string,std::string>	cgi;	//map<extension, script_path>
 
@@ -43,6 +44,7 @@ public:
 	bool									isRedirection() const;
 	std::pair<std::string,int> const		&getRedirection() const;
 	std::map<std::string,std::string> const	&getCgi() const;
+	std::string const						&getUploadStore() const;
 
 	// setters
 	void	setRoot(std::string const &new_root);
@@ -54,6 +56,7 @@ public:
 private:
 	// initialization
 	void parseRoot(std::stringstream &stream);
+	void parseUploadPath(std::stringstream &stream);
 	void parseAllowedMethods(std::stringstream &stream);
 	void parseAutoindex(std::stringstream &stream);
 	void parseIndex(std::stringstream &stream);

@@ -75,6 +75,10 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), is_re
 		{
 			parseCgi(stream);
 		}
+		else if (!directive.compare("upload_store"))
+		{
+			parseUploadPath(stream);
+		}
 		else
 		{
 			std::cerr << "\nERROR\nLocation::Location(): \"" << directive << "\" is an invalid directive" << std::endl;
@@ -104,6 +108,7 @@ Location &Location::operator=(Location const &other)
 	index = other.getIndex();
 	is_redirection = other.isRedirection();
 	redirection = other.getRedirection();
+	upload = other.getUploadStore();
 	cgi = other.getCgi();
 	return *this;
 }
@@ -113,6 +118,7 @@ Location::~Location() {}
 
 // getters
 std::string const						&Location::getRoot() const { return root; }
+std::string const						&Location::getUploadStore() const { return upload; }
 std::vector<std::string> const			&Location::getAllowedMethods() const { return allowed_methods; }
 bool 									Location::isMethodAllowed(std::string method) const
 {
@@ -150,6 +156,7 @@ std::ostream &operator<<(std::ostream &os, Location const &location)
 	}
 	os << "\nautoindex:\t" << std::boolalpha << location.autoindex << std::endl;
 	os << "index:\t\t" << location.index << std::endl;
+	os << "upload_store:\t" << location.upload << std::endl;
 	os << "isRedir:\t" << std::boolalpha << location.isRedirection() << std::endl;
 	os << "redirection:\t" << location.redirection.second << " " << location.redirection.first << std::endl;
 	os << "cgi:\t\t" << location.cgi.size() << std::endl;
