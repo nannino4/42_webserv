@@ -540,7 +540,9 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 	{
 		for (std::vector<Server>::iterator it = virtual_servers.begin(); it != virtual_servers.end(); ++it)
 		{
-			if (it->isName(client->request.getHostname()))
+			if (it->isName(client->request.getHostname().substr(
+				0, client->request.getHostname().find(":")
+			)))
 				requestedServer = &(*it);
 		}
 	}
