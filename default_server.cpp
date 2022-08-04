@@ -74,7 +74,7 @@ DefaultServer::DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, s
 			// fix the path format regarding the '/' char (/valid/path)
 			if (path.at(0) != '/')
 				path.insert(path.begin(), '/');
-			if (path.back() == '/')
+			if (path != "/" && path.back() == '/')
 				path.erase(path.end() - 1);
 
 			// check that insert() actually inserted a new element
@@ -316,7 +316,6 @@ void DefaultServer::receiveRequest(Event *current_event)
 	}
 
 	//debug
-	std::cout << "request = " << client->request.getRequest() << std::endl;
 	std::cout << "previous request size = " << client->request.getRequest().size() << std::endl;
 	std::cout << "read bytes = " << read_bytes << std::endl;
 	std::cout << "expected request size = " << client->request.getRequest().size() + read_bytes << std::endl;
@@ -325,6 +324,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	bzero(buf, BUFFER_SIZE);
 
 	//debug
+	std::cout << "request = " << client->request.getRequest() << std::endl;
 	std::cout << "current request size = " << client->request.getRequest().size() << std::endl << std::endl;
 
 	// parse newly received request lines
