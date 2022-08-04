@@ -316,16 +316,16 @@ void DefaultServer::receiveRequest(Event *current_event)
 	}
 
 	//debug
-	std::cout << "previous request size = " << client->request.getRequest().size() << std::endl;
-	std::cout << "read bytes = " << read_bytes << std::endl;
-	std::cout << "expected request size = " << client->request.getRequest().size() + read_bytes << std::endl;
+	// std::cout << "previous request size = " << client->request.getRequest().size() << std::endl;
+	// std::cout << "read bytes = " << read_bytes << std::endl;
+	// std::cout << "expected request size = " << client->request.getRequest().size() + read_bytes << std::endl;
 
 	client->request.setRequest(tmp);
 	bzero(buf, BUFFER_SIZE);
 
 	//debug
 	std::cout << "request = " << client->request.getRequest() << std::endl;
-	std::cout << "current request size = " << client->request.getRequest().size() << std::endl << std::endl;
+	// std::cout << "current request size = " << client->request.getRequest().size() << std::endl << std::endl;
 
 	// parse newly received request lines
 	while (((unsigned long)(found_pos = client->request.getRequest().find("\n", client->request.getRequestPos())) != std::string::npos) \
@@ -505,9 +505,9 @@ void DefaultServer::receiveRequest(Event *current_event)
 	#endif
 
 	// debug
-	std::cout << "\nrequest.body.size =\t" << client->request.getBody().size() << std::endl;
-	if (client->request.getHeaders().find("Content-Length") != client->request.getHeaders().end())
-		std::cout << "Content-Length =\t" << client->request.getHeaders().find("Content-Length")->second << std::endl;
+	// std::cout << "\nrequest.body.size =\t" << client->request.getBody().size() << std::endl;
+	// if (client->request.getHeaders().find("Content-Length") != client->request.getHeaders().end())
+	// 	std::cout << "Content-Length =\t" << client->request.getHeaders().find("Content-Length")->second << std::endl;
 
 	if (client->request.isComplete())
 	{
@@ -626,7 +626,7 @@ void DefaultServer::sendResponse(Event *current_event)
 	{
 
 		//DEBUG
-		std::cout << "\nThe whole response has been sent\n" << std::endl << client->response << std::endl;
+		// std::cout << "\nThe whole response has been sent\n" << std::endl << client->response << std::endl;
 
 		// remove connected_fd from kqueue
 	#ifdef __MACH__
