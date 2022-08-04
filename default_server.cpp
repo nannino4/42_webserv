@@ -316,6 +316,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	}
 
 	//debug
+	std::cout << "request = " << client->request.getRequest() << std::endl;
 	std::cout << "previous request size = " << client->request.getRequest().size() << std::endl;
 	std::cout << "read bytes = " << read_bytes << std::endl;
 	std::cout << "expected request size = " << client->request.getRequest().size() + read_bytes << std::endl;

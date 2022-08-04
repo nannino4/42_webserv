@@ -452,7 +452,7 @@ void Server::generateAutoIndex(Request &request, Response &response)
 		{
 			if (std::string(ent->d_name) != ".")
 			{
-				line << "<tr><td><a href=\"" << ent->d_name << "\">";
+				line << "<tr><td><a href=\"" << ent->d_name << "/\">";
 				line << ent->d_name << "</a></td></tr>";
 			}
 		}
