@@ -33,7 +33,7 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 	pid_t pid;
     std::string tmp;
     char **env = map_to_char();
-	size_t	written_bytes;	//bytes
+	size_t	written_bytes = 0;	//bytes
 
     pipe(tocgi);
     FILE	*fIn = tmpfile();
