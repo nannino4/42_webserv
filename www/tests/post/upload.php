@@ -2,11 +2,13 @@
 
 // Get reference to uploaded image
 $image_file = $_FILES["image"];
-
+//var_dump($_POST);
 // Image not defined, let's exit
 if (!isset($image_file)) {
     die('No file uploaded.');
 }
+
+echo '<pre>';
 
 // Move the temp image file to the images/ directory
 move_uploaded_file(
@@ -17,4 +19,7 @@ move_uploaded_file(
     __DIR__ . "/images/" . $image_file["name"]
 );
 
-echo "file uploaded";
+echo "Here is some more debugging info:\n\n";
+print_r($_FILES);
+
+print "</pre>";
