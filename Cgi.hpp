@@ -14,13 +14,11 @@
 class Cgi
 {
 private:
-	std::map<std::string, std::string> _env; // execve accetta mappa?/// pescare conf && request
-	std::string new_body;
-    std::map<std::string, std::string> cgi_header;
-    std::string post_body_data;
+	std::map<std::string, std::string>	_env; // execve accetta mappa?/// pescare conf && request
+	std::string							new_body;
+    std::map<std::string, std::string>	cgi_header;
+    std::string							post_body_data;
 
-	//__debug__//
-	long long test_size;
 public:
 	Cgi(const Request &request);
 	~Cgi();

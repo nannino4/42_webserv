@@ -1,10 +1,10 @@
 #include "location.hpp"
 
 // default constructor
-Location::Location() : autoindex(false), is_redirection(false) {}
+Location::Location() : root(DEFAULT_ROOT), autoindex(false), is_redirection(false), upload_path(DEFAULT_UPLOAD_PATH) { allowed_methods.push_back("GET"); }
 
 // constructor
-Location::Location(std::string &config_file, int &pos) : autoindex(false), is_redirection(false)
+Location::Location(std::string &config_file, int &pos) : autoindex(false), is_redirection(false), upload_path(DEFAULT_UPLOAD_PATH)
 {
 	std::stringstream	stream;
 	std::string			directive;
@@ -75,7 +75,7 @@ Location::Location(std::string &config_file, int &pos) : autoindex(false), is_re
 		{
 			parseCgi(stream);
 		}
-		else if (!directive.compare("upload_store"))
+		else if (!directive.compare("upload_path"))
 		{
 			parseUploadPath(stream);
 		}
@@ -108,7 +108,7 @@ Location &Location::operator=(Location const &other)
 	index = other.getIndex();
 	is_redirection = other.isRedirection();
 	redirection = other.getRedirection();
-	upload = other.getUploadStore();
+	upload_path = other.getUploadPath();
 	cgi = other.getCgi();
 	return *this;
 }
@@ -118,7 +118,6 @@ Location::~Location() {}
 
 // getters
 std::string const						&Location::getRoot() const { return root; }
-std::string const						&Location::getUploadStore() const { return upload; }
 std::vector<std::string> const			&Location::getAllowedMethods() const { return allowed_methods; }
 bool 									Location::isMethodAllowed(std::string method) const
 {
@@ -133,6 +132,7 @@ bool 									Location::isAutoindex() const { return autoindex; }
 std::string const						&Location::getIndex() const { return index; }
 bool									Location::isRedirection() const { return is_redirection; }
 std::pair<std::string,int> const		&Location::getRedirection() const { return redirection; }
+std::string const						&Location::getUploadPath() const { return upload_path; }
 std::map<std::string,std::string> const	&Location::getCgi() const { return cgi; }
 
 // setters
@@ -156,7 +156,7 @@ std::ostream &operator<<(std::ostream &os, Location const &location)
 	}
 	os << "\nautoindex:\t" << std::boolalpha << location.autoindex << std::endl;
 	os << "index:\t\t" << location.index << std::endl;
-	os << "upload_store:\t" << location.upload << std::endl;
+	os << "upload_path:\t" << location.upload_path << std::endl;
 	os << "isRedir:\t" << std::boolalpha << location.isRedirection() << std::endl;
 	os << "redirection:\t" << location.redirection.second << " " << location.redirection.first << std::endl;
 	os << "cgi:\t\t" << location.cgi.size() << std::endl;

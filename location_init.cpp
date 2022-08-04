@@ -22,28 +22,6 @@ void Location::parseRoot(std::stringstream &stream)
 	}
 }
 
-void Location::parseUploadPath(std::stringstream &stream)
-{
-	stream >> upload;
-
-	if (!stream.eof())
-		stream >> std::ws;
-
-	// check that stream didn't fail reading
-	if (stream.fail())
-	{
-		std::cerr << "\nERROR\nLocation::parseUploadPath(): stream reading failed" << std::endl;
-		exit(EXIT_FAILURE);
-	}
-
-	// check that stream reached EOF
-	if (!stream.eof())
-	{
-		std::cerr << "\nERROR\nLocation::parseUploadPath(): too many parameters" << std::endl;
-		exit(EXIT_FAILURE);
-	}
-}
-
 void Location::parseAllowedMethods(std::stringstream &stream)
 {
 	std::string	newMethod;
@@ -200,4 +178,32 @@ void Location::parseCgi(std::stringstream &stream)
 	}
 
 	cgi.insert(std::pair<std::string,std::string>(extension, script_path));
+}
+
+void Location::parseUploadPath(std::stringstream &stream)
+{
+	stream >> upload_path;
+
+	if (!stream.eof())
+		stream >> std::ws;
+
+	// check that stream didn't fail reading
+	if (stream.fail())
+	{
+		std::cerr << "\nERROR\nLocation::parseUploadPath(): stream reading failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// check that stream reached EOF
+	if (!stream.eof())
+	{
+		std::cerr << "\nERROR\nLocation::parseUploadPath(): too many parameters" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	
+	// fix the path format regarding the '/' char: /valid/path/
+	if (upload_path.at(0) != '/')
+		upload_path.insert(upload_path.begin(), '/');
+	if (upload_path.back() != '/')
+		upload_path.insert(upload_path.end(), '/');
 }

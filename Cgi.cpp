@@ -20,9 +20,8 @@ Cgi::Cgi(const Request &request){
         this->_env["CONTENT_TYPE"] = request.getHeaders().find("Content-Type")->second;
     }
     this->_env["SCRIPT_FILENAME"] = this->_env["PATH_INFO"];
+	this->_env["UPLOAD_PATH"] = request.getLocation()->getUploadPath();
     this->post_body_data = request.getBody();
-    //debug
-    this->test_size = this->post_body_data.size();
 }
 
 Cgi::~Cgi(){}
@@ -33,7 +32,6 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 	pid_t pid;
     std::string tmp;
     char **env = map_to_char();
-	size_t	written_bytes = 0;	//bytes
 
     pipe(tocgi);
     FILE	*fIn = tmpfile();
@@ -58,11 +56,7 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 	}
 	else{
         if(this->_env["REQUEST_METHOD"] == "POST" )
-            written_bytes = write(tocgi[1], this->post_body_data.c_str(), this->post_body_data.size());
-
-		//debug
-		std::cout << "written_bytes into cgi =\t" << written_bytes << std::endl;
-		std::cout << "expected value =\t\t" << post_body_data.size() << std::endl;
+            write(tocgi[1], this->post_body_data.c_str(), this->post_body_data.size());
 		waitpid(-1, NULL, 0);
         lseek(fdOut, 0, SEEK_SET);
         int ret = 1;

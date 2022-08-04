@@ -7,6 +7,9 @@
 #include <map>
 #include <vector>
 
+#define DEFAULT_UPLOAD_PATH "/images/"
+#define DEFAULT_ROOT "./www"
+
 class Location
 {
 private:
@@ -19,7 +22,7 @@ private:
 	//redirection
 	bool								is_redirection;
 	std::pair<std::string,int>			redirection;
-	std::string							upload;
+	std::string							upload_path;
 	//cgi
 	std::map<std::string,std::string>	cgi;	//map<extension, script_path>
 
@@ -43,8 +46,8 @@ public:
 	std::string const						&getIndex() const;
 	bool									isRedirection() const;
 	std::pair<std::string,int> const		&getRedirection() const;
+	std::string const						&getUploadPath() const;
 	std::map<std::string,std::string> const	&getCgi() const;
-	std::string const						&getUploadStore() const;
 
 	// setters
 	void	setRoot(std::string const &new_root);

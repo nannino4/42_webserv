@@ -126,14 +126,21 @@ DefaultServer::~DefaultServer()
 // operator overload
 std::ostream &operator<<(std::ostream &os, DefaultServer const &def_serv)
 {
+	os << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
 	os << "\n\tDefaultServer introducing itself:\n";
+	os << "\tdefault server names:\t";
+	for (std::vector<std::string>::const_iterator name = def_serv.getNames().begin(); name != def_serv.getNames().end(); ++name)
+	{
+		os << " " << *name;
+	}
+	os << std::endl;
 	os << "\tserver_addr:\t\t" << inet_ntoa(def_serv.server_addr.sin_addr) << ":" << ntohs(def_serv.server_addr.sin_port) << std::endl;
 	os << "\tlistening_fd:\t\t" << def_serv.listening_fd << std::endl;
-	os << "\tlocations:\t" << def_serv.locations.size() << std::endl;
-	for (std::map<std::string,Location>::const_iterator it = def_serv.locations.begin(); it != def_serv.locations.end(); ++it)
-	{
-		os << it->second << std::endl;
-	}
+	os << "\tlocations:\t\t" << def_serv.locations.size() << std::endl;
+	// for (std::map<std::string,Location>::const_iterator it = def_serv.locations.begin(); it != def_serv.locations.end(); ++it)
+	// {
+	// 	os << it->second << std::endl;
+	// }
 	os << "\tvirtual_servers:\t" << def_serv.virtual_servers.size() << std::endl;
 	for (std::vector<Server>::const_iterator it = def_serv.virtual_servers.begin(); it != def_serv.virtual_servers.end(); ++it)
 	{
@@ -151,6 +158,7 @@ std::ostream &operator<<(std::ostream &os, DefaultServer const &def_serv)
 		os << "\t\tRequest:\t\"" << it->second.request.getRequest() << "\"" << std::endl;
 	}
 	os << "\tDefaultServer introduction is over" << std::endl;
+	os << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
 	return os;
 }
 
@@ -324,7 +332,6 @@ void DefaultServer::receiveRequest(Event *current_event)
 	bzero(buf, BUFFER_SIZE);
 
 	//debug
-	std::cout << "request = " << client->request.getRequest() << std::endl;
 	// std::cout << "current request size = " << client->request.getRequest().size() << std::endl << std::endl;
 
 	// parse newly received request lines
@@ -474,27 +481,26 @@ void DefaultServer::receiveRequest(Event *current_event)
 			}
 		}
 
-		//TODO only do with GET
-		// //check if the request is too long
-		// if (client->request.getRequest().size() > REQUEST_SIZE_LIMIT)
-		// {
-		// 	// remove connected_fd from kqueue
-		// #ifdef __MACH__
-		// 	struct kevent event;
-		// 	bzero(&event, sizeof(event));
-		// 	EV_SET(&event, client->connected_fd, EVFILT_READ, EV_DELETE, 0, 0, &client->triggered_event);
-		// 	if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-		// #elif defined(__linux__)
-		// 	if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, client->connected_fd, nullptr) == -1)
-		// #endif
-		// 	{
-		// 		perror("\nERROR\nDefaultServer.receiveRequest(): kevent()/epoll_ctl()");
-		// 	}
-		// 	// erase client from the map of clients and delete it from memory
-		// 	clients.erase(client->connected_fd);
-		// 	delete client;
-		//	return ;
-		// }
+		//check if the request is too long
+		if (client->request.getMethod() != "POST" && client->request.getRequest().size() > REQUEST_SIZE_LIMIT)
+		{
+			// remove connected_fd from kqueue
+		#ifdef __MACH__
+			struct kevent event;
+			bzero(&event, sizeof(event));
+			EV_SET(&event, client->connected_fd, EVFILT_READ, EV_DELETE, 0, 0, &client->triggered_event);
+			if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+		#elif defined(__linux__)
+			if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, client->connected_fd, nullptr) == -1)
+		#endif
+			{
+				perror("\nERROR\nDefaultServer.receiveRequest(): kevent()/epoll_ctl()");
+			}
+			// erase client from the map of clients and delete it from memory
+			clients.erase(client->connected_fd);
+			delete client;
+			return ;
+		}
 	}
 
 	// update client timeout
@@ -523,6 +529,9 @@ void DefaultServer::receiveRequest(Event *current_event)
 		{
 			perror("ERROR\nDefaultServer.receiveRequest: kevent()/epoll_ctl()");
 		}
+
+		//debug
+		std::cout << "---------request without body:---------\n" << client->request.getRequest().substr(0, client->request.getRequest().find("\r\n\r\n")) << std::endl << std::endl;
 
 		dispatchRequest(client);
 	}
@@ -626,7 +635,7 @@ void DefaultServer::sendResponse(Event *current_event)
 	{
 
 		//DEBUG
-		// std::cout << "\nThe whole response has been sent\n" << std::endl << client->response << std::endl;
+		std::cout << "\nThe whole response has been sent\n" << std::endl << client->response.getResponse().substr(client->response.getResponse().find("\r\n\r\n")) << std::endl;
 
 		// remove connected_fd from kqueue
 	#ifdef __MACH__

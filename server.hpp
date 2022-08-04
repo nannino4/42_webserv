@@ -27,8 +27,6 @@
 #include "Response.hpp"
 #include "utils.hpp"
 
-#define DEFAULT_ROOT "./www"
-
 class Server
 {
 protected:

@@ -1,11 +1,7 @@
 #include "server.hpp"
 
 // default constructor
-Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd), client_body_size(0), default_location()
-{
-	default_location.setRoot(DEFAULT_ROOT);
-	default_location.addAllowedMethod("GET");
-}
+Server::Server(int const &kqueue_epoll_fd) : kqueue_epoll_fd(kqueue_epoll_fd), client_body_size(0), default_location() {}
 
 // copy constructor
 Server::Server(Server const &other) : kqueue_epoll_fd(other.getKqueueEpollFd()) { *this = other; }
