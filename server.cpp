@@ -205,11 +205,11 @@ void Server::methodGet(Request &request, Response &response)
 		}
 	}
 	else	// path is invalid
-		{
-			response.setStatusCode("404");
-			response.setReasonPhrase("File Not Found");
-			errorPageToBody(response);
-		}
+	{
+		response.setStatusCode("404");
+		response.setReasonPhrase("File Not Found");
+		errorPageToBody(response);
+	}
 }
 
 // POST method
@@ -279,38 +279,76 @@ void Server::methodPost(Request &request, Response &response)
 	file.close();
 }*/
 
-// DELETE method
-void Server::methodDelete(Request &request, Response &response)
+void deleteDir(std::string path, Response &response)
 {
-	std::ifstream	file;
-	struct stat		file_stat;
+	DIR 				*dir;
+	struct stat			stat_path, stat_entry;
+	struct dirent		*ent;
 
-    if (stat((request.getPath()).c_str(), &file_stat) == 0)
+	stat(path.c_str(), &stat_path);
+	
+	if (S_ISDIR(stat_path.st_mode))
 	{
-		// the path is valid
-		if (S_ISREG(file_stat.st_mode))
+		if ((dir = opendir((path.c_str()))) == NULL)
 		{
-			// the path identifies a regular file
-			unlink((request.getPath()).c_str());
-			response.setStatusCode("200");
-			response.setReasonPhrase("OK");
+			response.setStatusCode("403");
+			response.setReasonPhrase("Forbidden");
+			return;
 		}
-		else
+		while ((ent = readdir(dir)) != NULL)
 		{
-			// the path does not identify a regular file
-			response.setStatusCode("404");
-			response.setReasonPhrase("File Not Found");
-			errorPageToBody(response);
+			if (std::string(ent->d_name) == "." || std::string(ent->d_name) == "..")
+				continue ;
+			
+			stat(std::string(path + "/" + ent->d_name).c_str(), &stat_entry);
+			if (S_ISDIR(stat_entry.st_mode))
+				deleteDir(std::string(path + "/" + ent->d_name), response);
+
+			if (std::ifstream(std::string(path + "/" + ent->d_name).c_str()).is_open() && unlink(std::string(path + "/" + ent->d_name).c_str()))
+			{
+				response.setStatusCode("403");
+				response.setReasonPhrase("Forbidden");
+				return;
+			}
 		}
+		if (rmdir(path.c_str()))
+		{
+			response.setStatusCode("403");
+			response.setReasonPhrase("Forbidden");
+			return;
+		}
+		closedir(dir);
+		response.setStatusCode("200");
+		response.setReasonPhrase("OK");
+	}
+	else if (S_ISREG(stat_path.st_mode))
+	{
+		if (!std::ifstream(path.c_str()).is_open())
+		{
+			response.setStatusCode("403");
+			response.setReasonPhrase("Forbidden");
+			return;
+		}
+		unlink(path.c_str());
+		response.setStatusCode("200");
+		response.setReasonPhrase("OK");
 	}
 	else
 	{
-		// the path is invalid
 		response.setStatusCode("404");
 		response.setReasonPhrase("File Not Found");
-		errorPageToBody(response);
 	}
 }
+
+
+// DELETE method
+void Server::methodDelete(Request &request, Response &response)
+{
+	deleteDir(request.getPath(), response);
+	if (response.getStatusCode() != "200")
+		errorPageToBody(response);
+}
+
 
 // get file to body
 void Server::fileToBody(Request &request, Response &response) 
