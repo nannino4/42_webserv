@@ -43,7 +43,7 @@ std::string Cgi::run_cgi(std::string const &file_name){ //script_name=index.php
 	fd_safe[0] = dup(STDIN_FILENO);
 	fd_safe[1] = dup(STDOUT_FILENO);
 	if ((pid = fork()) == -1)
-		std::cout << "Status-code: 500\r\n\r\ninternal server error" << std::endl;
+		std::cout << "Status-code: 500\r\n\r\n" << std::endl;
 	if (!pid){
         dup2(tocgi[0], STDIN_FILENO);
         char * const * nll = nullptr;
@@ -51,7 +51,7 @@ std::string Cgi::run_cgi(std::string const &file_name){ //script_name=index.php
 		dup2(fdOut, STDOUT_FILENO);
 
 		execve((char*)file_name.c_str(), nll , env); // chiamare php passare filename e passare variabili decodificate
-        std::cout << "Status-code: 500\r\n\r\ninternal server error" << std::endl; //TODO handle error
+        std::cout << "Status-code: 500\r\n\r\n" << std::endl; //TODO handle error
 		exit(0);
 	}
 	else{

@@ -344,9 +344,9 @@ void Server::fileToBody(Request &request, Response &response)
 			response.setBody(line.str());
 			response.addNewHeader(std::pair<std::string,std::string>("Last-Modified", last_modified(request.getPath())));
 			response.addNewHeader(std::pair<std::string,std::string>("Content-Type", content_type(request.getPath())));
+			response.setStatusCode("200");
+			response.setReasonPhrase("OK");
 		}
-		response.setStatusCode("200");
-		response.setReasonPhrase("OK");
 	}
 	else if (file.fail())
 	{
@@ -373,7 +373,8 @@ void Server::convertCGI(Request &request, Response &response)
 		body.erase(0, pos);		
 		takeHeaders(tmp, response);
 	}
-	response.setBody(body);
+	// if (response.getStatusCode() != "500")
+	// 	response.setBody(body);
 }
 
 // take headers from CGI return
@@ -392,9 +393,21 @@ void Server::takeHeaders(std::string tmp, Response &response)
 			std::string value;
 			sline >> std::ws;
 			if (getline(sline, value, '\r'))
+			{
+				if (key == "Status-code")
+				{
+					response.setStatusCode("500");
+					response.setReasonPhrase("Internal Server Error");
+					errorPageToBody(response);
+					return ;
+				}
 				response.addNewHeader(std::pair<std::string, std::string>(key, value));
+			}
 		}
 	}
+	response.setStatusCode("200");
+	response.setReasonPhrase("OK");
+
 }
 
 // manage case in which path identifies a directory
