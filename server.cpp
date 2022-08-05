@@ -373,8 +373,8 @@ void Server::convertCGI(Request &request, Response &response)
 		body.erase(0, pos);		
 		takeHeaders(tmp, response);
 	}
-	// if (response.getStatusCode() != "500")
-	// 	response.setBody(body);
+	if (response.getStatusCode() != "500")
+		response.setBody(body);
 }
 
 // take headers from CGI return
