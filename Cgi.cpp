@@ -67,8 +67,8 @@ std::string Cgi::run_cgi(std::string const &file_name){ //script_name=index.php
             tmp += buffer;
         }
 
-        std::cout << "ritorno cgi" << std::endl;
-        std::cout << tmp << std::endl;
+        // std::cout << "ritorno cgi" << std::endl;
+        // std::cout << tmp << std::endl;
 		dup2(STDOUT_FILENO, fd_safe[1]);
 		dup2(STDIN_FILENO, fd_safe[0]);
         fclose(fIn);

@@ -231,11 +231,11 @@ void DefaultServer::startListening()
 	}
 
 	//DEBUG
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nDefaultServer:startListening:\n\nlistening on fd = " << listening_fd << \
-			"\nport = " << ntohs(server_addr.sin_port) << \
-			"\nip = " << inet_ntoa(server_addr.sin_addr) << std::endl << std::endl;
+	// // std::cout << "-----------------------------------------------------------" << std::endl;
+	// // std::cout << "-----------------------------------------------------------" << std::endl;
+	// // std::cout << "\nDefaultServer:startListening:\n\nlistening on fd = " << listening_fd << 
+			// "\nport = " << ntohs(server_addr.sin_port) << 
+			// "\nip = " << inet_ntoa(server_addr.sin_addr) << std::endl << std::endl;
 }
 
 void DefaultServer::connectToClient()
@@ -257,11 +257,11 @@ void DefaultServer::connectToClient()
 		// accept() was succesful
 
 		//DEBUG
-		std::cout << "-----------------------------------------------------------" << std::endl;
-		std::cout << "-----------------------------------------------------------" << std::endl;
-		std::cout << "\nDefaultServer:connectToClient()\n\nconnected to fd = " << connected_fd << \
-				"\nport = " << ntohs(client_addr.sin_port) << \
-				"\nip = " << inet_ntoa(client_addr.sin_addr) << std::endl << std::endl;
+		// std::cout << "-----------------------------------------------------------" << std::endl;
+		// std::cout << "-----------------------------------------------------------" << std::endl;
+		// std::cout << "\nDefaultServer:connectToClient()\n\nconnected to fd = " << connected_fd << 
+				// "\nport = " << ntohs(client_addr.sin_port) << 
+				// "\nip = " << inet_ntoa(client_addr.sin_addr) << std::endl << std::endl;
 
 		// create new ConnectedClient
 		ConnectedClient *new_client = new ConnectedClient(connected_fd, client_addr, this);
@@ -302,14 +302,14 @@ void DefaultServer::receiveRequest(Event *current_event)
 	std::string			tmp;
 
 	//debug
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nDefaultServer.receiveRequest():" << std::endl;
+	// std::cout << "-----------------------------------------------------------" << std::endl;
+	// std::cout << "\nDefaultServer.receiveRequest():" << std::endl;
 
 	ConnectedClient *client = (ConnectedClient *)current_event->owner;
 
 	// read from connected_fd into client->request
 	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE, 0);
-	if (read_bytes == -1)
+	if (read_bytes == -1 || read_bytes == 0)
 	{
 		perror("ERROR\nDefaultServer.receiveRequest(): recv");
 		disconnectFromClient(client);
@@ -324,15 +324,15 @@ void DefaultServer::receiveRequest(Event *current_event)
 	}
 
 	//debug
-	// std::cout << "previous request size = " << client->request.getRequest().size() << std::endl;
-	// std::cout << "read bytes = " << read_bytes << std::endl;
-	// std::cout << "expected request size = " << client->request.getRequest().size() + read_bytes << std::endl;
+	// // std::cout << "previous request size = " << client->request.getRequest().size() << std::endl;
+	// // std::cout << "read bytes = " << read_bytes << std::endl;
+	// // std::cout << "expected request size = " << client->request.getRequest().size() + read_bytes << std::endl;
 
 	client->request.setRequest(tmp);
 	bzero(buf, BUFFER_SIZE);
 
 	//debug
-	// std::cout << "current request size = " << client->request.getRequest().size() << std::endl << std::endl;
+	// // std::cout << "current request size = " << client->request.getRequest().size() << std::endl << std::endl;
 
 	// parse newly received request lines
 	while (((unsigned long)(found_pos = client->request.getRequest().find("\n", client->request.getRequestPos())) != std::string::npos) \
@@ -364,6 +364,11 @@ void DefaultServer::receiveRequest(Event *current_event)
 			{
 				client->request.setQuery(path.substr(path.find('?') + 1));
 				path.erase(path.find('?'));
+			}
+			else if (path.find('#') != std::string::npos)
+			{
+				client->request.setQuery(path.substr(path.find('#') + 1));
+				path.erase(path.find('#'));
 			}
 
 			client->request.setMethod(method);
@@ -532,9 +537,9 @@ void DefaultServer::receiveRequest(Event *current_event)
 	#endif
 
 	// debug
-	// std::cout << "\nrequest.body.size =\t" << client->request.getBody().size() << std::endl;
+	// // std::cout << "\nrequest.body.size =\t" << client->request.getBody().size() << std::endl;
 	// if (client->request.getHeaders().find("Content-Length") != client->request.getHeaders().end())
-	// 	std::cout << "Content-Length =\t" << client->request.getHeaders().find("Content-Length")->second << std::endl;
+	// 	// std::cout << "Content-Length =\t" << client->request.getHeaders().find("Content-Length")->second << std::endl;
 
 	if (client->request.isComplete())
 	{
@@ -551,18 +556,21 @@ void DefaultServer::receiveRequest(Event *current_event)
 			perror("ERROR\nDefaultServer.receiveRequest: kevent()/epoll_ctl()");
 		}
 
-		//debug
-		std::cout << "---------request without body:---------\n" << client->request.getRequest().substr(0, client->request.getRequest().find("\r\n\r\n")) << std::endl << std::endl;
-
+		// // debug
+		// // std::cout << "---------request without body:---------\n" << client->request.getRequest().substr(0, client->request.getRequest().find("\r\n\r\n")) << std::endl << std::endl;
 		dispatchRequest(client);
+
+		// debug
+		// std::cout << "\nEND of DefaultServer.receiveRequest() terminated" << std::endl;
+		// std::cout << "-----------------------------------------------------------" << std::endl;
 	}
 }
 
 void DefaultServer::dispatchRequest(ConnectedClient *client)
 {
 	//debug
-	std::cout << "\n-------------------------------" << std::endl;
-	std::cout << "DefaultServer::dispatchRequest()\n\n" << std::endl;
+	// std::cout << "\n-------------------------------" << std::endl;
+	// std::cout << "DefaultServer::dispatchRequest()\n" << std::endl;
 
 	// find the server corresponding to the host header value
 	Server *requestedServer = this;
@@ -617,6 +625,9 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 	#elif defined(__linux__)
 		clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
 	#endif
+
+	// std::cout << "END of DefaultServer::dispatchRequest()" << std::endl;
+	// std::cout << "-------------------------------" << std::endl;
 }
 
 void DefaultServer::sendResponse(Event *current_event)
@@ -625,14 +636,21 @@ void DefaultServer::sendResponse(Event *current_event)
 	ConnectedClient *client = (ConnectedClient *)current_event->owner;
 
 	//DEBUG
-	std::cout << "\n-----------------------------------------------------------" << std::endl;
-	std::cout << "\nDefaultServer:sendResponse():\n\n" << std::endl;
+	// std::cout << "\n-----------------------------------------------------------" << std::endl;
+	// std::cout << "DefaultServer:sendResponse():\n\n" << std::endl;
 	
 	int buf_siz = ((unsigned long)(client->response.getResponsePos() + BUFFER_SIZE) > client->response.getResponse().size()) ? (client->response.getResponse().size() - client->response.getResponsePos()) : BUFFER_SIZE;
+
+	//debug
+	// std::cout << "sono prima del send" << std::endl;
+
 	int sent_bytes = send(connected_fd, client->response.getResponse().substr(client->response.getResponsePos()).c_str(), buf_siz, 0);
 
+	//debug
+	// std::cout << "sent bytes = " << sent_bytes << std::endl;
+
 	// check that send() didn't fail
-	if (sent_bytes == -1)
+	if (sent_bytes == -1 || sent_bytes == 0)
 	{
 		std::cerr << "ERROR\nDefaultServer.sendResponse(): send()" << std::endl;
 		disconnectFromClient(client);
@@ -642,7 +660,7 @@ void DefaultServer::sendResponse(Event *current_event)
 	client->response.setResponsePos(client->response.getResponsePos() + sent_bytes);
 
 	// //debug
-	// std::cout << "response sent by now:\n" << client->response.getResponse().substr(0, client->response.getResponsePos()) << std::endl;
+	// // std::cout << "response sent by now:\n" << client->response.getResponse().substr(0, client->response.getResponsePos()) << std::endl;
 
 	// update client timeout
 	#ifdef __MACH__
@@ -656,7 +674,7 @@ void DefaultServer::sendResponse(Event *current_event)
 	{
 
 		//DEBUG
-		std::cout << "\nThe whole response has been sent\n" << std::endl << client->response.getResponse().substr(client->response.getResponse().find("\r\n\r\n")) << std::endl;
+		// std::cout << "\nThe whole response has been sent\n" << std::endl << client->response.getResponse().substr(client->response.getResponse().find("\r\n\r\n")) << std::endl;
 
 		// remove connected_fd from kqueue
 	#ifdef __MACH__
@@ -675,10 +693,19 @@ void DefaultServer::sendResponse(Event *current_event)
 		clients.erase(connected_fd);
 		delete client;
 	}
+
+	//DEBUG
+	// std::cout << "\nEND of DefaultServer:sendResponse():" << std::endl;
+	// std::cout << "-----------------------------------------------------------" << std::endl;
 }
 
 void DefaultServer::closeTimedOutConnections()
 {
+
+	//DEBUG
+	// std::cout << "\n-----------------------------------------------------------" << std::endl;
+	// std::cout << "DefaultServer:closeTimedOutConnections():" << std::endl;
+
 	ConnectedClient	*current_client;
 	std::map<int,ConnectedClient&>::iterator it = clients.begin();
 
@@ -706,7 +733,7 @@ void DefaultServer::closeTimedOutConnections()
 				}
 
 				//debug
-				std::cout << "removing conneted_fd " << current_client->connected_fd << " because it TIMED OUT reading the response" << std::endl;
+				// std::cout << "removing conneted_fd " << current_client->connected_fd << " because it TIMED OUT reading the response" << std::endl;
 
 				// erase client from the map of clients and delete it from memory
 				clients.erase(current_client->connected_fd);
@@ -728,7 +755,7 @@ void DefaultServer::closeTimedOutConnections()
 				}
 
 				//debug
-				std::cout << "removing conneted_fd " << current_client->connected_fd << " because it TIMED OUT" << std::endl;
+				// std::cout << "removing conneted_fd " << current_client->connected_fd << " because it TIMED OUT" << std::endl;
 
 				// erase client from the map of clients and delete it from memory
 				current_client->~ConnectedClient();
@@ -762,4 +789,7 @@ void DefaultServer::closeTimedOutConnections()
 		}
 	} // while (it != clients.end())
 	
+	//DEBUG
+	// std::cout << "\nEND of DefaultServer:closeTimedOutConnections():" << std::endl;
+	// std::cout << "-----------------------------------------------------------" << std::endl;
 }

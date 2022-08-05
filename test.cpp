@@ -26,12 +26,12 @@ int main()
 		s.push_back(buf[i]);
 	}
 	
-	std::cout << "s.size = " << s.size() << std::endl;
+	// std::cout << "s.size = " << s.size() << std::endl;
 
 	for (size_t i = 0; i < s.size(); ++i)
 	{
-		std::cout << "s." << i << "\t" << s.at(i) << std::endl;
+		// std::cout << "s." << i << "\t" << s.at(i) << std::endl;
 	}
-	std::cout << "s = \'" << s << "\'" << std::endl;
+	// std::cout << "s = \'" << s << "\'" << std::endl;
 
 }

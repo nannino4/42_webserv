@@ -104,8 +104,8 @@ void Server::errorPageToBody(Response &response)
 void Server::prepareResponse(ConnectedClient *client)
 {
 	//debug
-	std::cout << "\n-------------------------------" << std::endl;
-	std::cout << "Server::prepareResponse()\n\n" << std::endl;
+	// std::cout << "\n-------------------------------" << std::endl;
+	// std::cout << "Server::prepareResponse()\n\n" << std::endl;
 
 	Request		&request = client->request;
 	Response	&response = client->response;
@@ -172,6 +172,10 @@ void Server::prepareResponse(ConnectedClient *client)
 		}
 	}
 	response.createResponse();
+
+	//debug
+	// std::cout << "\nEND of Server::prepareResponse()" << std::endl;
+	// std::cout << "-------------------------------" << std::endl;
 }
 
 // GET method
@@ -232,7 +236,7 @@ void Server::methodPost(Request &request, Response &response)
 		if (!request.getCgiPath().empty())
 		{
 			// file extension matches cgi
-			//std::cout << request << std::endl; // debug
+			//// std::cout << request << std::endl; // debug
 			convertCGI(request, response);
 			response.addNewHeader(std::pair<std::string,std::string>("Last-Modified", last_modified(request.getPath())));
 			response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(response.getBody().size())));
