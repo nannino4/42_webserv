@@ -14,7 +14,7 @@
 class Cgi
 {
 private:
-	std::map<std::string, std::string>	_env; // execve accetta mappa?/// pescare conf && request
+	std::map<std::string, std::string>	_env;
 	std::string							new_body;
     std::map<std::string, std::string>	cgi_header;
     std::string							post_body_data;
@@ -22,7 +22,7 @@ private:
 public:
 	Cgi(const Request &request);
 	~Cgi();
-	std::string run_cgi(std::string script_name);
+	std::string run_cgi(std::string const &file_name);
 	char **map_to_char();
 	void get_env(void);
 

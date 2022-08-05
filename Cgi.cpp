@@ -3,8 +3,8 @@
 
 
 Cgi::Cgi(const Request &request){
-    this->_env["REDIRECT_STATUS"] = "";
-    //this->cgi_header = request.getHeaders();
+    this->_env["REDIRECT_STATUS"] = "200";
+    this->cgi_header = request.getHeaders();
     this->_env["SERVER_SOFTWARE"] = "Webserv/1.0";
     this->_env["REQUEST_METHOD"] = request.getMethod();
     this->_env["SERVER_PROTOCOL"] = request.getVersion();
@@ -26,7 +26,7 @@ Cgi::Cgi(const Request &request){
 
 Cgi::~Cgi(){}
 
-std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
+std::string Cgi::run_cgi(std::string const &file_name){ //script_name=index.php
 	int fd_safe[2];
     int tocgi[2];
 	pid_t pid;
@@ -51,7 +51,7 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
 		dup2(fdOut, STDOUT_FILENO);
 
 		execve((char*)file_name.c_str(), nll , env); // chiamare php passare filename e passare variabili decodificate
-        std::cout << "500 internal server error" << std::endl; //TODO handle error
+        std::cout << "Status-code: 500 internal server error" << std::endl; //TODO handle error
 		exit(0);
 	}
 	else{
@@ -66,6 +66,7 @@ std::string Cgi::run_cgi(std::string file_name){ //script_name=index.php
             ret = read(fdOut, buffer, 65536 - 1);
             tmp += buffer;
         }
+
         std::cout << "ritorno cgi" << std::endl;
         std::cout << tmp << std::endl;
 		dup2(STDOUT_FILENO, fd_safe[1]);
