@@ -435,7 +435,6 @@ void DefaultServer::receiveRequest(Event *current_event)
 			if (!stream.str().compare("\r\n") || !stream.str().compare("\n"))
 			{
 				std::map<std::string,std::string>::const_iterator	it = client->request.getHeaders().find("Content-Length");
-				long unsigned int									content_length;
 
 				// headers are complete
 				client->request.setAreHeadersComplete(true);
