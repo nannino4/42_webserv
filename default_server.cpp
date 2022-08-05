@@ -390,7 +390,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 				client->request.setIsComplete(true);
 				client->request.setIsValid(false);
 				client->response.setStatusCode("400");
-				client->response.setReasonPhrase("failed reading 1");
+				client->response.setReasonPhrase("Bad Request");
 			}
 			else if (method != "GET" && method != "POST" && method != "DELETE")
 			{
