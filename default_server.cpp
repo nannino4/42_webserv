@@ -387,6 +387,14 @@ void DefaultServer::receiveRequest(Event *current_event)
 				client->response.setStatusCode("400");
 				client->response.setReasonPhrase("failed reading 1");
 			}
+			else if (method != "GET" && method != "POST" && method != "DELETE")
+			{
+				// the method is unknown
+				client->request.setIsComplete(true);
+				client->request.setIsValid(false);
+				client->response.setStatusCode("501");
+				client->response.setReasonPhrase("Not Implemented");
+			}
 			else if (client->request.getVersion().compare("HTTP/1.1"))
 			{
 				// the request will stop being handled
