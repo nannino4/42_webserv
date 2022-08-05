@@ -434,13 +434,11 @@ void DefaultServer::receiveRequest(Event *current_event)
 		{
 			if (!stream.str().compare("\r\n") || !stream.str().compare("\n"))
 			{
+				std::map<std::string,std::string>::const_iterator	it = client->request.getHeaders().find("Content-Length");
+				long unsigned int									content_length;
+
 				// headers are complete
 				client->request.setAreHeadersComplete(true);
-				// if the method is GET the request is complete
-				if (!client->request.getMethod().compare("GET"))
-				{
-					client->request.setIsComplete(true);
-				}
 				// if the header "Host" is missing the request is invalid
 				if (client->request.getHeaders().find("Host") == client->request.getHeaders().end())
 				{
@@ -448,6 +446,22 @@ void DefaultServer::receiveRequest(Event *current_event)
 					client->request.setIsValid(false);
 					client->response.setStatusCode("400");
 					client->response.setReasonPhrase("Bad Request");
+				}
+				// if the method is not POST the request is complete
+				if (client->request.getMethod().compare("POST"))
+				{
+					client->request.setIsComplete(true);
+				}
+				else if (it == client->request.getHeaders().end())	// check that header "Content-Lenght" exists
+				{
+					client->request.setIsComplete(true);
+					client->request.setIsValid(false);
+					client->response.setStatusCode("411");
+					client->response.setReasonPhrase("Length Required");
+				}
+				else if (it->second == "0")
+				{
+					client->request.setIsComplete(true);
 				}
 			}
 			else if (stream.str().find(":") != std::string::npos)
