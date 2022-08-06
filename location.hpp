@@ -7,7 +7,8 @@
 #include <map>
 #include <vector>
 
-#define DEFAULT_UPLOAD_PATH "/images/"
+#define DEFAULT_UPLOAD_PATH ""
+// #define DEFAULT_UPLOAD_PATH "/uploads/"
 #define DEFAULT_ROOT "./www"
 
 class Location

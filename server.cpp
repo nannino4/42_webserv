@@ -104,8 +104,8 @@ void Server::errorPageToBody(Response &response)
 void Server::prepareResponse(ConnectedClient *client)
 {
 	//debug
-	std::cout << "\n-------------------------------" << std::endl;
-	std::cout << "Server::prepareResponse()\n\n" << std::endl;
+	// std::cout << "\n-------------------------------" << std::endl;
+	// std::cout << "Server::prepareResponse()\n\n" << std::endl;
 
 	Request		&request = client->request;
 	Response	&response = client->response;
@@ -172,6 +172,10 @@ void Server::prepareResponse(ConnectedClient *client)
 		}
 	}
 	response.createResponse();
+
+	//debug
+	// std::cout << "\nEND of Server::prepareResponse()" << std::endl;
+	// std::cout << "-------------------------------" << std::endl;
 }
 
 // GET method
@@ -201,11 +205,11 @@ void Server::methodGet(Request &request, Response &response)
 		}
 	}
 	else	// path is invalid
-		{
-			response.setStatusCode("404");
-			response.setReasonPhrase("File Not Found");
-			errorPageToBody(response);
-		}
+	{
+		response.setStatusCode("404");
+		response.setReasonPhrase("File Not Found");
+		errorPageToBody(response);
+	}
 }
 
 // POST method
@@ -232,7 +236,7 @@ void Server::methodPost(Request &request, Response &response)
 		if (!request.getCgiPath().empty())
 		{
 			// file extension matches cgi
-			//std::cout << request << std::endl; // debug
+			//// std::cout << request << std::endl; // debug
 			convertCGI(request, response);
 			response.addNewHeader(std::pair<std::string,std::string>("Last-Modified", last_modified(request.getPath())));
 			response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(response.getBody().size())));
@@ -275,38 +279,76 @@ void Server::methodPost(Request &request, Response &response)
 	file.close();
 }*/
 
-// DELETE method
-void Server::methodDelete(Request &request, Response &response)
+void deleteDir(std::string path, Response &response)
 {
-	std::ifstream	file;
-	struct stat		file_stat;
+	DIR 				*dir;
+	struct stat			stat_path, stat_entry;
+	struct dirent		*ent;
 
-    if (stat((request.getPath()).c_str(), &file_stat) == 0)
+	stat(path.c_str(), &stat_path);
+	
+	if (S_ISDIR(stat_path.st_mode))
 	{
-		// the path is valid
-		if (S_ISREG(file_stat.st_mode))
+		if ((dir = opendir((path.c_str()))) == NULL)
 		{
-			// the path identifies a regular file
-			unlink((request.getPath()).c_str());
-			response.setStatusCode("200");
-			response.setReasonPhrase("OK");
+			response.setStatusCode("403");
+			response.setReasonPhrase("Forbidden");
+			return;
 		}
-		else
+		while ((ent = readdir(dir)) != NULL)
 		{
-			// the path does not identify a regular file
-			response.setStatusCode("404");
-			response.setReasonPhrase("File Not Found");
-			errorPageToBody(response);
+			if (std::string(ent->d_name) == "." || std::string(ent->d_name) == "..")
+				continue ;
+			
+			stat(std::string(path + "/" + ent->d_name).c_str(), &stat_entry);
+			if (S_ISDIR(stat_entry.st_mode))
+				deleteDir(std::string(path + "/" + ent->d_name), response);
+
+			if (std::ifstream(std::string(path + "/" + ent->d_name).c_str()).is_open() && unlink(std::string(path + "/" + ent->d_name).c_str()))
+			{
+				response.setStatusCode("403");
+				response.setReasonPhrase("Forbidden");
+				return;
+			}
 		}
+		if (rmdir(path.c_str()))
+		{
+			response.setStatusCode("403");
+			response.setReasonPhrase("Forbidden");
+			return;
+		}
+		closedir(dir);
+		response.setStatusCode("200");
+		response.setReasonPhrase("OK");
+	}
+	else if (S_ISREG(stat_path.st_mode))
+	{
+		if (!std::ifstream(path.c_str()).is_open())
+		{
+			response.setStatusCode("403");
+			response.setReasonPhrase("Forbidden");
+			return;
+		}
+		unlink(path.c_str());
+		response.setStatusCode("200");
+		response.setReasonPhrase("OK");
 	}
 	else
 	{
-		// the path is invalid
 		response.setStatusCode("404");
 		response.setReasonPhrase("File Not Found");
-		errorPageToBody(response);
 	}
 }
+
+
+// DELETE method
+void Server::methodDelete(Request &request, Response &response)
+{
+	deleteDir(request.getPath(), response);
+	if (response.getStatusCode() != "200")
+		errorPageToBody(response);
+}
+
 
 // get file to body
 void Server::fileToBody(Request &request, Response &response) 
@@ -344,9 +386,9 @@ void Server::fileToBody(Request &request, Response &response)
 			response.setBody(line.str());
 			response.addNewHeader(std::pair<std::string,std::string>("Last-Modified", last_modified(request.getPath())));
 			response.addNewHeader(std::pair<std::string,std::string>("Content-Type", content_type(request.getPath())));
+			response.setStatusCode("200");
+			response.setReasonPhrase("OK");
 		}
-		response.setStatusCode("200");
-		response.setReasonPhrase("OK");
 	}
 	else if (file.fail())
 	{
@@ -373,7 +415,8 @@ void Server::convertCGI(Request &request, Response &response)
 		body.erase(0, pos);		
 		takeHeaders(tmp, response);
 	}
-	response.setBody(body);
+	if (response.getStatusCode() != "500")
+		response.setBody(body);
 }
 
 // take headers from CGI return
@@ -392,9 +435,21 @@ void Server::takeHeaders(std::string tmp, Response &response)
 			std::string value;
 			sline >> std::ws;
 			if (getline(sline, value, '\r'))
+			{
+				if (key == "Status-code")
+				{
+					response.setStatusCode("500");
+					response.setReasonPhrase("Internal Server Error");
+					errorPageToBody(response);
+					return ;
+				}
 				response.addNewHeader(std::pair<std::string, std::string>(key, value));
+			}
 		}
 	}
+	response.setStatusCode("200");
+	response.setReasonPhrase("OK");
+
 }
 
 // manage case in which path identifies a directory
