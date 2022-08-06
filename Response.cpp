@@ -72,6 +72,6 @@ void Response::createResponse()
 // operator overloads
 std::ostream& operator<<(std::ostream &out, const Response &response)
 {
-	out << "Response: "<< std::endl << response.response << std::endl;
+	out << "Response:"<< std::endl << response.response << std::endl;
 	return out;
 }

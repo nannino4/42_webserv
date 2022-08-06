@@ -27,68 +27,55 @@ Cgi::Cgi(const Request &request){
 Cgi::~Cgi(){}
 
 std::string Cgi::run_cgi(std::string const &file_name){ //script_name=index.php
-	int fd_safe[2];
-    int tocgi[2];
-	pid_t pid;
-    std::string tmp;
-    char **env = map_to_char();
+    int			to_cgi[2];
+	int			from_cgi[2];
+	pid_t		pid;
+    std::string	tmp;
+    char		**env = map_to_char();
 
-    pipe(tocgi);
-    FILE	*fIn = tmpfile();
-    FILE	*fOut = tmpfile();
-    long	fdIn = fileno(fIn);
-    long	fdOut = fileno(fOut);
+    pipe(to_cgi);
+    pipe(from_cgi);
 
-    lseek(fdIn, 0, SEEK_SET);
-	fd_safe[0] = dup(STDIN_FILENO);
-	fd_safe[1] = dup(STDOUT_FILENO);
-	if ((pid = fork()) == -1)
-		std::cout << "Status-code: 500\r\n\r\n" << std::endl;
-	if (!pid){
-        dup2(tocgi[0], STDIN_FILENO);
+	if ((pid = fork()) == -1)	//error
+		write(from_cgi[1], "Status-code: 500\r\n\r\n", sizeof("Status-code: 500\r\n\r\n"));
+	if (!pid)	//child
+	{
+		close(to_cgi[1]);
+		close(from_cgi[0]);
+        dup2(to_cgi[0], STDIN_FILENO);
+		dup2(from_cgi[1], STDOUT_FILENO);
+
         char * const * nll = nullptr;
-        //dup2(fdIn, STDIN_FILENO);
-		dup2(fdOut, STDOUT_FILENO);
-
-		execve((char*)file_name.c_str(), nll , env); // chiamare php passare filename e passare variabili decodificate
-        std::cout << "Status-code: 500\r\n\r\n" << std::endl; //TODO handle error
-		exit(0);
+		execve((char*)file_name.c_str(), nll , env);	//chiamata php
+        std::cout << "Status-code: 500\r\n\r\n" << std::endl;
+		exit(1);
 	}
-	else{
+	else		//parent
+	{
+		//write to cgi
         if(this->_env["REQUEST_METHOD"] == "POST" )
-            write(tocgi[1], this->post_body_data.c_str(), this->post_body_data.size());
-		waitpid(-1, NULL, 0);
-        lseek(fdOut, 0, SEEK_SET);
+            write(to_cgi[1], this->post_body_data.c_str(), this->post_body_data.size());
+
+		close(to_cgi[0]);
+		close(to_cgi[1]);
+		close(from_cgi[1]);
+
+		// read from cgi
         int ret = 1;
         char buffer[65536];
-		while(ret > 0) {
+		while (ret > 0 || waitpid(pid, nullptr, WNOHANG) == 0)
+		{
             memset(buffer, 0, 65536);
-            ret = read(fdOut, buffer, 65536 - 1);
+            ret = read(from_cgi[0], buffer, 65536 - 1);
             tmp += buffer;
         }
+		close(from_cgi[0]);
 
         // std::cout << "ritorno cgi" << std::endl;
         // std::cout << tmp << std::endl;
-		dup2(STDOUT_FILENO, fd_safe[1]);
-		dup2(STDIN_FILENO, fd_safe[0]);
-        fclose(fIn);
-        fclose(fOut);
-        close(fdIn);
-        close(fdOut);
-		close(fd_safe[0]);
-        close(fd_safe[1]);
 	}
     new_body =  tmp;//.substr(tmp.find_first_of('>') + 1, tmp.size());
 	return(new_body);
-}
-
-void Cgi::get_env(void){
-	//genera le env da config e request
-}
-
-
-void Cgi::setCgiHeader(std::map<std::string, std::string> resp_header){
-    this->cgi_header = resp_header;
 }
 
 char **Cgi::map_to_char(){
