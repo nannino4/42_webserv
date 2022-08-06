@@ -186,15 +186,15 @@ void Cluster::run()
 
 			DefaultServer *default_server = (DefaultServer *)(current_event->default_server_ptr);
 
-			//debug
-			std::cout << "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
-			std::cout << "\nevent " << i + 1 << "/" << num_ready_fds << std::endl << std::endl;
-			std::cout << "current_event:\n";
-			std::cout << "\tfd =\t\t" << current_event->fd << std::endl;
-			std::cout << "\tevents =\t" << current_event->events << std::endl;
-			std::cout << "\tis_hang_up =\t" << std::boolalpha << current_event->is_hang_up << std::endl;
-			std::cout << "\tis_error =\t" << std::boolalpha << current_event->is_error << std::endl;
-			std::cout << "\tserver fd:\t" << ((DefaultServer *)current_event->default_server_ptr)->getListeningFd() << std::endl << std::endl;
+			// //debug
+			// std::cout << "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+			// std::cout << "\nevent " << i + 1 << "/" << num_ready_fds << std::endl << std::endl;
+			// std::cout << "current_event:\n";
+			// std::cout << "\tfd =\t\t" << current_event->fd << std::endl;
+			// std::cout << "\tevents =\t" << current_event->events << std::endl;
+			// std::cout << "\tis_hang_up =\t" << std::boolalpha << current_event->is_hang_up << std::endl;
+			// std::cout << "\tis_error =\t" << std::boolalpha << current_event->is_error << std::endl;
+			// std::cout << "\tserver fd:\t" << ((DefaultServer *)current_event->default_server_ptr)->getListeningFd() << std::endl << std::endl;
 
 			//manage the case in which (current_event->is_error == true)
 			if (current_event->is_hang_up || current_event->is_error)
