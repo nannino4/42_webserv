@@ -257,11 +257,9 @@ void DefaultServer::connectToClient()
 		// accept() was succesful
 
 		//DEBUG
-		// std::cout << "-----------------------------------------------------------" << std::endl;
-		// std::cout << "-----------------------------------------------------------" << std::endl;
-		// std::cout << "\nDefaultServer:connectToClient()\n\nconnected to fd = " << connected_fd << 
-				// "\nport = " << ntohs(client_addr.sin_port) << 
-				// "\nip = " << inet_ntoa(client_addr.sin_addr) << std::endl << std::endl;
+		std::cout << "-----------------------------------------------------------" << std::endl;
+		std::cout << "-----------------------------------------------------------" << std::endl;
+		std::cout << "\nDefaultServer:connectToClient()\n\nconnected to fd = " << connected_fd << "\nport = " << ntohs(client_addr.sin_port) << "\nip = " << inet_ntoa(client_addr.sin_addr) << std::endl << std::endl;
 
 		// create new ConnectedClient
 		ConnectedClient *new_client = new ConnectedClient(connected_fd, client_addr, this);
@@ -302,8 +300,8 @@ void DefaultServer::receiveRequest(Event *current_event)
 	std::string			tmp;
 
 	//debug
-	// std::cout << "-----------------------------------------------------------" << std::endl;
-	// std::cout << "\nDefaultServer.receiveRequest():" << std::endl;
+	std::cout << "-----------------------------------------------------------" << std::endl;
+	std::cout << "\nDefaultServer.receiveRequest():" << std::endl;
 
 	ConnectedClient *client = (ConnectedClient *)current_event->owner;
 
@@ -549,13 +547,13 @@ void DefaultServer::receiveRequest(Event *current_event)
 			perror("ERROR\nDefaultServer.receiveRequest: kevent()/epoll_ctl()");
 		}
 
-		// // debug
-		// // std::cout << "---------request without body:---------\n" << client->request.getRequest().substr(0, client->request.getRequest().find("\r\n\r\n")) << std::endl << std::endl;
+		// debug
+		std::cout << "---------request without body:---------\n" << client->request.getRequest().substr(0, client->request.getRequest().find("\r\n\r\n")) << std::endl << std::endl;
 		dispatchRequest(client);
 
 		// debug
-		// std::cout << "\nEND of DefaultServer.receiveRequest() terminated" << std::endl;
-		// std::cout << "-----------------------------------------------------------" << std::endl;
+		std::cout << "\nEND of DefaultServer.receiveRequest() terminated" << std::endl;
+		std::cout << "-----------------------------------------------------------" << std::endl;
 	}
 }
 
@@ -632,8 +630,8 @@ void DefaultServer::sendResponse(Event *current_event)
 	ConnectedClient *client = (ConnectedClient *)current_event->owner;
 
 	//DEBUG
-	// std::cout << "\n-----------------------------------------------------------" << std::endl;
-	// std::cout << "DefaultServer:sendResponse():\n\n" << std::endl;
+	std::cout << "\n-----------------------------------------------------------" << std::endl;
+	std::cout << "DefaultServer:sendResponse():\n\n" << std::endl;
 	
 	int buf_siz = ((unsigned long)(client->response.getResponsePos() + BUFFER_SIZE) > client->response.getResponse().size()) ? (client->response.getResponse().size() - client->response.getResponsePos()) : BUFFER_SIZE;
 
@@ -643,7 +641,7 @@ void DefaultServer::sendResponse(Event *current_event)
 	int sent_bytes = send(connected_fd, client->response.getResponse().substr(client->response.getResponsePos()).c_str(), buf_siz, 0);
 
 	//debug
-	// std::cout << "sent bytes = " << sent_bytes << std::endl;
+	std::cout << "sent bytes = " << sent_bytes << std::endl;
 
 	// check that send() didn't fail
 	if (sent_bytes == -1 || sent_bytes == 0)
@@ -670,7 +668,7 @@ void DefaultServer::sendResponse(Event *current_event)
 	{
 
 		//DEBUG
-		// std::cout << "\nThe whole response has been sent\n" << std::endl << client->response.getResponse().substr(client->response.getResponse().find("\r\n\r\n")) << std::endl;
+		std::cout << "\nThe whole response has been sent" << std::endl;
 
 		// remove connected_fd from kqueue
 	#ifdef __MACH__
@@ -691,8 +689,8 @@ void DefaultServer::sendResponse(Event *current_event)
 	}
 
 	//DEBUG
-	// std::cout << "\nEND of DefaultServer:sendResponse():" << std::endl;
-	// std::cout << "-----------------------------------------------------------" << std::endl;
+	std::cout << "\nEND of DefaultServer:sendResponse():" << std::endl;
+	std::cout << "-----------------------------------------------------------" << std::endl;
 }
 
 void DefaultServer::closeTimedOutConnections()

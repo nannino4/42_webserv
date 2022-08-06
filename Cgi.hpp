@@ -24,8 +24,4 @@ public:
 	~Cgi();
 	std::string run_cgi(std::string const &file_name);
 	char **map_to_char();
-	void get_env(void);
-
-    //TODO: eliminare
-    void setCgiHeader(std::map<std::string, std::string> resp_header);
 };
