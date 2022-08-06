@@ -17,6 +17,11 @@ if (!isset($image_file)) {
 }
 
 echo '<pre>';
+if (getenv("UPLOAD_PATH") == "")
+{
+	echo "upload not allowed\n";
+	die(1);
+}
 
 // Move the temp image file to the images/ directory
 if(!file_exists(__DIR__ . getenv("UPLOAD_PATH")))

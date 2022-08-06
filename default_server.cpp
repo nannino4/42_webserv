@@ -71,11 +71,11 @@ DefaultServer::DefaultServer(int const &kqueue_epoll_fd, unsigned int backlog, s
 				exit(EXIT_FAILURE);
 			}
 
-			// fix the path format regarding the '/' char (/valid/path/)
-			if (path.at(0) != '/')
+			// fix the path format regarding the '/' char (/valid/path)
+			if (path.empty() || path.at(0) != '/')
 				path.insert(path.begin(), '/');
-			if (path.back() != '/')
-				path.insert(path.end() - 1, '/');
+			if (path != "/" && path.back() == '/')
+				path.erase(path.end() - 1);
 
 			// check that insert() actually inserted a new element
 			if (!(locations.insert(std::pair<std::string,Location>(path, Location(config_file, pos)))).second)
@@ -363,11 +363,9 @@ void DefaultServer::receiveRequest(Event *current_event)
 			}
 
 			// fix the path format /valid/path/format
-			if (path.at(0) != '/')
-			{
+			if (path.empty() || path.at(0) != '/')
 				path.insert(path.begin(), '/');
-			}
-			if (path.back() == '/')
+			if (path != "/" && path.back() == '/')
 				path.erase(path.end() - 1);
 
 			client->request.setMethod(method);
@@ -578,16 +576,15 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 
 	// find the server location correspongin to the request path
 	client->request.setLocation(&default_location);
-	std::string	path = client->request.getPath() + "/";
-	while ((path.find_last_of('/') != 0) && (path.find_last_of('/') != std::string::npos) && (client->request.getLocation() == &default_location))
+	std::string	path = client->request.getPath();
+	do
 	{
 		if (requestedServer->getLocations().find(path) != requestedServer->getLocations().end())
 		{
 			client->request.setLocation(&requestedServer->getLocations().find(path)->second);
 		}
-		path.erase(path.end() - 1);
 		path = path.substr(0, path.find_last_of('/'));
-	}
+	} while ((path.find_last_of('/') != std::string::npos) && (client->request.getLocation() == &default_location));
 
 	// let the server prepare the response
 	requestedServer->prepareResponse(client);
@@ -687,6 +684,13 @@ void DefaultServer::sendResponse(Event *current_event)
 		clients.erase(connected_fd);
 		delete client;
 	}
+
+	// //debug
+	// struct epoll_event event;
+	// bzero(&event, sizeof(event));
+	// event.events = EPOLLIN | EPOLLRDHUP;
+	// if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, listening_fd, &event) == -1)
+	// 	perror("trying to add listening fd again to epoll");
 
 	//DEBUG
 	std::cout << "\nEND of DefaultServer:sendResponse():" << std::endl;
