@@ -214,6 +214,8 @@ void DefaultServer::startListening()
 
 	triggered_event.events = READ;
 	triggered_event.fd = listening_fd;
+	triggered_event.is_error = false;
+	triggered_event.is_hang_up = false;
 #ifdef __MACH__
 	struct kevent event;
 	bzero(&event, sizeof(event));
@@ -269,6 +271,8 @@ void DefaultServer::connectToClient()
 		// add new connected_fd to kqueue for READ monitoring
 		new_client->triggered_event.events = READ;
 		new_client->triggered_event.fd = new_client->connected_fd;
+		triggered_event.is_error = false;
+		triggered_event.is_hang_up = false;
 	#ifdef __MACH__
 		struct kevent event;
 		bzero(&event, sizeof(event));
@@ -592,6 +596,8 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 		// add connected_fd to kqueue for WRITE monitoring
 		client->triggered_event.events = WRITE;
 		client->triggered_event.fd = client->connected_fd;
+		triggered_event.is_error = false;
+		triggered_event.is_hang_up = false;
 	#ifdef __MACH__
 		struct kevent event;
 		bzero(&event, sizeof(event));
@@ -672,8 +678,9 @@ void DefaultServer::writeToCgi(Event *current_event)
 		// add connected_fd to WRITE monitoring
 		client->triggered_event.events = WRITE;
 		client->triggered_event.fd = client->connected_fd;
+		triggered_event.is_error = false;
+		triggered_event.is_hang_up = false;
 	#ifdef __MACH__
-		struct kevent event;
 		bzero(&event, sizeof(event));
 		EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, &client->triggered_event);
 		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
@@ -724,10 +731,11 @@ void DefaultServer::writeToCgi(Event *current_event)
 		// add from_cgi[0] to kqueue for READ monitoring
 		client->triggered_event.events = READ;
 		client->triggered_event.fd = client->response.getCgi().getFromCgiFd();
+		triggered_event.is_error = false;
+		triggered_event.is_hang_up = false;
 	#ifdef __MACH__
-		struct kevent event;
 		bzero(&event, sizeof(event));
-		EV_SET(&event, client->response.getCgi().getFromCgiFd(), EVFILT_READ, EV_ADD, 0, 0, &client->triggered_event);
+		EV_SET(&event, client->response.getCgi().getFromCgiFd(), EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, &client->triggered_event);
 		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
 	#elif defined(__linux__)
 		struct epoll_event event;
@@ -753,6 +761,8 @@ void DefaultServer::writeToCgi(Event *current_event)
 			// add connected_fd to WRITE monitoring
 			client->triggered_event.events = WRITE;
 			client->triggered_event.fd = client->connected_fd;
+			triggered_event.is_error = false;
+			triggered_event.is_hang_up = false;
 		#ifdef __MACH__
 			struct kevent event;
 			bzero(&event, sizeof(event));
@@ -827,8 +837,9 @@ void DefaultServer::readFromCgi(Event *current_event)
 			// add connected_fd to WRITE monitoring
 			client->triggered_event.events = WRITE;
 			client->triggered_event.fd = client->connected_fd;
+			triggered_event.is_error = false;
+			triggered_event.is_hang_up = false;
 		#ifdef __MACH__
-			struct kevent event;
 			bzero(&event, sizeof(event));
 			EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, &client->triggered_event);
 			if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
@@ -938,8 +949,9 @@ void DefaultServer::readFromCgi(Event *current_event)
 		// add connected_fd to kqueue for WRITE monitoring
 		client->triggered_event.events = WRITE;
 		client->triggered_event.fd = client->connected_fd;
+		triggered_event.is_error = false;
+		triggered_event.is_hang_up = false;
 	#ifdef __MACH__
-		struct kevent event;
 		bzero(&event, sizeof(event));
 		EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, &client->triggered_event);
 		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)

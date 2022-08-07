@@ -191,7 +191,8 @@ void Cluster::run()
 			std::cout << "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 			std::cout << "\nevent " << i + 1 << "/" << num_ready_fds << std::endl << std::endl;
 			std::cout << "current_event:\n";
-			std::cout << "\tfd =\t\t" << current_event->fd << std::endl;
+			std::cout << "\tevent.fd =\t\t" << triggered_events[i].ident << std::endl;
+			std::cout << "\tcurrent_event.fd =\t" << current_event->fd << std::endl;
 			std::cout << "\tevents =\t" << current_event->events << std::endl;
 			std::cout << "\tis_hang_up =\t" << std::boolalpha << current_event->is_hang_up << std::endl;
 			std::cout << "\tis_error =\t" << std::boolalpha << current_event->is_error << std::endl;
@@ -201,7 +202,7 @@ void Cluster::run()
 			{
 				default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
 			}
-			else if (current_event->is_hang_up && (current_event->fd != ((ConnectedClient*)current_event->owner)->response.getCgi().getFromCgiFd()))
+			else if (current_event->is_hang_up && (current_event->events != WRITE) && (current_event->fd != ((ConnectedClient*)current_event->owner)->response.getCgi().getFromCgiFd()))
 			{
 				default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
 			}
