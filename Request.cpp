@@ -16,7 +16,8 @@ Request::Request() : \
 	is_valid(true), \
 	is_complete(false), \
 	are_headers_complete(false), \
-	location(nullptr)
+	location(nullptr), \
+	server(nullptr)
 	{}
 
 // copy constructor
@@ -38,6 +39,7 @@ Request &Request::operator=(const Request &other)
 	is_complete = other.isComplete();
 	are_headers_complete = other.areHeadersComplete();
 	location = other.location;
+	server = other.server;
 	return *this;
 }
 
@@ -59,6 +61,7 @@ const bool								&Request::isValid() const { return is_valid; }
 const bool								&Request::isComplete() const { return is_complete; }
 const bool								&Request::areHeadersComplete() const { return are_headers_complete; }
 Location const							*Request::getLocation() const { return location; }
+void									*Request::getServer() { return server; }
 
 // setters
 void	Request::setRequest(std::string const new_request) { request = new_request; }
@@ -74,6 +77,7 @@ void	Request::setIsValid(bool const new_is_valid) { is_valid = new_is_valid; }
 void	Request::setIsComplete(bool const new_is_complete) { is_complete = new_is_complete; }
 void	Request::setAreHeadersComplete(bool const new_are_headers_complete) { are_headers_complete = new_are_headers_complete; }
 void	Request::setLocation(Location const *new_location) { location = new_location; }
+void	Request::setServer(void *new_server) { server = new_server; }
 
 // operator overloads
 std::ostream& operator<<(std::ostream &out, const Request &request)

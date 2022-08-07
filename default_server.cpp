@@ -398,7 +398,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 				client->response.setReasonPhrase("HTTP Version Not Supported");
 			}
 		}
-		else if (client->request.areHeadersComplete())
+		else if (client->request.areHeadersComplete())	// body line
 		{
 			// received body
 			std::map<std::string,std::string>::const_iterator	it = client->request.getHeaders().find("Content-Length");
@@ -418,7 +418,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 				client->request.setBody(client->request.getBody() + stream.str());
 
 				// check if body is too large
-				if ((client_body_size > 0) && (client->request.getBody().size() > client_body_size))
+				if ((static_cast<Server*>(client->request.getServer())->getClientBodySize() > 0) && (client->request.getBody().size() > static_cast<Server*>(client->request.getServer())->getClientBodySize()))
 				{
 					// the request will stop being handled
 					client->request.setIsComplete(true);
@@ -464,6 +464,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 				{
 					client->request.setIsComplete(true);
 				}
+				client->request.setServer(getMatchingServer(client->request));
 			}
 			else if (stream.str().find(":") != std::string::npos)
 			{
@@ -547,6 +548,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 
 		// debug
 		std::cout << "---------request without body:---------\n" << client->request.getRequest().substr(0, client->request.getRequest().find("\r\n\r\n")) << std::endl << std::endl;
+
 		dispatchRequest(client);
 
 		// debug
@@ -555,28 +557,33 @@ void DefaultServer::receiveRequest(Event *current_event)
 	}
 }
 
+Server *DefaultServer::getMatchingServer(Request &request)
+{
+	// find the server corresponding to the host header value
+	Server *requestedServer = this;
+	if (request.isValid())
+	{
+		for (std::vector<Server>::iterator it = virtual_servers.begin(); it != virtual_servers.end(); ++it)
+		{
+			if (it->isName(request.getHostname().substr(0, request.getHostname().find(":"))))
+				requestedServer = &(*it);
+		}
+	}
+	return requestedServer;
+}
+
 void DefaultServer::dispatchRequest(ConnectedClient *client)
 {
 	//debug
 	// std::cout << "\n-------------------------------" << std::endl;
 	// std::cout << "DefaultServer::dispatchRequest()\n" << std::endl;
 
-	// find the server corresponding to the host header value
-	Server *requestedServer = this;
-	if (client->request.isValid())
-	{
-		for (std::vector<Server>::iterator it = virtual_servers.begin(); it != virtual_servers.end(); ++it)
-		{
-			if (it->isName(client->request.getHostname().substr(
-				0, client->request.getHostname().find(":")
-			)))
-				requestedServer = &(*it);
-		}
-	}
 
 	// find the server location correspongin to the request path
-	client->request.setLocation(&default_location);
+	Server		*requestedServer = (Server *)client->request.getServer();
 	std::string	path = client->request.getPath();
+
+	client->request.setLocation(&default_location);
 	do
 	{
 		if (requestedServer->getLocations().find(path) != requestedServer->getLocations().end())

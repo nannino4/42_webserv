@@ -25,6 +25,7 @@ class Request
 		bool								is_complete;
 		bool								are_headers_complete;
 		Location const						*location;
+		void								*server;
 
 	public:
 		// default constructor
@@ -52,6 +53,7 @@ class Request
 		const bool								&isComplete() const;
 		const bool								&areHeadersComplete() const;
 		Location const							*getLocation() const;
+		void									*getServer();
 
 		// setters
 		void	setRequest(std::string const new_request);
@@ -67,6 +69,7 @@ class Request
 		void	setIsComplete(bool const new_is_complete);
 		void	setAreHeadersComplete(bool const new_are_headers_complete);
 		void	setLocation(Location const *new_location);
+		void	setServer(void *new_server);
 
 		// operator overloads
 		friend std::ostream	&operator<<(std::ostream &out, const Request &m);

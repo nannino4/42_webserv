@@ -93,4 +93,7 @@ private:
 	void parseBodySize(std::stringstream &stream);
 	void parseErrorPage(std::stringstream &stream);
 
+	// handling request
+	Server *getMatchingServer(Request &request);
+
 };

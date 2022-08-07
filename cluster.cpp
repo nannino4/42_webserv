@@ -203,12 +203,19 @@ void Cluster::run()
 				//debug
 				// // std::cout << "connected fd = " << current_event->fd << " has been removed because the connection was hung up" << std::endl;
 
-				((DefaultServer*)current_event->default_server_ptr)->disconnectFromClient((ConnectedClient*)current_event->owner);
+				default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
 			}
 			else if (current_event->events == WRITE)
 			{
-				// response can be sent to connected_fd
-				default_server->sendResponse(current_event);
+				if (current_event->fd == ((ConnectedClient*)current_event->owner)->connected_fd)
+				{
+					// response can be sent to connected_fd
+					default_server->sendResponse(current_event);
+				}
+				else
+				{
+					// write to CGI
+				}
 			}
 			else if (current_event->events == READ)
 			{

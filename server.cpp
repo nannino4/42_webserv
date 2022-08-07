@@ -114,6 +114,8 @@ void Server::prepareResponse(ConnectedClient *client)
 	response.addNewHeader(std::pair<std::string,std::string>("Date", date()));
 	// add "Connection" header
 	response.addNewHeader(std::pair<std::string,std::string>("Connection", "Close"));
+	// set version
+	response.setVersion("HTTP/1.1");
 
 	if (!request.isValid())
 	{
