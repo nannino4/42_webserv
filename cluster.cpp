@@ -174,7 +174,8 @@ void Cluster::run()
 
 		#ifdef __MACH__
 			Event *current_event = (Event *)(triggered_events[i].udata);
-			current_event->is_hang_up = (triggered_events[i].flags & EV_EOF);
+			if (!current_event->is_hang_up)
+				current_event->is_hang_up = (triggered_events[i].flags & EV_EOF);
 			current_event->is_error = (triggered_events[i].flags & EV_ERROR);
 		#elif defined(__linux__)
 			Event *current_event = (Event *)(triggered_events[i].data.ptr);

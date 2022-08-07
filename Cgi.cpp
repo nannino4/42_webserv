@@ -76,6 +76,14 @@ std::string Cgi::run_cgi(std::string const &file_name)
         // std::cout << tmp << std::endl;
 	}
     new_body =  tmp;//.substr(tmp.find_first_of('>') + 1, tmp.size());
+
+	// git env
+	for (size_t i = 0; env[i]; ++i)
+	{
+		delete env[i];
+	}
+	delete env;
+
 	return(new_body);
 }
 
