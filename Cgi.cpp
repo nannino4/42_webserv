@@ -75,6 +75,12 @@ int Cgi::run_cgi(std::string const &file_name)
 		//error
 		return (1);
 	}
+	//debug
+	std::cout << "to_cgi[0] = " << to_cgi[0] << std::endl;
+	std::cout << "to_cgi[1] = " << to_cgi[1] << std::endl;
+	std::cout << "from_cgi[0] = " << from_cgi[0] << std::endl;
+	std::cout << "from_cgi[1] = " << from_cgi[1] << std::endl;
+
 	if ((pid = fork()) == -1)
 	{
 		//error
@@ -95,6 +101,11 @@ int Cgi::run_cgi(std::string const &file_name)
 	else		//parent
 	{
 		close(to_cgi[0]);
+		if (post_data.size() == 0)
+		{
+			//no need to write to cgi, so the to_cgi[1] can be closed
+			close(to_cgi[1]);
+		}
 		close(from_cgi[1]);
 	}
 	return (0);

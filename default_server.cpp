@@ -290,6 +290,9 @@ void DefaultServer::connectToClient()
 
 void DefaultServer::disconnectFromClient(ConnectedClient *client)
 {
+	//debug
+	std::cout << "disconnecting from fd " << client->connected_fd << std::endl;
+
 	if (clients.erase(client->connected_fd))
 		delete client;
 }
@@ -303,7 +306,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 
 	//debug
 	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nDefaultServer.receiveRequest():" << std::endl;
+	std::cout << "DefaultServer.receiveRequest():" << std::endl;
 
 	ConnectedClient *client = (ConnectedClient *)current_event->owner;
 
@@ -541,7 +544,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 		dispatchRequest(client);
 
 		// debug
-		std::cout << "\nEND of DefaultServer.receiveRequest() terminated" << std::endl;
+		std::cout << "\nEND of DefaultServer.receiveRequest()" << std::endl;
 		std::cout << "-----------------------------------------------------------" << std::endl;
 	}
 }
@@ -597,7 +600,7 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 	#elif defined(__linux__)
 		struct epoll_event event;
 		bzero(&event, sizeof(event));
-		event.events = EPOLLOUT;
+		event.events = EPOLLOUT | EPOLLRDHUP;
 		event.data.ptr = &client->triggered_event;
 		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
 	#endif
@@ -627,7 +630,7 @@ void DefaultServer::writeToCgi(Event *current_event)
 
 	//DEBUG
 	std::cout << "\n-----------------------------------------------------------" << std::endl;
-	std::cout << "DefaultServer:writeToCgi():\n\n" << std::endl;
+	std::cout << "DefaultServer:writeToCgi():" << std::endl;
 	
 	int buf_siz = ((unsigned long)(client->response.getCgiDataPos() + BUFFER_SIZE) > client->response.getCgi().getPostData().size()) ? (client->response.getCgi().getPostData().size() - client->response.getCgiDataPos()) : BUFFER_SIZE;
 	int sent_bytes = write(connected_fd, client->response.getCgi().getPostData().substr(client->response.getCgiDataPos()).c_str(), buf_siz);
@@ -677,7 +680,7 @@ void DefaultServer::writeToCgi(Event *current_event)
 	#elif defined(__linux__)
 		struct epoll_event event;
 		bzero(&event, sizeof(event));
-		event.events = EPOLLOUT;
+		event.events = EPOLLOUT | EPOLLRDHUP;
 		event.data.ptr = &client->triggered_event;
 		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
 	#endif
@@ -702,7 +705,7 @@ void DefaultServer::writeToCgi(Event *current_event)
 	if ((size_t)client->response.getCgiDataPos() == client->response.getCgi().getPostData().size() || current_event->is_error || current_event->is_hang_up)
 	{
 		//DEBUG
-		std::cout << "\nThe whole post data has been sent to cgi" << std::endl;
+		std::cout << "The whole post data has been sent to cgi" << std::endl;
 
 		// remove to_cgi[1] from kqueue
 	#ifdef __MACH__
@@ -758,7 +761,7 @@ void DefaultServer::writeToCgi(Event *current_event)
 		#elif defined(__linux__)
 			struct epoll_event event;
 			bzero(&event, sizeof(event));
-			event.events = EPOLLOUT;
+			event.events = EPOLLOUT | EPOLLRDHUP;
 			event.data.ptr = &client->triggered_event;
 			if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
 		#endif
@@ -771,7 +774,7 @@ void DefaultServer::writeToCgi(Event *current_event)
 	}
 
 	//DEBUG
-	std::cout << "\nEND of DefaultServer:writeToCgi():" << std::endl;
+	std::cout << "END of DefaultServer:writeToCgi():" << std::endl;
 	std::cout << "-----------------------------------------------------------" << std::endl;
 }
 
@@ -784,12 +787,15 @@ void DefaultServer::readFromCgi(Event *current_event)
 
 	//debug
 	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "\nDefaultServer.readFromCgi():" << std::endl;
+	std::cout << "DefaultServer.readFromCgi():" << std::endl;
 
 	is_cgi_over = waitpid(client->response.getCgi().getPid(), nullptr, WNOHANG);
 	do
 	{
 		read_bytes = read(current_event->fd, buf, BUFFER_SIZE);
+		//debug
+		std::cout << "read_bytes = " << read_bytes << std::endl;
+
 		if (read_bytes == -1)
 		{
 			//error reading from cgi
@@ -829,7 +835,7 @@ void DefaultServer::readFromCgi(Event *current_event)
 		#elif defined(__linux__)
 			struct epoll_event event;
 			bzero(&event, sizeof(event));
-			event.events = EPOLLOUT;
+			event.events = EPOLLOUT | EPOLLRDHUP;
 			event.data.ptr = &client->triggered_event;
 			if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
 		#endif
@@ -940,7 +946,7 @@ void DefaultServer::readFromCgi(Event *current_event)
 	#elif defined(__linux__)
 		struct epoll_event event;
 		bzero(&event, sizeof(event));
-		event.events = EPOLLOUT;
+		event.events = EPOLLOUT | EPOLLRDHUP;
 		event.data.ptr = &client->triggered_event;
 		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
 	#endif
@@ -950,6 +956,10 @@ void DefaultServer::readFromCgi(Event *current_event)
 			return ;
 		}
 	}
+
+	//debug
+	std::cout << "END of DefaultServer.readFromCgi():" << std::endl;
+	std::cout << "-----------------------------------------------------------" << std::endl;
 }
 
 void DefaultServer::sendResponse(Event *current_event)
@@ -959,7 +969,7 @@ void DefaultServer::sendResponse(Event *current_event)
 
 	//DEBUG
 	std::cout << "\n-----------------------------------------------------------" << std::endl;
-	std::cout << "DefaultServer:sendResponse():\n\n" << std::endl;
+	std::cout << "DefaultServer:sendResponse():" << std::endl;
 	
 	int buf_siz = ((unsigned long)(client->response.getResponsePos() + BUFFER_SIZE) > client->response.getResponse().size()) ? (client->response.getResponse().size() - client->response.getResponsePos()) : BUFFER_SIZE;
 
@@ -1017,7 +1027,7 @@ void DefaultServer::sendResponse(Event *current_event)
 	}
 
 	//DEBUG
-	std::cout << "\nEND of DefaultServer:sendResponse():" << std::endl;
+	std::cout << "END of DefaultServer:sendResponse():" << std::endl;
 	std::cout << "-----------------------------------------------------------" << std::endl;
 }
 

@@ -197,11 +197,12 @@ void Cluster::run()
 			std::cout << "\tis_error =\t" << std::boolalpha << current_event->is_error << std::endl;
 			std::cout << "\tserver fd:\t" << ((DefaultServer *)current_event->default_server_ptr)->getListeningFd() << std::endl << std::endl;
 
-			if ((current_event->is_hang_up || current_event->is_error) && (current_event->fd == ((ConnectedClient*)current_event->owner)->connected_fd))
+			if (current_event->is_error)
 			{
-				// //debug
-				// std::cout << "connected fd = " << current_event->fd << " has been removed because the connection was hung up" << std::endl;
-
+				default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
+			}
+			else if (current_event->is_hang_up && (current_event->fd != ((ConnectedClient*)current_event->owner)->response.getCgi().getFromCgiFd()))
+			{
 				default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
 			}
 			else if (current_event->events == WRITE)
@@ -211,10 +212,15 @@ void Cluster::run()
 					// response can be sent to connected_fd
 					default_server->sendResponse(current_event);
 				}
-				else
+				else if (current_event->fd == ((ConnectedClient*)current_event->owner)->response.getCgi().getToCgiFd())
 				{
 					// write to CGI
 					default_server->writeToCgi(current_event);
+				}
+				else
+				{
+					//error: disconnect
+					default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
 				}
 			}
 			else if (current_event->events == READ)
@@ -229,10 +235,15 @@ void Cluster::run()
 					// request can be received from connected_fd
 					default_server->receiveRequest(current_event);
 				}
-				else
+				else if (current_event->fd == ((ConnectedClient*)current_event->owner)->response.getCgi().getFromCgiFd())
 				{
 					// read from CGI
 					default_server->readFromCgi(current_event);
+				}
+				else
+				{
+					//error: disconnect
+					default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
 				}
 			}
 			// std::cout << "\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;

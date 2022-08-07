@@ -534,6 +534,7 @@ void Server::manageDir(ConnectedClient *client)
 		response.setStatusCode("404");
 		response.setReasonPhrase("File Not Found");
 		errorPageToBody(response);
+		response.setIsComplete(true);
 	}
 }
 
