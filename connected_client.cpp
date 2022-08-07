@@ -24,7 +24,7 @@ ConnectedClient &ConnectedClient::operator=(ConnectedClient const &other)
 {
 	client_addr = other.client_addr;
 	request = other.request;
-	// response = other.response;
+	response = other.response;
 	time_since_last_action.tv_sec = other.time_since_last_action.tv_sec;
 	return *this;
 }

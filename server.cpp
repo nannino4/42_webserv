@@ -98,8 +98,6 @@ void Server::errorPageToBody(Response &response)
 	}
 }
 
-// TODO
-// conditional operations (if-modified, etc...)
 // prepareResponse
 void Server::prepareResponse(ConnectedClient *client)
 {
@@ -120,6 +118,7 @@ void Server::prepareResponse(ConnectedClient *client)
 	if (!request.isValid())
 	{
 		errorPageToBody(response);
+		response.setIsComplete(true);
 	}
 	else
 	{
@@ -147,6 +146,7 @@ void Server::prepareResponse(ConnectedClient *client)
 			}
 			response.addNewHeader(std::pair<std::string,std::string>("Allow", allow));
 			errorPageToBody(response);
+			response.setIsComplete(true);
 		}
 		else if (request.getLocation()->isRedirection())
 		{
@@ -154,24 +154,29 @@ void Server::prepareResponse(ConnectedClient *client)
 			response.setStatusCode(std::to_string(request.getLocation()->getRedirection().second));
 			response.setReasonPhrase("Moved Permanently");
 			response.addNewHeader(std::pair<std::string,std::string>("Location", request.getLocation()->getRedirection().first));
-			// generateAutoIndex();	// TODO why?
+			response.setIsComplete(true);
 		}
 		else
 		{
 			// the method requested is allowed
 			if (!request.getMethod().compare("GET"))
 			{
-				methodGet(request, response);
+				methodGet(client);
 			}
 			else if (!request.getMethod().compare("POST"))
 			{
-				methodPost(request, response);
+				methodPost(client);
 			}
 			else if (!request.getMethod().compare("DELETE"))
 			{
-				methodDelete(request, response);
+				methodDelete(client);
 			}
 		}
+	}
+
+	if (response.getBody().size() > 0)
+	{
+		response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(response.getBody().size())));
 	}
 	response.createResponse();
 
@@ -182,11 +187,13 @@ void Server::prepareResponse(ConnectedClient *client)
 }
 
 // GET method
-void Server::methodGet(Request &request, Response &response)
+void Server::methodGet(ConnectedClient *client)
 {
 	std::ifstream		file;
 	struct stat			file_stat;
 	std::stringstream	line;
+	Request				&request = client->request;
+	Response			&response = client->response;
 
 	// get information about the file identified by path
 	if (stat((request.getPath()).c_str(), &file_stat) == 0)
@@ -194,17 +201,18 @@ void Server::methodGet(Request &request, Response &response)
 		// check whether path identifies a regular file, or a directory
 	    if (S_ISDIR(file_stat.st_mode))			// path identifies a directory
 		{
-	        manageDir(request, response);
+	        manageDir(client);
 		}
 	    else if (S_ISREG(file_stat.st_mode))	// path identifies a regular file
 		{
-	        fileToBody(request, response);
+	        fileToBody(client);
 		}
 		else									// path identifies no directory nor file
 		{
 			response.setStatusCode("404");
 			response.setReasonPhrase("File Not Found");
 			errorPageToBody(response);
+			response.setIsComplete(true);
 		}
 	}
 	else	// path is invalid
@@ -212,15 +220,18 @@ void Server::methodGet(Request &request, Response &response)
 		response.setStatusCode("404");
 		response.setReasonPhrase("File Not Found");
 		errorPageToBody(response);
+		response.setIsComplete(true);
 	}
 }
 
 // POST method
-void Server::methodPost(Request &request, Response &response)
+void Server::methodPost(ConnectedClient *client)
 {
 	std::ifstream		file;
 	std::string			file_extension;
 	size_t				pos;
+	Request				&request = client->request;
+	Response			&response = client->response;
 
 	file.open(request.getPath());
 	if (file.is_open())
@@ -239,12 +250,68 @@ void Server::methodPost(Request &request, Response &response)
 		if (!request.getCgiPath().empty())
 		{
 			// file extension matches cgi
-			//// std::cout << request << std::endl; // debug
-			convertCGI(request, response);
-			response.addNewHeader(std::pair<std::string,std::string>("Last-Modified", last_modified(request.getPath())));
-			response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(response.getBody().size())));
-			response.setStatusCode("200");	// the values ha to be set by the cgi 
-			response.setReasonPhrase("OK");
+			response.initCgi(&client->triggered_event, request);
+			if (response.runCgi(request.getCgiPath()))
+			{
+				response.setStatusCode("500");
+				response.setReasonPhrase("Internal Server Error");
+				errorPageToBody(response);
+			}
+			else
+			{
+				if (response.getCgi().getPostData().size() > 0)
+				{
+					// add to_cgi[1] to kqueue for WRITE monitoring
+					client->triggered_event.events = WRITE;
+					client->triggered_event.fd = response.getCgi().getToCgiFd();
+				#ifdef __MACH__
+					struct kevent event;
+					bzero(&event, sizeof(event));
+					EV_SET(&event, response.getCgi().getToCgiFd(), EVFILT_WRITE, EV_ADD, 0, 0, &client->triggered_event);
+					if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+				#elif defined(__linux__)
+					struct epoll_event event;
+					bzero(&event, sizeof(event));
+					event.events = EPOLLIN | EPOLLRDHUP;
+					event.data.ptr = &client->triggered_event;
+					if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, response.getCgi().getToCgiFd(), &event) == -1)
+				#endif
+					{
+						//error adding fd to epoll/kqueue
+						perror("ERROR\nServer.methodPost(): kevent()/epoll_ctl()");
+						response.setStatusCode("500");
+						response.setReasonPhrase("Internal Server Error");
+						errorPageToBody(response);
+						response.setIsComplete(true);
+				}
+				}
+				else
+				{
+					// add from_cgi[0] to kqueue for READ monitoring
+					client->triggered_event.events = READ;
+					client->triggered_event.fd = response.getCgi().getFromCgiFd();
+				#ifdef __MACH__
+					struct kevent event;
+					bzero(&event, sizeof(event));
+					EV_SET(&event, response.getCgi().getFromCgiFd(), EVFILT_READ, EV_ADD, 0, 0, &client->triggered_event);
+					if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+				#elif defined(__linux__)
+					struct epoll_event event;
+					bzero(&event, sizeof(event));
+					event.events = EPOLLIN | EPOLLRDHUP;
+					event.data.ptr = &client->triggered_event;
+					if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, response.getCgi().getFromCgiFd(), &event) == -1)
+				#endif
+					{
+						//error adding fd to epoll/kqueue
+						perror("ERROR\nServer.methodPost(): kevent()/epoll_ctl()");
+						response.setStatusCode("500");
+						response.setReasonPhrase("Internal Server Error");
+						errorPageToBody(response);
+						response.setIsComplete(true);
+					}
+				}
+			}
 		}
 	}
 	else if (file.fail())
@@ -345,21 +412,27 @@ void deleteDir(std::string path, Response &response)
 
 
 // DELETE method
-void Server::methodDelete(Request &request, Response &response)
+void Server::methodDelete(ConnectedClient *client)
 {
+	Request				&request = client->request;
+	Response			&response = client->response;
+
 	deleteDir(request.getPath(), response);
 	if (response.getStatusCode() != "200")
 		errorPageToBody(response);
+	response.setIsComplete(true);
 }
 
 
 // get file to body
-void Server::fileToBody(Request &request, Response &response) 
+void Server::fileToBody(ConnectedClient *client)
 {
 	std::ifstream		file;
 	std::stringstream	line;
 	std::string			file_extension;
 	size_t				pos;
+	Request				&request = client->request;
+	Response			&response = client->response;
 
 	file.open(request.getPath());
 	if (file.is_open())
@@ -378,9 +451,41 @@ void Server::fileToBody(Request &request, Response &response)
 		if (!request.getCgiPath().empty())
 		{
 			// file extension matches cgi
-			convertCGI(request, response);
-			response.addNewHeader(std::pair<std::string,std::string>("Last-Modified", last_modified(request.getPath())));
-			response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(response.getBody().size())));
+			response.initCgi(&client->triggered_event, request);
+			if (response.runCgi(request.getCgiPath()))
+			{
+				// error running cgi
+				response.setStatusCode("500");
+				response.setReasonPhrase("Internal Server Error");
+				errorPageToBody(response);
+				response.setIsComplete(true);
+			}
+			else
+			{
+				// add from_cgi[0] to kqueue for READ monitoring
+				client->triggered_event.events = READ;
+				client->triggered_event.fd = response.getCgi().getFromCgiFd();
+			#ifdef __MACH__
+				struct kevent event;
+				bzero(&event, sizeof(event));
+				EV_SET(&event, response.getCgi().getFromCgiFd(), EVFILT_READ, EV_ADD, 0, 0, &client->triggered_event);
+				if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+			#elif defined(__linux__)
+				struct epoll_event event;
+				bzero(&event, sizeof(event));
+				event.events = EPOLLIN | EPOLLRDHUP;
+				event.data.ptr = &client->triggered_event;
+				if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, response.getCgi().getFromCgiFd(), &event) == -1)
+			#endif
+				{
+					//error adding fd to epoll/kqueue
+					perror("ERROR\nServer.fileToBody(): kevent()/epoll_ctl()");
+					response.setStatusCode("500");
+					response.setReasonPhrase("Internal Server Error");
+					errorPageToBody(response);
+					response.setIsComplete(true);
+				}
+			}
 		}
 		else
 		{
@@ -391,6 +496,7 @@ void Server::fileToBody(Request &request, Response &response)
 			response.addNewHeader(std::pair<std::string,std::string>("Content-Type", content_type(request.getPath())));
 			response.setStatusCode("200");
 			response.setReasonPhrase("OK");
+			response.setIsComplete(true);
 		}
 	}
 	else if (file.fail())
@@ -398,67 +504,16 @@ void Server::fileToBody(Request &request, Response &response)
 		response.setStatusCode("403");
 		response.setReasonPhrase("Forbidden");
 		errorPageToBody(response);
+		response.setIsComplete(true);
 	}
-}
-
-// cgi
-void Server::convertCGI(Request &request, Response &response)
-{
-    std::string tmp;
-    std::string body;
-	size_t		pos;
-	Cgi			cgi(request);
-
-	body = cgi.run_cgi(request.getCgiPath());
-	pos = body.find("\r\n\r\n");
-	if (pos != std::string::npos)
-	{
-		pos += 4;
-		tmp = body.substr(0, pos);
-		body.erase(0, pos);		
-		takeHeaders(tmp, response);
-	}
-	if (response.getStatusCode() != "500")
-		response.setBody(body);
-}
-
-// take headers from CGI return
-void Server::takeHeaders(std::string tmp, Response &response)
-{
-	std::stringstream file(tmp);
-	std::string line;
-
-	while (getline(file, line))
-	{
-		std::stringstream	sline(line);
-		std::string			key;
-
-		while (getline(sline, key, ':'))
-		{
-			std::string value;
-			sline >> std::ws;
-			if (getline(sline, value, '\r'))
-			{
-				if (key == "Status-code")
-				{
-					response.setStatusCode("500");
-					response.setReasonPhrase("Internal Server Error");
-					errorPageToBody(response);
-					return ;
-				}
-				response.addNewHeader(std::pair<std::string, std::string>(key, value));
-			}
-		}
-	}
-	response.setStatusCode("200");
-	response.setReasonPhrase("OK");
-
 }
 
 // manage case in which path identifies a directory
-void Server::manageDir(Request &request, Response &response)
+void Server::manageDir(ConnectedClient *client)
 {
-	struct stat	file_stat;
+	struct stat			file_stat;
+	Request				&request = client->request;
+	Response			&response = client->response;
 
 	if (!request.getLocation()->getIndex().empty() && \
 			stat(std::string(request.getPath() + request.getLocation()->getIndex()).c_str(), &file_stat) == 0 && \
@@ -466,7 +521,7 @@ void Server::manageDir(Request &request, Response &response)
 	{
 		// an index exists and it is a file
 		request.setPath(request.getPath() + request.getLocation()->getIndex());
-		fileToBody(request, response);
+		fileToBody(client);
 	}
 	else if (request.getLocation()->isAutoindex())
 	{
@@ -522,4 +577,5 @@ void Server::generateAutoIndex(Request &request, Response &response)
 		response.setReasonPhrase("Forbidden");
 		errorPageToBody(response);
 	}
+	response.setIsComplete(true);
 }

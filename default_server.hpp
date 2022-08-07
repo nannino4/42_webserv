@@ -82,6 +82,8 @@ public:
 	void receiveRequest(Event *current_event);
 	void dispatchRequest(ConnectedClient *client);
 	// void prepareResponse(ConnectedClient &client);		// inherited from Server
+	void writeToCgi(Event *current_event);
+	void readFromCgi(Event *current_event);
 	void sendResponse(Event *current_event);
 	void closeTimedOutConnections();
 

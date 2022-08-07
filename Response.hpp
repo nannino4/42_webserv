@@ -6,7 +6,7 @@
 #include <fstream>
 #include <map>
 
-class Request;
+#include "Cgi.hpp"
 
 class Response
 {
@@ -18,6 +18,9 @@ class Response
 		std::string							body;
 		std::string							response;
 		int									response_pos;
+		Cgi									cgi;
+		bool								is_complete;
+		int									cgi_data_pos;
 
 	public:
 		// default constructor
@@ -37,6 +40,9 @@ class Response
 		const std::string						&getBody() const;
 		const std::string						&getResponse() const;
 		const int								&getResponsePos() const;
+		Cgi const								&getCgi() const;
+		bool const								&isComplete() const;
+		const int								&getCgiDataPos() const;
 
 		// setters
 		void	setVersion(std::string const &new_version);
@@ -46,10 +52,14 @@ class Response
 		void	setBody(std::string const &nw_body);
 		void	setResponse(std::string const &new_response);
 		void	setResponsePos(int new_pos);
+		void	setIsComplete(bool new_is_complete);
+		void	setCgiDataPos(int new_pos);
 
 		// other methods
 		void	generateErrorPage();
 		void	createResponse();
+		void	initCgi(Event *event, Request &request);
+		int		runCgi(std::string const &path);
 
 		// operator overloads
 		friend std::ostream& operator<<(std::ostream & out, const Response& m);

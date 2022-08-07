@@ -11,6 +11,7 @@
 #include "event.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
+#include "Cgi.hpp"
 
 struct ConnectedClient
 {
@@ -21,16 +22,12 @@ struct ConnectedClient
 	Response			response;
 	struct timespec		time_since_last_action;
 
-
 	// constructor
 	ConnectedClient(int const connected_fd, struct sockaddr_in client_addr, void *default_server_ptr);
-
 	// copy constructor
 	ConnectedClient(ConnectedClient const &other);
-
 	// assign operator
 	ConnectedClient &operator=(ConnectedClient const &other);
-
 	// destructor
 	~ConnectedClient();
 

@@ -9,7 +9,10 @@ Response::Response() : \
 		headers(), \
 		body(), \
 		response(), \
-		response_pos(0) \
+		response_pos(0), \
+		cgi(), \
+		is_complete(false), \
+		cgi_data_pos(0)
 		{}
 
 // copy constructor
@@ -25,6 +28,9 @@ Response &Response::operator=(const Response &other)
 	body = other.getBody();
 	response = other.getResponse();
 	response_pos = other.getResponsePos();
+	cgi = other.getCgi();
+	is_complete = other.isComplete();
+	cgi_data_pos = other.getCgiDataPos();
 	return *this;
 }
 
@@ -38,6 +44,9 @@ const std::map<std::string,std::string>	&Response::getHeaders() const { return h
 std::string const						&Response::getBody() const { return body; }
 std::string const						&Response::getResponse() const { return response; }
 int const								&Response::getResponsePos() const { return response_pos; }
+Cgi const								&Response::getCgi() const { return cgi; }
+bool const								&Response::isComplete() const { return is_complete; }
+int const								&Response::getCgiDataPos() const { return cgi_data_pos; }
 
 // setters
 void	Response::setVersion(std::string const &new_version) { version = new_version; }
@@ -47,11 +56,14 @@ void	Response::addNewHeader(std::pair<std::string,std::string> const &new_header
 void	Response::setBody(std::string const &new_body) { body = new_body; }
 void	Response::setResponse(std::string const &new_response) { response = new_response; }
 void	Response::setResponsePos(int new_pos) { response_pos = new_pos; }
+void	Response::setIsComplete(bool new_is_complete) { is_complete = new_is_complete; }
+void	Response::setCgiDataPos(int new_pos) { cgi_data_pos = new_pos; }
 
 // other methods
 
 void Response::createResponse()
 {
+	response.clear();
 	// add first line
 	response += version + " " + status_code + " " + reason_phrase + "\r\n";
 
@@ -68,6 +80,9 @@ void Response::createResponse()
 	// add body
 	response += "\r\n" + body;
 }
+
+void	Response::initCgi(Event *event, Request &request) { cgi.initialize(event, request); }
+int		Response::runCgi(std::string const &path) { return (cgi.run_cgi(path)); }
 
 // operator overloads
 std::ostream& operator<<(std::ostream &out, const Response &response)

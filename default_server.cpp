@@ -213,6 +213,7 @@ void DefaultServer::startListening()
 	}
 
 	triggered_event.events = READ;
+	triggered_event.fd = listening_fd;
 #ifdef __MACH__
 	struct kevent event;
 	bzero(&event, sizeof(event));
@@ -267,6 +268,7 @@ void DefaultServer::connectToClient()
 
 		// add new connected_fd to kqueue for READ monitoring
 		new_client->triggered_event.events = READ;
+		new_client->triggered_event.fd = new_client->connected_fd;
 	#ifdef __MACH__
 		struct kevent event;
 		bzero(&event, sizeof(event));
@@ -320,17 +322,9 @@ void DefaultServer::receiveRequest(Event *current_event)
 	{
 		tmp.push_back(buf[i]);
 	}
-
-	//debug
-	// // std::cout << "previous request size = " << client->request.getRequest().size() << std::endl;
-	// // std::cout << "read bytes = " << read_bytes << std::endl;
-	// // std::cout << "expected request size = " << client->request.getRequest().size() + read_bytes << std::endl;
-
-	client->request.setRequest(tmp);
 	bzero(buf, BUFFER_SIZE);
-
-	//debug
-	// // std::cout << "current request size = " << client->request.getRequest().size() << std::endl << std::endl;
+	client->request.setRequest(tmp);
+	tmp.clear();
 
 	// parse newly received request lines
 	while (((unsigned long)(found_pos = client->request.getRequest().find("\n", client->request.getRequestPos())) != std::string::npos) \
@@ -526,11 +520,6 @@ void DefaultServer::receiveRequest(Event *current_event)
 		clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
 	#endif
 
-	// debug
-	// // std::cout << "\nrequest.body.size =\t" << client->request.getBody().size() << std::endl;
-	// if (client->request.getHeaders().find("Content-Length") != client->request.getHeaders().end())
-	// 	// std::cout << "Content-Length =\t" << client->request.getHeaders().find("Content-Length")->second << std::endl;
-
 	if (client->request.isComplete())
 	{
 		// remove connected_fd to kqueue from READ monitoring
@@ -578,7 +567,6 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 	// std::cout << "\n-------------------------------" << std::endl;
 	// std::cout << "DefaultServer::dispatchRequest()\n" << std::endl;
 
-
 	// find the server location correspongin to the request path
 	Server		*requestedServer = (Server *)client->request.getServer();
 	std::string	path = client->request.getPath();
@@ -596,24 +584,28 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 	// let the server prepare the response
 	requestedServer->prepareResponse(client);
 
-	// add connected_fd to kqueue for WRITE monitoring
-	client->triggered_event.events = WRITE;
-#ifdef __MACH__
-	struct kevent event;
-	bzero(&event, sizeof(event));
-	EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, &client->triggered_event);
-	if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-#elif defined(__linux__)
-	struct epoll_event event;
-	bzero(&event, sizeof(event));
-	event.events = EPOLLOUT;
-	event.data.ptr = &client->triggered_event;
-	if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
-#endif
+	if (client->response.isComplete())
 	{
-		perror("ERROR\nDefaultServer.dispatchRequest: kevent()/epoll_ctl()");
-		disconnectFromClient(client);
-		return ;
+		// add connected_fd to kqueue for WRITE monitoring
+		client->triggered_event.events = WRITE;
+		client->triggered_event.fd = client->connected_fd;
+	#ifdef __MACH__
+		struct kevent event;
+		bzero(&event, sizeof(event));
+		EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, &client->triggered_event);
+		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+	#elif defined(__linux__)
+		struct epoll_event event;
+		bzero(&event, sizeof(event));
+		event.events = EPOLLOUT;
+		event.data.ptr = &client->triggered_event;
+		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
+	#endif
+		{
+			perror("ERROR\nDefaultServer.dispatchRequest: kevent()/epoll_ctl()");
+			disconnectFromClient(client);
+			return ;
+		}
 	}
 
 	// update client timeout
@@ -626,6 +618,338 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 
 	// std::cout << "END of DefaultServer::dispatchRequest()" << std::endl;
 	// std::cout << "-------------------------------" << std::endl;
+}
+
+void DefaultServer::writeToCgi(Event *current_event)
+{
+	ConnectedClient *client = (ConnectedClient *)current_event->owner;
+	int connected_fd = current_event->fd;
+
+	//DEBUG
+	std::cout << "\n-----------------------------------------------------------" << std::endl;
+	std::cout << "DefaultServer:writeToCgi():\n\n" << std::endl;
+	
+	int buf_siz = ((unsigned long)(client->response.getCgiDataPos() + BUFFER_SIZE) > client->response.getCgi().getPostData().size()) ? (client->response.getCgi().getPostData().size() - client->response.getCgiDataPos()) : BUFFER_SIZE;
+	int sent_bytes = write(connected_fd, client->response.getCgi().getPostData().substr(client->response.getCgiDataPos()).c_str(), buf_siz);
+
+	//debug
+	std::cout << "bytes sent to cgi = " << sent_bytes << std::endl;
+
+	// check that write() didn't fail
+	if (sent_bytes == -1 || sent_bytes == 0)
+	{
+		//error writing to cgi
+		std::cerr << "ERROR\nDefaultServer.writeToCgi(): write()" << std::endl;
+
+		client->response.setStatusCode("500");
+		client->response.setReasonPhrase("Internal Server Error");
+		errorPageToBody(client->response);
+		client->response.setIsComplete(true);
+		if (client->response.getBody().size() > 0)
+		{
+			client->response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(client->response.getBody().size())));
+		}
+		client->response.createResponse();
+
+		// remove to_cgi[1] from kqueue
+	#ifdef __MACH__
+		struct kevent event;
+		bzero(&event, sizeof(event));
+		EV_SET(&event, client->response.getCgi().getToCgiFd(), EVFILT_WRITE, EV_DELETE, 0, 0, current_event);
+		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+	#elif defined(__linux__)
+		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, client->response.getCgi().getToCgiFd(), nullptr) == -1)
+	#endif
+		{
+			perror("\nERROR\nDefaultServer.writeToCgi(): kevent()/epoll_ctl()");
+		}
+		close(client->response.getCgi().getToCgiFd());
+		close(client->response.getCgi().getFromCgiFd());
+
+		// add connected_fd to WRITE monitoring
+		client->triggered_event.events = WRITE;
+		client->triggered_event.fd = client->connected_fd;
+	#ifdef __MACH__
+		struct kevent event;
+		bzero(&event, sizeof(event));
+		EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, &client->triggered_event);
+		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+	#elif defined(__linux__)
+		struct epoll_event event;
+		bzero(&event, sizeof(event));
+		event.events = EPOLLOUT;
+		event.data.ptr = &client->triggered_event;
+		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
+	#endif
+		{
+			perror("ERROR\nDefaultServer.dispatchRequest: kevent()/epoll_ctl()");
+			disconnectFromClient(client);
+			return ;
+		}
+		return ;
+	}
+
+	client->response.setCgiDataPos(client->response.getCgiDataPos() + sent_bytes);
+
+	// update client timeout
+	#ifdef __MACH__
+		clock_gettime(_CLOCK_REALTIME, &client->time_since_last_action);
+	#elif defined(__linux__)
+		clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
+	#endif
+
+	// check if whole response has been sent
+	if ((size_t)client->response.getCgiDataPos() == client->response.getCgi().getPostData().size() || current_event->is_error || current_event->is_hang_up)
+	{
+		//DEBUG
+		std::cout << "\nThe whole post data has been sent to cgi" << std::endl;
+
+		// remove to_cgi[1] from kqueue
+	#ifdef __MACH__
+		struct kevent event;
+		bzero(&event, sizeof(event));
+		EV_SET(&event, client->response.getCgi().getToCgiFd(), EVFILT_WRITE, EV_DELETE, 0, 0, current_event);
+		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+	#elif defined(__linux__)
+		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, client->response.getCgi().getToCgiFd(), nullptr) == -1)
+	#endif
+		{
+			perror("\nERROR\nDefaultServer.writeToCgi(): kevent()/epoll_ctl()");
+		}
+		close(client->response.getCgi().getToCgiFd());
+
+		// add from_cgi[0] to kqueue for READ monitoring
+		client->triggered_event.events = READ;
+		client->triggered_event.fd = client->response.getCgi().getFromCgiFd();
+	#ifdef __MACH__
+		struct kevent event;
+		bzero(&event, sizeof(event));
+		EV_SET(&event, client->response.getCgi().getFromCgiFd(), EVFILT_READ, EV_ADD, 0, 0, &client->triggered_event);
+		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+	#elif defined(__linux__)
+		struct epoll_event event;
+		bzero(&event, sizeof(event));
+		event.events = EPOLLIN | EPOLLRDHUP;
+		event.data.ptr = &client->triggered_event;
+		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->response.getCgi().getFromCgiFd(), &event) == -1)
+	#endif
+		{
+			//error adding from_cgi[0] to epoll/kqueue
+			perror("ERROR\nDefaultServer.writeToCgi(): kevent()/epoll_ctl()");
+			client->response.setStatusCode("500");
+			client->response.setReasonPhrase("Internal Server Error");
+			errorPageToBody(client->response);
+			client->response.setIsComplete(true);
+			if (client->response.getBody().size() > 0)
+			{
+				client->response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(client->response.getBody().size())));
+			}
+			client->response.createResponse();
+			close(client->response.getCgi().getFromCgiFd());
+
+			// add connected_fd to WRITE monitoring
+			client->triggered_event.events = WRITE;
+			client->triggered_event.fd = client->connected_fd;
+		#ifdef __MACH__
+			struct kevent event;
+			bzero(&event, sizeof(event));
+			EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, &client->triggered_event);
+			if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+		#elif defined(__linux__)
+			struct epoll_event event;
+			bzero(&event, sizeof(event));
+			event.events = EPOLLOUT;
+			event.data.ptr = &client->triggered_event;
+			if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
+		#endif
+			{
+				perror("ERROR\nDefaultServer.dispatchRequest: kevent()/epoll_ctl()");
+				disconnectFromClient(client);
+				return ;
+			}
+		}
+	}
+
+	//DEBUG
+	std::cout << "\nEND of DefaultServer:writeToCgi():" << std::endl;
+	std::cout << "-----------------------------------------------------------" << std::endl;
+}
+
+void DefaultServer::readFromCgi(Event *current_event)
+{
+	std::string		tmp;
+	ConnectedClient *client = (ConnectedClient *)current_event->owner;
+	int				is_cgi_over = 0;
+	int				read_bytes = 0;
+
+	//debug
+	std::cout << "-----------------------------------------------------------" << std::endl;
+	std::cout << "\nDefaultServer.readFromCgi():" << std::endl;
+
+	is_cgi_over = waitpid(client->response.getCgi().getPid(), nullptr, WNOHANG);
+	do
+	{
+		read_bytes = read(current_event->fd, buf, BUFFER_SIZE);
+		if (read_bytes == -1)
+		{
+			//error reading from cgi
+			perror("ERROR\nDefaultServer.readFromCgi(): read");
+			client->response.setStatusCode("500");
+			client->response.setReasonPhrase("Internal Server Error");
+			errorPageToBody(client->response);
+			client->response.setIsComplete(true);
+			if (client->response.getBody().size() > 0)
+			{
+				client->response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(client->response.getBody().size())));
+			}
+			client->response.createResponse();
+
+			// remove from_cgi[0] from READ monitoring
+		#ifdef __MACH__
+			struct kevent event;
+			bzero(&event, sizeof(event));
+			EV_SET(&event, current_event->fd, EVFILT_READ, EV_DELETE, 0, 0, current_event);
+			if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+		#elif defined(__linux__)
+			if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, current_event->fd, nullptr) == -1)
+		#endif
+			{
+				perror("ERROR\nDefaultServer.receiveRequest: kevent()/epoll_ctl()");
+			}
+			close(client->response.getCgi().getFromCgiFd());
+
+			// add connected_fd to WRITE monitoring
+			client->triggered_event.events = WRITE;
+			client->triggered_event.fd = client->connected_fd;
+		#ifdef __MACH__
+			struct kevent event;
+			bzero(&event, sizeof(event));
+			EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, &client->triggered_event);
+			if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+		#elif defined(__linux__)
+			struct epoll_event event;
+			bzero(&event, sizeof(event));
+			event.events = EPOLLOUT;
+			event.data.ptr = &client->triggered_event;
+			if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
+		#endif
+			{
+				perror("ERROR\nDefaultServer.dispatchRequest: kevent()/epoll_ctl()");
+				disconnectFromClient(client);
+				return ;
+			}
+			return ;
+		}
+
+		//update response.body
+		tmp = client->response.getBody();
+		for (int i = 0; i < read_bytes; ++i)
+		{
+			tmp.push_back(buf[i]);
+		}
+		bzero(buf, BUFFER_SIZE);
+		client->response.setBody(tmp);
+		tmp.clear();
+	} while (is_cgi_over && read_bytes > 0);
+
+	if (is_cgi_over && read_bytes == 0)
+	{
+		if (client->response.getBody() == "Status-code: 500\r\n\r\n")
+		{
+			//cgi didn't execute
+			client->response.setStatusCode("500");
+			client->response.setReasonPhrase("Internal Server Error");
+			errorPageToBody(client->response);
+			client->response.setIsComplete(true);
+			if (client->response.getBody().size() > 0)
+			{
+				client->response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(client->response.getBody().size())));
+			}
+			client->response.createResponse();
+		}
+		else
+		{
+			// cgi executed correctly
+		    std::string body;
+			size_t		pos;
+
+			body = client->response.getBody();
+			pos = body.find("\r\n\r\n");
+			if (pos != std::string::npos)
+			{
+		    	std::string			headers;
+
+				pos += 4;
+				headers = body.substr(0, pos);
+				body.erase(0, pos);
+				client->response.setBody(body);
+
+				//old function: take headers from return of cgi into response headers
+				std::stringstream file(headers);
+				std::string line;
+
+				while (getline(file, line))
+				{
+					std::stringstream	sline(line);
+					std::string			key;
+
+					while (getline(sline, key, ':'))
+					{
+						std::string value;
+						sline >> std::ws;
+						if (getline(sline, value, '\r'))
+						{
+							client->response.addNewHeader(std::pair<std::string, std::string>(key, value));
+						}
+					}
+				}
+			}
+			client->response.setStatusCode("200");
+			client->response.setReasonPhrase("OK");
+			client->response.addNewHeader(std::pair<std::string,std::string>("Last-Modified", last_modified(client->request.getPath())));
+			client->response.setIsComplete(true);
+			if (client->response.getBody().size() > 0)
+			{
+				client->response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(client->response.getBody().size())));
+			}
+			client->response.createResponse();
+		}
+		// remove from_cgi[0] to kqueue from READ monitoring
+	#ifdef __MACH__
+		struct kevent event;
+		bzero(&event, sizeof(event));
+		EV_SET(&event, current_event->fd, EVFILT_READ, EV_DELETE, 0, 0, current_event);
+		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+	#elif defined(__linux__)
+		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, current_event->fd, nullptr) == -1)
+	#endif
+		{
+			perror("ERROR\nDefaultServer.receiveRequest: kevent()/epoll_ctl()");
+		}
+		close(client->response.getCgi().getFromCgiFd());
+
+
+		// add connected_fd to kqueue for WRITE monitoring
+		client->triggered_event.events = WRITE;
+		client->triggered_event.fd = client->connected_fd;
+	#ifdef __MACH__
+		struct kevent event;
+		bzero(&event, sizeof(event));
+		EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, &client->triggered_event);
+		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+	#elif defined(__linux__)
+		struct epoll_event event;
+		bzero(&event, sizeof(event));
+		event.events = EPOLLOUT;
+		event.data.ptr = &client->triggered_event;
+		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
+	#endif
+		{
+			perror("ERROR\nDefaultServer.dispatchRequest: kevent()/epoll_ctl()");
+			disconnectFromClient(client);
+			return ;
+		}
+	}
 }
 
 void DefaultServer::sendResponse(Event *current_event)
@@ -691,13 +1015,6 @@ void DefaultServer::sendResponse(Event *current_event)
 		clients.erase(connected_fd);
 		delete client;
 	}
-
-	// //debug
-	// struct epoll_event event;
-	// bzero(&event, sizeof(event));
-	// event.events = EPOLLIN | EPOLLRDHUP;
-	// if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, listening_fd, &event) == -1)
-	// 	perror("trying to add listening fd again to epoll");
 
 	//DEBUG
 	std::cout << "\nEND of DefaultServer:sendResponse():" << std::endl;

@@ -197,11 +197,10 @@ void Cluster::run()
 			std::cout << "\tis_error =\t" << std::boolalpha << current_event->is_error << std::endl;
 			std::cout << "\tserver fd:\t" << ((DefaultServer *)current_event->default_server_ptr)->getListeningFd() << std::endl << std::endl;
 
-			//manage the case in which (current_event->is_error == true)
-			if (current_event->is_hang_up || current_event->is_error)
+			if ((current_event->is_hang_up || current_event->is_error) && (current_event->fd == ((ConnectedClient*)current_event->owner)->connected_fd))
 			{
-				//debug
-				// // std::cout << "connected fd = " << current_event->fd << " has been removed because the connection was hung up" << std::endl;
+				// //debug
+				// std::cout << "connected fd = " << current_event->fd << " has been removed because the connection was hung up" << std::endl;
 
 				default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
 			}
@@ -215,6 +214,7 @@ void Cluster::run()
 				else
 				{
 					// write to CGI
+					default_server->writeToCgi(current_event);
 				}
 			}
 			else if (current_event->events == READ)
@@ -224,10 +224,15 @@ void Cluster::run()
 					// listening_fd ready to accept a new connection from client
 					default_server->connectToClient();
 				}
-				else
+				else if (current_event->fd == ((ConnectedClient*)current_event->owner)->connected_fd)
 				{
 					// request can be received from connected_fd
 					default_server->receiveRequest(current_event);
+				}
+				else
+				{
+					// read from CGI
+					default_server->readFromCgi(current_event);
 				}
 			}
 			// std::cout << "\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
