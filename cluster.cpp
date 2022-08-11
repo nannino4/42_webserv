@@ -204,11 +204,11 @@ void Cluster::run()
 				default_server->removeEvent((ConnectedClient*)current_event->owner);
 				default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
 			}
-			else if (current_event->is_hang_up && (current_event->fd != ((ConnectedClient*)current_event->owner)->response.getCgi().getFromCgiFd()))
-			{
-				default_server->removeEvent((ConnectedClient*)current_event->owner);
-				default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
-			}
+			// else if (current_event->is_hang_up && (current_event->fd != ((ConnectedClient*)current_event->owner)->response.getCgi().getFromCgiFd())) //debug: this shouldn't be commented
+			// {
+			// 	default_server->removeEvent((ConnectedClient*)current_event->owner);
+			// 	default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
+			// }
 			else if (current_event->events == WRITE)
 			{
 				if (current_event->fd == ((ConnectedClient*)current_event->owner)->connected_fd)
@@ -227,6 +227,11 @@ void Cluster::run()
 					default_server->removeEvent((ConnectedClient*)current_event->owner);
 					default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
 				}
+			}
+			else if (current_event->is_hang_up && (current_event->fd != ((ConnectedClient*)current_event->owner)->response.getCgi().getFromCgiFd())) //debug
+			{
+				default_server->removeEvent((ConnectedClient*)current_event->owner);
+				default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
 			}
 			else if (current_event->events == READ)
 			{
