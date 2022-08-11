@@ -959,7 +959,7 @@ void DefaultServer::readFromCgi(Event *current_event)
 		triggered_event.is_hang_up = false;
 	#ifdef __MACH__
 		bzero(&event, sizeof(event));
-		EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, &client->triggered_event);
+		EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD | EV_CLEAR, 0, 0, &client->triggered_event);
 		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
 	#elif defined(__linux__)
 		struct epoll_event event;
@@ -974,7 +974,7 @@ void DefaultServer::readFromCgi(Event *current_event)
 			disconnectFromClient(client);
 			return ;
 		}
-	}
+	} // if (is_cgi_over && read_bytes == 0)
 
 	//debug
 	std::cout << "END of DefaultServer.readFromCgi():" << std::endl;

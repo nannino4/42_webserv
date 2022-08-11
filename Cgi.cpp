@@ -89,7 +89,7 @@ int Cgi::run_cgi(std::string const &file_name)
 
         char * const * nll = nullptr;
 		execve((char*)file_name.c_str(), nll , env);	//chiamata php
-        std::cout << "Status-code: 500\r\n\r\n" << std::endl;
+        std::cout << "Status-code: 500\r\n\r\n";
 		exit(1);
 	}
 	else		//parent
