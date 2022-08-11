@@ -75,12 +75,6 @@ int Cgi::run_cgi(std::string const &file_name)
 		//error
 		return (1);
 	}
-	//debug
-	std::cout << "to_cgi[0] = " << to_cgi[0] << std::endl;
-	std::cout << "to_cgi[1] = " << to_cgi[1] << std::endl;
-	std::cout << "from_cgi[0] = " << from_cgi[0] << std::endl;
-	std::cout << "from_cgi[1] = " << from_cgi[1] << std::endl;
-
 	if ((pid = fork()) == -1)
 	{
 		//error

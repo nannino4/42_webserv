@@ -86,6 +86,7 @@ public:
 	void readFromCgi(Event *current_event);
 	void sendResponse(Event *current_event);
 	void closeTimedOutConnections();
+	void removeEvent(ConnectedClient *client);
 
 private:
 	// initialization

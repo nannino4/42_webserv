@@ -287,6 +287,7 @@ void DefaultServer::connectToClient()
 	#endif
 		{
 			perror("ERROR\nDefaultServer.connectToClient(): kevent()/epoll_ctl()");
+			removeEvent((ConnectedClient*)new_client);
 			disconnectFromClient(new_client);
 		}
 	}
@@ -299,6 +300,27 @@ void DefaultServer::disconnectFromClient(ConnectedClient *client)
 
 	if (clients.erase(client->connected_fd))
 		delete client;
+}
+
+void DefaultServer::removeEvent(ConnectedClient *client)
+{
+#ifdef __MACH__
+	uint32_t		filter;
+	struct kevent	event;
+
+	if (client->triggered_event.events == READ)
+		filter = EVFILT_READ;
+	else
+		filter = EVFILT_WRITE;
+	bzero(&event, sizeof(event));
+	EV_SET(&event, client->connected_fd, filter, EV_DELETE, 0, 0, &client->triggered_event);
+	if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+#elif defined(__linux__)
+	if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, client->connected_fd, nullptr) == -1)
+#endif
+	{
+		perror("\nERROR\nDefaultServer.removeEvent(): kevent()/epoll_ctl()");
+	}
 }
 
 void DefaultServer::receiveRequest(Event *current_event)
@@ -319,6 +341,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	if (read_bytes == -1 || read_bytes == 0)
 	{
 		perror("ERROR\nDefaultServer.receiveRequest(): recv");
+		removeEvent((ConnectedClient*)client);
 		disconnectFromClient(client);
 		return ;
 	}
@@ -502,20 +525,9 @@ void DefaultServer::receiveRequest(Event *current_event)
 		if (client->request.getMethod() != "POST" && client->request.getRequest().size() > REQUEST_SIZE_LIMIT)
 		{
 			// remove connected_fd from kqueue
-		#ifdef __MACH__
-			struct kevent event;
-			bzero(&event, sizeof(event));
-			EV_SET(&event, client->connected_fd, EVFILT_READ, EV_DELETE, 0, 0, &client->triggered_event);
-			if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-		#elif defined(__linux__)
-			if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, client->connected_fd, nullptr) == -1)
-		#endif
-			{
-				perror("\nERROR\nDefaultServer.receiveRequest(): kevent()/epoll_ctl()");
-			}
+			removeEvent(client);
 			// erase client from the map of clients and delete it from memory
-			clients.erase(client->connected_fd);
-			delete client;
+			disconnectFromClient(client);
 			return ;
 		}
 	}
@@ -529,18 +541,8 @@ void DefaultServer::receiveRequest(Event *current_event)
 
 	if (client->request.isComplete())
 	{
-		// remove connected_fd to kqueue from READ monitoring
-	#ifdef __MACH__
-		struct kevent event;
-		bzero(&event, sizeof(event));
-		EV_SET(&event, connected_fd, EVFILT_READ, EV_DELETE, 0, 0, current_event);
-		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-	#elif defined(__linux__)
-		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, connected_fd, nullptr) == -1)
-	#endif
-		{
-			perror("ERROR\nDefaultServer.receiveRequest: kevent()/epoll_ctl()");
-		}
+		// remove connected_fd from READ monitoring
+		removeEvent(client);
 
 		// debug
 		std::cout << "---------request without body:---------\n" << client->request.getRequest().substr(0, client->request.getRequest().find("\r\n\r\n")) << std::endl << std::endl;
@@ -575,7 +577,7 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 	// std::cout << "DefaultServer::dispatchRequest()\n" << std::endl;
 
 	// find the server location correspongin to the request path
-	Server		*requestedServer = (Server *)client->request.getServer();
+	Server		*requestedServer = (Server *)client->request.getServer() == nullptr ? this : (Server *)client->request.getServer();
 	std::string	path = client->request.getPath();
 
 	client->request.setLocation(&default_location);
@@ -612,6 +614,7 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 	#endif
 		{
 			perror("ERROR\nDefaultServer.dispatchRequest: kevent()/epoll_ctl()");
+			removeEvent(client);
 			disconnectFromClient(client);
 			return ;
 		}
@@ -693,6 +696,7 @@ void DefaultServer::writeToCgi(Event *current_event)
 	#endif
 		{
 			perror("ERROR\nDefaultServer.dispatchRequest: kevent()/epoll_ctl()");
+			removeEvent(client);
 			disconnectFromClient(client);
 			return ;
 		}
@@ -777,6 +781,7 @@ void DefaultServer::writeToCgi(Event *current_event)
 		#endif
 			{
 				perror("ERROR\nDefaultServer.dispatchRequest: kevent()/epoll_ctl()");
+				removeEvent(client);
 				disconnectFromClient(client);
 				return ;
 			}
@@ -852,6 +857,7 @@ void DefaultServer::readFromCgi(Event *current_event)
 		#endif
 			{
 				perror("ERROR\nDefaultServer.dispatchRequest: kevent()/epoll_ctl()");
+				removeEvent(client);
 				disconnectFromClient(client);
 				return ;
 			}
@@ -964,6 +970,7 @@ void DefaultServer::readFromCgi(Event *current_event)
 	#endif
 		{
 			perror("ERROR\nDefaultServer.dispatchRequest: kevent()/epoll_ctl()");
+			removeEvent(client);
 			disconnectFromClient(client);
 			return ;
 		}
@@ -988,7 +995,7 @@ void DefaultServer::sendResponse(Event *current_event)
 	//debug
 	// std::cout << "sono prima del send" << std::endl;
 
-	int sent_bytes = send(connected_fd, client->response.getResponse().substr(client->response.getResponsePos()).c_str(), buf_siz, 0);
+	int sent_bytes = send(connected_fd, client->response.getResponse().substr(client->response.getResponsePos()).c_str(), buf_siz, MSG_NOSIGNAL);
 
 	//debug
 	std::cout << "sent bytes = " << sent_bytes << std::endl;
@@ -997,6 +1004,7 @@ void DefaultServer::sendResponse(Event *current_event)
 	if (sent_bytes == -1 || sent_bytes == 0)
 	{
 		std::cerr << "ERROR\nDefaultServer.sendResponse(): send()" << std::endl;
+		removeEvent(client);
 		disconnectFromClient(client);
 		return ;
 	}
@@ -1021,21 +1029,9 @@ void DefaultServer::sendResponse(Event *current_event)
 		std::cout << "\nThe whole response has been sent" << std::endl;
 
 		// remove connected_fd from kqueue
-	#ifdef __MACH__
-		struct kevent event;
-		bzero(&event, sizeof(event));
-		EV_SET(&event, connected_fd, EVFILT_WRITE, EV_DELETE, 0, 0, current_event);
-		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-	#elif defined(__linux__)
-		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, connected_fd, nullptr) == -1)
-	#endif
-		{
-			perror("\nERROR\nDefaultServer.sendResponse(): kevent()/epoll_ctl()");
-		}
-
+		removeEvent(client);
 		// erase client from the map of clients and delete it from memory
-		clients.erase(connected_fd);
-		delete client;
+		disconnectFromClient(client);
 	}
 
 	//DEBUG
@@ -1064,47 +1060,16 @@ void DefaultServer::closeTimedOutConnections()
 			if (current_client->triggered_event.events == WRITE)	// client timed out reading the response
 			{
 				// remove connected_fd from kqueue
-			#ifdef __MACH__
-				struct kevent event;
-				bzero(&event, sizeof(event));
-				EV_SET(&event, current_client->connected_fd, EVFILT_WRITE, EV_DELETE, 0, 0, &current_client->triggered_event);
-				if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-			#elif defined(__linux__)
-				if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, current_client->connected_fd, nullptr) == -1)
-			#endif
-				{
-					perror("\nERROR\nDefaultServer.closeTimedOutConnections(): kevent()/epoll_ctl()");
-				}
-
-				//debug
-				// std::cout << "removing conneted_fd " << current_client->connected_fd << " because it TIMED OUT reading the response" << std::endl;
-
+				removeEvent(current_client);
 				// erase client from the map of clients and delete it from memory
-				clients.erase(current_client->connected_fd);
-				delete current_client;
+				disconnectFromClient(current_client);
 			}
 			else if (current_client->request.getRequest().empty())		// client didn't send any request and the connection timed out
 			{
 				// remove connected_fd from kqueue
-			#ifdef __MACH__
-				struct kevent event;
-				bzero(&event, sizeof(event));
-				EV_SET(&event, current_client->connected_fd, EVFILT_READ, EV_DELETE, 0, 0, &current_client->triggered_event);
-				if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-			#elif defined(__linux__)
-				if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, current_client->connected_fd, nullptr) == -1)
-			#endif
-				{
-					perror("\nERROR\nDefaultServer.closeTimedOutConnections(): kevent()/epoll_ctl()");
-				}
-
-				//debug
-				// std::cout << "removing conneted_fd " << current_client->connected_fd << " because it TIMED OUT" << std::endl;
-
+				removeEvent(current_client);
 				// erase client from the map of clients and delete it from memory
-				current_client->~ConnectedClient();
-				clients.erase(current_client->connected_fd);
-				delete current_client;
+				disconnectFromClient(current_client);
 			}
 			else														// client timed out sending the request
 			{
@@ -1115,17 +1080,7 @@ void DefaultServer::closeTimedOutConnections()
 				current_client->response.setReasonPhrase("Request Timeout");
 				
 				// remove connected_fd to kqueue from READ monitoring
-			#ifdef __MACH__
-				struct kevent event;
-				bzero(&event, sizeof(event));
-				EV_SET(&event, current_client->connected_fd, EVFILT_READ, EV_DELETE, 0, 0, &current_client->triggered_event);
-				if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
-			#elif defined(__linux__)
-				if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, current_client->connected_fd, nullptr) == -1)
-			#endif
-				{
-					perror("ERROR\nDefaultServer.closeTimedOutConnections: kevent()/epoll_ctl()");
-				}
+				removeEvent(current_client);
 
 				// dispatch request as if it was complete, yet invalid
 				dispatchRequest(current_client);
