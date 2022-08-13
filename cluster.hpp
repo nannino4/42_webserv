@@ -22,7 +22,7 @@
 #define DEF_CONF "./config_files/default.conf"
 #define N_EVENTS 1000
 #define BACKLOG_SIZE 128
-#define HOW_OFTEN 10000
+#define HOW_OFTEN 10
 
 class Cluster
 {
