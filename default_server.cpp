@@ -338,6 +338,10 @@ void DefaultServer::receiveRequest(Event *current_event)
 
 	// read from connected_fd into client->request
 	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE, 0);
+
+	//debug
+	std::cout << "read_bytes = " << read_bytes << std::endl;
+
 	if (read_bytes == -1 || read_bytes == 0)
 	{
 		perror("ERROR\nDefaultServer.receiveRequest(): recv");
@@ -635,12 +639,68 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 void DefaultServer::writeToCgi(Event *current_event)
 {
 	ConnectedClient *client = (ConnectedClient *)current_event->owner;
-	int connected_fd = current_event->fd;
+	int 			connected_fd = current_event->fd;
 
 	//DEBUG
 	std::cout << "\n-----------------------------------------------------------" << std::endl;
 	std::cout << "DefaultServer:writeToCgi():" << std::endl;
-	
+
+	//check if cgi exited prematurely
+	if (waitpid(client->response.getCgi().getPid(), nullptr, WNOHANG))
+	{
+		//error: cgi exited
+		std::cerr << "ERROR\nDefaultServer.writeToCgi(): cgi exited" << std::endl;
+
+		client->response.setStatusCode("500");
+		client->response.setReasonPhrase("Internal Server Error");
+		errorPageToBody(client->response);
+		client->response.setIsComplete(true);
+		if (client->response.getBody().size() > 0)
+		{
+			client->response.addNewHeader(std::pair<std::string,std::string>("Content-Length", std::to_string(client->response.getBody().size())));
+		}
+		client->response.createResponse();
+
+		// remove to_cgi[1] from kqueue
+	#ifdef __MACH__
+		struct kevent event;
+		bzero(&event, sizeof(event));
+		EV_SET(&event, client->response.getCgi().getToCgiFd(), EVFILT_WRITE, EV_DELETE, 0, 0, current_event);
+		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+	#elif defined(__linux__)
+		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_DEL, client->response.getCgi().getToCgiFd(), nullptr) == -1)
+	#endif
+		{
+			perror("\nERROR\nDefaultServer.writeToCgi(): kevent()/epoll_ctl()");
+		}
+		close(client->response.getCgi().getToCgiFd());
+		close(client->response.getCgi().getFromCgiFd());
+
+		// add connected_fd to WRITE monitoring
+		client->triggered_event.events = WRITE;
+		client->triggered_event.fd = client->connected_fd;
+		triggered_event.is_error = false;
+		triggered_event.is_hang_up = false;
+	#ifdef __MACH__
+		bzero(&event, sizeof(event));
+		EV_SET(&event, client->connected_fd, EVFILT_WRITE, EV_ADD, 0, 0, &client->triggered_event);
+		if (kevent(kqueue_epoll_fd, &event, 1, nullptr, 0, nullptr) == -1)
+	#elif defined(__linux__)
+		struct epoll_event event;
+		bzero(&event, sizeof(event));
+		event.events = EPOLLOUT | EPOLLRDHUP;
+		event.data.ptr = &client->triggered_event;
+		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
+	#endif
+		{
+			perror("ERROR\nDefaultServer.writeToCgi: kevent()/epoll_ctl()");
+			removeEvent(client);
+			disconnectFromClient(client);
+			return ;
+		}
+		return ;
+	}
+
 	int buf_siz = ((unsigned long)(client->response.getCgiDataPos() + BUFFER_SIZE) > client->response.getCgi().getPostData().size()) ? (client->response.getCgi().getPostData().size() - client->response.getCgiDataPos()) : BUFFER_SIZE;
 	int sent_bytes = write(connected_fd, client->response.getCgi().getPostData().substr(client->response.getCgiDataPos()).c_str(), buf_siz);
 
@@ -695,7 +755,7 @@ void DefaultServer::writeToCgi(Event *current_event)
 		if (epoll_ctl(kqueue_epoll_fd, EPOLL_CTL_ADD, client->connected_fd, &event) == -1)
 	#endif
 		{
-			perror("ERROR\nDefaultServer.dispatchRequest: kevent()/epoll_ctl()");
+			perror("ERROR\nDefaultServer.writeToCgi: kevent()/epoll_ctl()");
 			removeEvent(client);
 			disconnectFromClient(client);
 			return ;
@@ -995,7 +1055,7 @@ void DefaultServer::sendResponse(Event *current_event)
 	//debug
 	// std::cout << "sono prima del send" << std::endl;
 
-	int sent_bytes = send(connected_fd, client->response.getResponse().substr(client->response.getResponsePos()).c_str(), buf_siz, MSG_NOSIGNAL);
+	int sent_bytes = send(connected_fd, client->response.getResponse().substr(client->response.getResponsePos()).c_str(), buf_siz, 0); //TODO add MSG_NOSIGNAL
 
 	//debug
 	std::cout << "sent bytes = " << sent_bytes << std::endl;

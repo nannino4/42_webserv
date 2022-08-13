@@ -285,7 +285,7 @@ void Server::methodPost(ConnectedClient *client)
 						response.setReasonPhrase("Internal Server Error");
 						errorPageToBody(response);
 						response.setIsComplete(true);
-				}
+					}
 				}
 				else
 				{
@@ -532,7 +532,7 @@ void Server::manageDir(ConnectedClient *client)
 	else if (request.getLocation()->isAutoindex())
 	{
 		// no indexes, but autoindex is on
-		generateAutoIndex(request, response);
+		generateAutoIndex(request, response);	//TODO fix
 	}
 	else
 	{
