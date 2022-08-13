@@ -82,8 +82,11 @@ public:
 	void receiveRequest(Event *current_event);
 	void dispatchRequest(ConnectedClient *client);
 	// void prepareResponse(ConnectedClient &client);		// inherited from Server
+	void writeToCgi(Event *current_event);
+	void readFromCgi(Event *current_event);
 	void sendResponse(Event *current_event);
 	void closeTimedOutConnections();
+	void removeEvent(ConnectedClient *client);
 
 private:
 	// initialization
@@ -92,5 +95,8 @@ private:
 	void parseName(std::stringstream &stream);
 	void parseBodySize(std::stringstream &stream);
 	void parseErrorPage(std::stringstream &stream);
+
+	// handling request
+	Server *getMatchingServer(Request &request);
 
 };

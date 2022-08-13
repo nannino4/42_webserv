@@ -30,7 +30,7 @@ Cluster::Cluster(std::string config_file_name)
 	}
 	if (!config_file.is_open() && config_file_name.compare(DEF_CONF))
 	{
-		// std::cout << "\nWARNING\n\"" << config_file_name << "\" is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
+		// //std::cout << "\nWARNING\n\"" << config_file_name << "\" is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
 		config_file.open(DEF_CONF);
 		if (!config_file.is_open())
 		{
@@ -98,12 +98,15 @@ Cluster::Cluster(std::string config_file_name)
 	{
 		std::cerr << "\nERROR\nCluster::Cluster(): found invalid text after the last '}'" << std::endl;
 	}
-	// // std::cout << "Cluster initialization has been completed.\n" << *this << std::endl;		//debug
+	// // //std::cout << "Cluster initialization has been completed.\n" << *this << std::endl;		//debug
 }
 
 // destructor
 Cluster::~Cluster()
 {
+	//debug
+	//std::cout << "~Cluster()" << std::endl;
+
 	for (std::map<Cluster::address,DefaultServer&>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
 	{
 		it->second.~DefaultServer();
@@ -154,8 +157,6 @@ void Cluster::run()
 	int	num_ready_fds;
 	while (1)
 	{
-		// //debug
-		// usleep(10000);
 	#ifdef __MACH__
 		num_ready_fds = kevent(kqueue_epoll_fd, nullptr, 0, triggered_events, N_EVENTS, &null_timespec);
 	#elif defined(__linux__)
@@ -174,7 +175,8 @@ void Cluster::run()
 
 		#ifdef __MACH__
 			Event *current_event = (Event *)(triggered_events[i].udata);
-			current_event->is_hang_up = (triggered_events[i].flags & EV_EOF);
+			if (!current_event->is_hang_up)
+				current_event->is_hang_up = (triggered_events[i].flags & EV_EOF);
 			current_event->is_error = (triggered_events[i].flags & EV_ERROR);
 		#elif defined(__linux__)
 			Event *current_event = (Event *)(triggered_events[i].data.ptr);
@@ -186,28 +188,50 @@ void Cluster::run()
 
 			DefaultServer *default_server = (DefaultServer *)(current_event->default_server_ptr);
 
-			// //debug
-			// std::cout << "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
-			// std::cout << "\nevent " << i + 1 << "/" << num_ready_fds << std::endl << std::endl;
-			// std::cout << "current_event:\n";
-			// std::cout << "\tfd =\t\t" << current_event->fd << std::endl;
-			// std::cout << "\tevents =\t" << current_event->events << std::endl;
-			// std::cout << "\tis_hang_up =\t" << std::boolalpha << current_event->is_hang_up << std::endl;
-			// std::cout << "\tis_error =\t" << std::boolalpha << current_event->is_error << std::endl;
-			// std::cout << "\tserver fd:\t" << ((DefaultServer *)current_event->default_server_ptr)->getListeningFd() << std::endl << std::endl;
+			//debug
+			//std::cout << "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+			//std::cout << "\nevent " << i + 1 << "/" << num_ready_fds << std::endl << std::endl;
+			//std::cout << "current_event:\n";
+			// //std::cout << "\tevent.fd =\t\t" << triggered_events[i].ident << std::endl;
+			//std::cout << "\tcurrent_event.fd =\t" << current_event->fd << std::endl;
+			//std::cout << "\tevents =\t" << current_event->events << std::endl;
+			//std::cout << "\tis_hang_up =\t" << std::boolalpha << current_event->is_hang_up << std::endl;
+			//std::cout << "\tis_error =\t" << std::boolalpha << current_event->is_error << std::endl;
+			//std::cout << "\tserver fd:\t" << ((DefaultServer *)current_event->default_server_ptr)->getListeningFd() << std::endl << std::endl;
 
-			//manage the case in which (current_event->is_error == true)
-			if (current_event->is_hang_up || current_event->is_error)
+			if (current_event->is_error)
 			{
-				//debug
-				// // std::cout << "connected fd = " << current_event->fd << " has been removed because the connection was hung up" << std::endl;
-
-				((DefaultServer*)current_event->default_server_ptr)->disconnectFromClient((ConnectedClient*)current_event->owner);
+				default_server->removeEvent((ConnectedClient*)current_event->owner);
+				default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
 			}
+			// else if (current_event->is_hang_up && (current_event->fd != ((ConnectedClient*)current_event->owner)->response.getCgi().getFromCgiFd())) //debug: this shouldn't be commented
+			// {
+			// 	default_server->removeEvent((ConnectedClient*)current_event->owner);
+			// 	default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
+			// }
 			else if (current_event->events == WRITE)
 			{
-				// response can be sent to connected_fd
-				default_server->sendResponse(current_event);
+				if (current_event->fd == ((ConnectedClient*)current_event->owner)->connected_fd)
+				{
+					// response can be sent to connected_fd
+					default_server->sendResponse(current_event);
+				}
+				else if (current_event->fd == ((ConnectedClient*)current_event->owner)->response.getCgi().getToCgiFd())
+				{
+					// write to CGI
+					default_server->writeToCgi(current_event);
+				}
+				else
+				{
+					//error: disconnect
+					default_server->removeEvent((ConnectedClient*)current_event->owner);
+					default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
+				}
+			}
+			else if (current_event->is_hang_up && (current_event->fd != ((ConnectedClient*)current_event->owner)->response.getCgi().getFromCgiFd())) //debug
+			{
+				default_server->removeEvent((ConnectedClient*)current_event->owner);
+				default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
 			}
 			else if (current_event->events == READ)
 			{
@@ -216,13 +240,24 @@ void Cluster::run()
 					// listening_fd ready to accept a new connection from client
 					default_server->connectToClient();
 				}
-				else
+				else if (current_event->fd == ((ConnectedClient*)current_event->owner)->connected_fd)
 				{
 					// request can be received from connected_fd
 					default_server->receiveRequest(current_event);
 				}
+				else if (current_event->fd == ((ConnectedClient*)current_event->owner)->response.getCgi().getFromCgiFd())
+				{
+					// read from CGI
+					default_server->readFromCgi(current_event);
+				}
+				else
+				{
+					//error: disconnect
+					default_server->removeEvent((ConnectedClient*)current_event->owner);
+					default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
+				}
 			}
-			// std::cout << "\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+			// //std::cout << "\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 
 		} //for loop on num_ready_fds
 

@@ -63,19 +63,17 @@ public:
 	// communication
 	void	prepareResponse(ConnectedClient *client);
 private:
-	void	methodGet(Request &request, Response &response);
-	void	methodPost(Request &request, Response &response);
-	void	methodDelete(Request &request, Response &response);
+	void	methodGet(ConnectedClient *client);
+	void	methodPost(ConnectedClient *client);
+	void	methodDelete(ConnectedClient *client);
 
 	// utility
 public:
 	bool	isName(std::string const &name_to_match) const;
 private:
-	void	convertCGI(Request &request, Response &response);
-	void	takeHeaders(std::string tmp, Response &response);
-	void	fileToBody(Request &request, Response &response);
-	void	manageDir(Request &request, Response &response);
-	void	errorPageToBody(Response &response);
+	void	fileToBody(ConnectedClient *client);
+	void	manageDir(ConnectedClient *client);
 	void	generateAutoIndex(Request &request, Response &response);
-
+protected:
+	void	errorPageToBody(Response &response);
 };

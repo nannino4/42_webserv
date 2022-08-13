@@ -6,14 +6,14 @@
 
 struct Event
 {
-    int const   &fd;
+    int			fd;
     bool        is_hang_up;
     bool        is_error;
     void        *default_server_ptr;
     void        *owner;
     int         events;
 
-    Event(int const &fd, void *default_server_ptr, void *owner) : fd(fd), is_hang_up(false), is_error(false), default_server_ptr(default_server_ptr), owner(owner), events(-1) {}
+    Event(int fd, void *default_server_ptr, void *owner) : fd(fd), is_hang_up(false), is_error(false), default_server_ptr(default_server_ptr), owner(owner), events(-1) {}
     Event(Event const &other) : fd(other.fd) { *this = other; }
     Event &operator=(Event const &other)
     {
