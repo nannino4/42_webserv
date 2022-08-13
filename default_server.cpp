@@ -234,9 +234,9 @@ void DefaultServer::startListening()
 	}
 
 	//DEBUG
-	// // std::cout << "-----------------------------------------------------------" << std::endl;
-	// // std::cout << "-----------------------------------------------------------" << std::endl;
-	// // std::cout << "\nDefaultServer:startListening:\n\nlistening on fd = " << listening_fd << 
+	// // //std::cout << "-----------------------------------------------------------" << std::endl;
+	// // //std::cout << "-----------------------------------------------------------" << std::endl;
+	// // //std::cout << "\nDefaultServer:startListening:\n\nlistening on fd = " << listening_fd << 
 			// "\nport = " << ntohs(server_addr.sin_port) << 
 			// "\nip = " << inet_ntoa(server_addr.sin_addr) << std::endl << std::endl;
 }
@@ -245,24 +245,32 @@ void DefaultServer::connectToClient()
 {
 	struct sockaddr_in	client_addr;
 	int					connected_fd;
+	int					option_value = 1; /* Set NOSIGPIPE to ON */
 
 	bzero(&client_addr, sizeof(client_addr));
 	socklen_t socklen = sizeof(client_addr);
 	client_addr.sin_family = AF_INET;
 	connected_fd = accept(listening_fd, (sockaddr *)&client_addr, &socklen);
+	
+
 	if (connected_fd == -1)
 	{
 		//accept() failed
 		perror("ERROR\nDefaultServer.connectToClient(): accept()");
+	}
+	else if (setsockopt(connected_fd, SOL_SOCKET, SO_NOSIGPIPE, &option_value, sizeof(option_value)) < 0)
+	{
+		perror ("ERROR\nDefaultServer.connectToClient(): setsockopt(,,SO_NOSIGPIPE)");
+		close(connected_fd);
 	}
 	else
 	{
 		// accept() was succesful
 
 		//DEBUG
-		std::cout << "-----------------------------------------------------------" << std::endl;
-		std::cout << "-----------------------------------------------------------" << std::endl;
-		std::cout << "\nDefaultServer:connectToClient()\n\nconnected to fd = " << connected_fd << "\nport = " << ntohs(client_addr.sin_port) << "\nip = " << inet_ntoa(client_addr.sin_addr) << std::endl << std::endl;
+		//std::cout << "-----------------------------------------------------------" << std::endl;
+		//std::cout << "-----------------------------------------------------------" << std::endl;
+		//std::cout << "\nDefaultServer:connectToClient()\n\nconnected to fd = " << connected_fd << "\nport = " << ntohs(client_addr.sin_port) << "\nip = " << inet_ntoa(client_addr.sin_addr) << std::endl << std::endl;
 
 		// create new ConnectedClient
 		ConnectedClient *new_client = new ConnectedClient(connected_fd, client_addr, this);
@@ -287,7 +295,6 @@ void DefaultServer::connectToClient()
 	#endif
 		{
 			perror("ERROR\nDefaultServer.connectToClient(): kevent()/epoll_ctl()");
-			removeEvent((ConnectedClient*)new_client);
 			disconnectFromClient(new_client);
 		}
 	}
@@ -296,7 +303,7 @@ void DefaultServer::connectToClient()
 void DefaultServer::disconnectFromClient(ConnectedClient *client)
 {
 	//debug
-	std::cout << "disconnecting from fd " << client->connected_fd << std::endl;
+	//std::cout << "disconnecting from fd " << client->connected_fd << std::endl;
 
 	if (clients.erase(client->connected_fd))
 		delete client;
@@ -331,8 +338,8 @@ void DefaultServer::receiveRequest(Event *current_event)
 	std::string			tmp;
 
 	//debug
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "DefaultServer.receiveRequest():" << std::endl;
+	//std::cout << "-----------------------------------------------------------" << std::endl;
+	//std::cout << "DefaultServer.receiveRequest():" << std::endl;
 
 	ConnectedClient *client = (ConnectedClient *)current_event->owner;
 
@@ -340,7 +347,7 @@ void DefaultServer::receiveRequest(Event *current_event)
 	int read_bytes = recv(connected_fd, buf, BUFFER_SIZE, 0);
 
 	//debug
-	std::cout << "read_bytes = " << read_bytes << std::endl;
+	//std::cout << "read_bytes = " << read_bytes << std::endl;
 
 	if (read_bytes == -1 || read_bytes == 0)
 	{
@@ -549,13 +556,13 @@ void DefaultServer::receiveRequest(Event *current_event)
 		removeEvent(client);
 
 		// debug
-		std::cout << "---------request without body:---------\n" << client->request.getRequest().substr(0, client->request.getRequest().find("\r\n\r\n")) << std::endl << std::endl;
+		//std::cout << "---------request without body:---------\n" << client->request.getRequest().substr(0, client->request.getRequest().find("\r\n\r\n")) << std::endl << std::endl;
 
 		dispatchRequest(client);
 
 		// debug
-		std::cout << "\nEND of DefaultServer.receiveRequest()" << std::endl;
-		std::cout << "-----------------------------------------------------------" << std::endl;
+		//std::cout << "\nEND of DefaultServer.receiveRequest()" << std::endl;
+		//std::cout << "-----------------------------------------------------------" << std::endl;
 	}
 }
 
@@ -577,8 +584,8 @@ Server *DefaultServer::getMatchingServer(Request &request)
 void DefaultServer::dispatchRequest(ConnectedClient *client)
 {
 	//debug
-	// std::cout << "\n-------------------------------" << std::endl;
-	// std::cout << "DefaultServer::dispatchRequest()\n" << std::endl;
+	// //std::cout << "\n-------------------------------" << std::endl;
+	// //std::cout << "DefaultServer::dispatchRequest()\n" << std::endl;
 
 	// find the server location correspongin to the request path
 	Server		*requestedServer = (Server *)client->request.getServer() == nullptr ? this : (Server *)client->request.getServer();
@@ -632,8 +639,8 @@ void DefaultServer::dispatchRequest(ConnectedClient *client)
 		clock_gettime(CLOCK_BOOTTIME, &client->time_since_last_action);
 	#endif
 
-	// std::cout << "END of DefaultServer::dispatchRequest()" << std::endl;
-	// std::cout << "-------------------------------" << std::endl;
+	// //std::cout << "END of DefaultServer::dispatchRequest()" << std::endl;
+	// //std::cout << "-------------------------------" << std::endl;
 }
 
 void DefaultServer::writeToCgi(Event *current_event)
@@ -642,8 +649,8 @@ void DefaultServer::writeToCgi(Event *current_event)
 	int 			connected_fd = current_event->fd;
 
 	//DEBUG
-	std::cout << "\n-----------------------------------------------------------" << std::endl;
-	std::cout << "DefaultServer:writeToCgi():" << std::endl;
+	//std::cout << "\n-----------------------------------------------------------" << std::endl;
+	//std::cout << "DefaultServer:writeToCgi():" << std::endl;
 
 	//check if cgi exited prematurely
 	if (waitpid(client->response.getCgi().getPid(), nullptr, WNOHANG))
@@ -705,7 +712,7 @@ void DefaultServer::writeToCgi(Event *current_event)
 	int sent_bytes = write(connected_fd, client->response.getCgi().getPostData().substr(client->response.getCgiDataPos()).c_str(), buf_siz);
 
 	//debug
-	std::cout << "bytes sent to cgi = " << sent_bytes << std::endl;
+	//std::cout << "bytes sent to cgi = " << sent_bytes << std::endl;
 
 	// check that write() didn't fail
 	if (sent_bytes == -1 || sent_bytes == 0)
@@ -776,7 +783,7 @@ void DefaultServer::writeToCgi(Event *current_event)
 	if ((size_t)client->response.getCgiDataPos() == client->response.getCgi().getPostData().size() || current_event->is_error || current_event->is_hang_up)
 	{
 		//DEBUG
-		std::cout << "The whole post data has been sent to cgi" << std::endl;
+		//std::cout << "The whole post data has been sent to cgi" << std::endl;
 
 		// remove to_cgi[1] from kqueue
 	#ifdef __MACH__
@@ -849,8 +856,8 @@ void DefaultServer::writeToCgi(Event *current_event)
 	}
 
 	//DEBUG
-	std::cout << "END of DefaultServer:writeToCgi():" << std::endl;
-	std::cout << "-----------------------------------------------------------" << std::endl;
+	//std::cout << "END of DefaultServer:writeToCgi():" << std::endl;
+	//std::cout << "-----------------------------------------------------------" << std::endl;
 }
 
 void DefaultServer::readFromCgi(Event *current_event)
@@ -861,15 +868,15 @@ void DefaultServer::readFromCgi(Event *current_event)
 	int				read_bytes = 0;
 
 	//debug
-	std::cout << "-----------------------------------------------------------" << std::endl;
-	std::cout << "DefaultServer.readFromCgi():" << std::endl;
+	//std::cout << "-----------------------------------------------------------" << std::endl;
+	//std::cout << "DefaultServer.readFromCgi():" << std::endl;
 
 	is_cgi_over = waitpid(client->response.getCgi().getPid(), nullptr, WNOHANG);
 	do
 	{
 		read_bytes = read(current_event->fd, buf, BUFFER_SIZE);
 		//debug
-		std::cout << "read_bytes = " << read_bytes << std::endl;
+		//std::cout << "read_bytes = " << read_bytes << std::endl;
 
 		if (read_bytes == -1)
 		{
@@ -1037,8 +1044,8 @@ void DefaultServer::readFromCgi(Event *current_event)
 	} // if (is_cgi_over && read_bytes == 0)
 
 	//debug
-	std::cout << "END of DefaultServer.readFromCgi():" << std::endl;
-	std::cout << "-----------------------------------------------------------" << std::endl;
+	//std::cout << "END of DefaultServer.readFromCgi():" << std::endl;
+	//std::cout << "-----------------------------------------------------------" << std::endl;
 }
 
 void DefaultServer::sendResponse(Event *current_event)
@@ -1047,18 +1054,18 @@ void DefaultServer::sendResponse(Event *current_event)
 	ConnectedClient *client = (ConnectedClient *)current_event->owner;
 
 	//DEBUG
-	std::cout << "\n-----------------------------------------------------------" << std::endl;
-	std::cout << "DefaultServer:sendResponse():" << std::endl;
+	//std::cout << "\n-----------------------------------------------------------" << std::endl;
+	//std::cout << "DefaultServer:sendResponse():" << std::endl;
 	
 	int buf_siz = ((unsigned long)(client->response.getResponsePos() + BUFFER_SIZE) > client->response.getResponse().size()) ? (client->response.getResponse().size() - client->response.getResponsePos()) : BUFFER_SIZE;
 
 	//debug
-	// std::cout << "sono prima del send" << std::endl;
+	// //std::cout << "sono prima del send" << std::endl;
 
 	int sent_bytes = send(connected_fd, client->response.getResponse().substr(client->response.getResponsePos()).c_str(), buf_siz, 0); //TODO add MSG_NOSIGNAL
 
 	//debug
-	std::cout << "sent bytes = " << sent_bytes << std::endl;
+	//std::cout << "sent bytes = " << sent_bytes << std::endl;
 
 	// check that send() didn't fail
 	if (sent_bytes == -1 || sent_bytes == 0)
@@ -1072,7 +1079,7 @@ void DefaultServer::sendResponse(Event *current_event)
 	client->response.setResponsePos(client->response.getResponsePos() + sent_bytes);
 
 	// //debug
-	// // std::cout << "response sent by now:\n" << client->response.getResponse().substr(0, client->response.getResponsePos()) << std::endl;
+	// // //std::cout << "response sent by now:\n" << client->response.getResponse().substr(0, client->response.getResponsePos()) << std::endl;
 
 	// update client timeout
 	#ifdef __MACH__
@@ -1082,11 +1089,11 @@ void DefaultServer::sendResponse(Event *current_event)
 	#endif
 
 	// check if whole response has been sent
-	if ((size_t)client->response.getResponsePos() == client->response.getResponse().size() || current_event->is_error || current_event->is_hang_up)
+	if ((size_t)client->response.getResponsePos() == client->response.getResponse().size())// || current_event->is_error || current_event->is_hang_up)
 	{
 
 		//DEBUG
-		std::cout << "\nThe whole response has been sent" << std::endl;
+		//std::cout << "\nThe whole response has been sent" << std::endl;
 
 		// remove connected_fd from kqueue
 		removeEvent(client);
@@ -1095,16 +1102,16 @@ void DefaultServer::sendResponse(Event *current_event)
 	}
 
 	//DEBUG
-	std::cout << "END of DefaultServer:sendResponse():" << std::endl;
-	std::cout << "-----------------------------------------------------------" << std::endl;
+	//std::cout << "END of DefaultServer:sendResponse():" << std::endl;
+	//std::cout << "-----------------------------------------------------------" << std::endl;
 }
 
 void DefaultServer::closeTimedOutConnections()
 {
 
 	//DEBUG
-	// std::cout << "\n-----------------------------------------------------------" << std::endl;
-	// std::cout << "DefaultServer:closeTimedOutConnections():" << std::endl;
+	// //std::cout << "\n-----------------------------------------------------------" << std::endl;
+	// //std::cout << "DefaultServer:closeTimedOutConnections():" << std::endl;
 
 	ConnectedClient	*current_client;
 	std::map<int,ConnectedClient&>::iterator it = clients.begin();
@@ -1149,6 +1156,6 @@ void DefaultServer::closeTimedOutConnections()
 	} // while (it != clients.end())
 	
 	//DEBUG
-	// std::cout << "\nEND of DefaultServer:closeTimedOutConnections():" << std::endl;
-	// std::cout << "-----------------------------------------------------------" << std::endl;
+	// //std::cout << "\nEND of DefaultServer:closeTimedOutConnections():" << std::endl;
+	// //std::cout << "-----------------------------------------------------------" << std::endl;
 }

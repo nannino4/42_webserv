@@ -30,7 +30,7 @@ Cluster::Cluster(std::string config_file_name)
 	}
 	if (!config_file.is_open() && config_file_name.compare(DEF_CONF))
 	{
-		// std::cout << "\nWARNING\n\"" << config_file_name << "\" is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
+		// //std::cout << "\nWARNING\n\"" << config_file_name << "\" is not a valid configuration file. The default configuration file " << DEF_CONF << " is used instead" << std::endl;
 		config_file.open(DEF_CONF);
 		if (!config_file.is_open())
 		{
@@ -98,14 +98,14 @@ Cluster::Cluster(std::string config_file_name)
 	{
 		std::cerr << "\nERROR\nCluster::Cluster(): found invalid text after the last '}'" << std::endl;
 	}
-	// // std::cout << "Cluster initialization has been completed.\n" << *this << std::endl;		//debug
+	// // //std::cout << "Cluster initialization has been completed.\n" << *this << std::endl;		//debug
 }
 
 // destructor
 Cluster::~Cluster()
 {
 	//debug
-	std::cout << "~Cluster()" << std::endl;
+	//std::cout << "~Cluster()" << std::endl;
 
 	for (std::map<Cluster::address,DefaultServer&>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
 	{
@@ -189,15 +189,15 @@ void Cluster::run()
 			DefaultServer *default_server = (DefaultServer *)(current_event->default_server_ptr);
 
 			//debug
-			std::cout << "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
-			std::cout << "\nevent " << i + 1 << "/" << num_ready_fds << std::endl << std::endl;
-			std::cout << "current_event:\n";
-			// std::cout << "\tevent.fd =\t\t" << triggered_events[i].ident << std::endl;
-			std::cout << "\tcurrent_event.fd =\t" << current_event->fd << std::endl;
-			std::cout << "\tevents =\t" << current_event->events << std::endl;
-			std::cout << "\tis_hang_up =\t" << std::boolalpha << current_event->is_hang_up << std::endl;
-			std::cout << "\tis_error =\t" << std::boolalpha << current_event->is_error << std::endl;
-			std::cout << "\tserver fd:\t" << ((DefaultServer *)current_event->default_server_ptr)->getListeningFd() << std::endl << std::endl;
+			//std::cout << "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+			//std::cout << "\nevent " << i + 1 << "/" << num_ready_fds << std::endl << std::endl;
+			//std::cout << "current_event:\n";
+			// //std::cout << "\tevent.fd =\t\t" << triggered_events[i].ident << std::endl;
+			//std::cout << "\tcurrent_event.fd =\t" << current_event->fd << std::endl;
+			//std::cout << "\tevents =\t" << current_event->events << std::endl;
+			//std::cout << "\tis_hang_up =\t" << std::boolalpha << current_event->is_hang_up << std::endl;
+			//std::cout << "\tis_error =\t" << std::boolalpha << current_event->is_error << std::endl;
+			//std::cout << "\tserver fd:\t" << ((DefaultServer *)current_event->default_server_ptr)->getListeningFd() << std::endl << std::endl;
 
 			if (current_event->is_error)
 			{
@@ -257,7 +257,7 @@ void Cluster::run()
 					default_server->disconnectFromClient((ConnectedClient*)current_event->owner);
 				}
 			}
-			// std::cout << "\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
+			// //std::cout << "\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||" << std::endl;
 
 		} //for loop on num_ready_fds
 
