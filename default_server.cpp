@@ -116,10 +116,15 @@ DefaultServer::~DefaultServer()
 {
 	if (listening_fd != -1)
 		close(listening_fd);
-	for (std::map<int,ConnectedClient&>::iterator it = clients.begin(); it != clients.end(); ++it)
+
+	ConnectedClient								*current_client;
+	std::map<int,ConnectedClient&>::iterator	it = clients.begin();
+
+	while (it != clients.end())
 	{
-		it->second.~ConnectedClient();
-		delete &(*it);
+		current_client = &it->second;
+		++it;
+		disconnectFromClient(current_client);
 	}
 }
 

@@ -42,17 +42,24 @@ private:
 	#endif
 
 public:
-	// constructor
+	// constructors
+	Cluster();
 	Cluster(std::string config_file_name);
+	Cluster(Cluster const &other);
+
+	// assign operator
+	Cluster &operator=(Cluster const &other);
 
 	// destructor
 	~Cluster();
+	void destroy();
 
 	// output operator overload
 	friend std::ostream &operator<<(std::ostream &os, Cluster const &cluster);
 
 	// getters
-	int	getKqueueEpollFd() const;
+	std::map<address,DefaultServer&>	getDefaultServers() const;
+	int									getKqueueEpollFd() const;
 
 	// run
 	void run();

@@ -1,6 +1,9 @@
 #include "cluster.hpp"
 
 // default constructor
+Cluster::Cluster() : kqueue_epoll_fd(-1) {}
+
+// constructor from config_file
 Cluster::Cluster(std::string config_file_name)
 {
 
@@ -101,16 +104,37 @@ Cluster::Cluster(std::string config_file_name)
 	// // //std::cout << "Cluster initialization has been completed.\n" << *this << std::endl;		//debug
 }
 
+// copy constructor
+Cluster::Cluster(Cluster const &other) { *this = other; }
+
+// assign operator
+Cluster &Cluster::operator=(Cluster const &other)
+{
+	default_servers = other.getDefaultServers();
+	kqueue_epoll_fd = other.getKqueueEpollFd();
+	return *this;
+}
+
 // destructor
-Cluster::~Cluster()
+Cluster::~Cluster() {}
+
+// real destructor
+void Cluster::destroy()
 {
 	//debug
-	//std::cout << "~Cluster()" << std::endl;
+	std::cout << "Cluster::destroy()" << std::endl;
 
-	for (std::map<Cluster::address,DefaultServer&>::iterator it = default_servers.begin(); it != default_servers.end(); ++it)
+	DefaultServer								*current_server;
+	std::map<address,DefaultServer&>::iterator	it = default_servers.begin();
+	std::map<address,DefaultServer&>::iterator	it2 = default_servers.begin();
+
+	while (it != default_servers.end())
 	{
-		it->second.~DefaultServer();
-		delete &it->second;
+		it2 = it;
+		current_server = &it->second;
+		++it;
+		default_servers.erase(it2);
+		delete current_server;
 	}
 }
 
@@ -129,10 +153,8 @@ std::ostream &operator<<(std::ostream &os, Cluster const &cluster)
 }
 
 // getters
-int Cluster::getKqueueEpollFd() const
-{
-	return kqueue_epoll_fd;
-}
+std::map<Cluster::address,DefaultServer&> 	Cluster::getDefaultServers() const { return default_servers; }
+int 										Cluster::getKqueueEpollFd() const { return kqueue_epoll_fd; }
 
 // run
 void Cluster::run()

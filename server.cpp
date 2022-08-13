@@ -102,13 +102,8 @@ void Server::errorPageToBody(Response &response)
 void Server::prepareResponse(ConnectedClient *client)
 {
 	//debug
-<<<<<<< HEAD
-	// std::cout << "\n-------------------------------" << std::endl;
-	// std::cout << "Server::prepareResponse()\n\n" << std::endl;
-=======
 	//std::cout << "\n-------------------------------" << std::endl;
 	//std::cout << "Server::prepareResponse()\n\n" << std::endl;
->>>>>>> johnny
 
 	Request		&request = client->request;
 	Response	&response = client->response;
@@ -185,17 +180,10 @@ void Server::prepareResponse(ConnectedClient *client)
 	}
 	response.createResponse();
 
-<<<<<<< HEAD
-	// //debug
-	// std::cout << "Response:\n" << response.getResponse().substr(0, response.getResponse().find("\r\n\r\n")) << std::endl;
-	// std::cout << "\nEND of Server::prepareResponse()" << std::endl;
-	// std::cout << "-------------------------------" << std::endl;
-=======
 	//debug
 	//std::cout << "Response:\n" << response.getResponse().substr(0, response.getResponse().find("\r\n\r\n")) << std::endl;
 	//std::cout << "\nEND of Server::prepareResponse()" << std::endl;
 	//std::cout << "-------------------------------" << std::endl;
->>>>>>> johnny
 }
 
 // GET method
