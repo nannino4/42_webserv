@@ -250,7 +250,9 @@ void DefaultServer::connectToClient()
 {
 	struct sockaddr_in	client_addr;
 	int					connected_fd;
+#ifdef __MACH__
 	int					option_value = 1; /* Set NOSIGPIPE to ON */
+#endif
 
 	bzero(&client_addr, sizeof(client_addr));
 	socklen_t socklen = sizeof(client_addr);
@@ -263,11 +265,13 @@ void DefaultServer::connectToClient()
 		//accept() failed
 		perror("ERROR\nDefaultServer.connectToClient(): accept()");
 	}
+#ifdef __MACH__
 	else if (setsockopt(connected_fd, SOL_SOCKET, SO_NOSIGPIPE, &option_value, sizeof(option_value)) < 0)
 	{
 		perror ("ERROR\nDefaultServer.connectToClient(): setsockopt(,,SO_NOSIGPIPE)");
 		close(connected_fd);
 	}
+#endif
 	else
 	{
 		// accept() was succesful
